@@ -6,14 +6,15 @@ from urllib.parse import urlparse
 import numpy as np
 import cv2
 from tqdm import tqdm
-import glob
+import csv
 
 logger = logging.getLogger(__name__)
 
 class GoogleLabels:
 
-    def __init__(self, anno_path, src_images_path, dest_path, is_mask=False):
+    def __init__(self, anno_path,csv_path, src_images_path, dest_path, is_mask=False):
         self.anno_path = anno_path
+        self.csv_path = csv_path
         self.src_image_path = src_images_path
         self.dest_path = dest_path
         self.is_mask = is_mask
@@ -135,10 +136,24 @@ class GoogleLabels:
         cv2.imwrite(os.path.join(self.dest_path, file_name), image)
         return local_image_path
 
+    def get_from_csv(self):
+        res = []
+        with open(self.csv_path, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                url_path = urlparse(row[0]).path
 
+                local_image_path = url_path.replace('/Cherry/images/', self.src_image_path)
+                res.append(local_image_path)
+        return res
 
-
-
+    def make_blank_masks(self, imgs_list):
+        for file in imgs_list:
+            img = cv2.imread(file, cv2.IMREAD_UNCHANGED)
+            height, width = img.shape[:2]
+            image = np.zeros((height, width, 1), np.uint8)
+            file_name = os.path.basename(file)
+            cv2.imwrite(os.path.join(self.dest_path, file_name), image)
 
     def save_all_anno_images(self):
 
@@ -146,17 +161,15 @@ class GoogleLabels:
         with open(self.anno_path, 'r') as ano_file:
             anno_str_list = ano_file.readlines()
 
-        x= len(anno_str_list)
 
         anno_paths = set()
         for anno_str in tqdm(anno_str_list):
             anno_paths.add(self.load_anno(anno_str))
 
-        images_list = {os.path.join(self.src_image_path,f) for f in os.listdir(self.src_image_path)}
-        x=len(images_list)
+        images_list = set(self.get_from_csv())
         no_anno = images_list.difference(anno_paths)
+        self.make_blank_masks(no_anno)
 
-        print("hello")
 
 
 
