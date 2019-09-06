@@ -64,13 +64,18 @@ def train_unet():
                                            save_to_dir=None,
                                            target_size=target_size,
                                            seed=1)
-    model = unet(input_size=input_size)
+    model = unet(input_size=input_size,pretrained_weights=weights_file_name)
     model_checkpoint = ModelCheckpoint(weights_file_name, monitor='loss', verbose=1, save_best_only=True)
-    model.fit_generator(train_gen, steps_per_epoch=100, epochs=3, callbacks=[model_checkpoint])
+    #model.fit_generator(train_gen, steps_per_epoch=100, epochs=3, callbacks=[model_checkpoint])
+
+    test_path_image = os.path.join(test_path,x_folder_name)
+    pred_path = os.path.join(test_path,'pred')
+    prediction(model, test_path_image, pred_path, target_size,as_gray=False)
+
 
 def main():
-    annotate()
-    #train_unet()
+    #annotate()
+    train_unet()
 
 
 if __name__ == "__main__":

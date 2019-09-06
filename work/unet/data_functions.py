@@ -91,10 +91,35 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
         yield (img, mask)
 
 
+def testGenerator(test_path,target_size = (256,256),as_gray=True):
+    img_list = os.scandir(test_path)
+    for img_name in img_list:
+        img = io.imread(os.path.join(test_path,img_name),as_gray=as_gray)
+        img = img / 255
+        img = trans.resize(img,target_size)
+        img = np.reshape(img,(1,)+img.shape)
+        yield img,img_name
 
 
-def saveResult(save_path,datagen, npyfile):
-    for name, item in zip(datagen.filenames,npyfile):
-        name = os.path.basename(name)
-        img = item.astype(np.uint8)
-        io.imsave(os.path.join(save_path, f"{name}_predict.png"), img)
+def saveResult(save_path,npyfile):
+    for i, item in enumerate(npyfile):
+        img = item[0,:,:]
+        img = 255 * img
+        img = img.astype(np.uint8)
+        io.imsave(os.path.join(save_path, f"{i}_predict.png"), img)
+
+def keras_img2img(img):
+    img = img[0]
+    img = 255 * img
+    img = img.astype(np.uint8)
+    return img
+
+def prediction(model,test_path,save_path,target_size,as_gray=False):
+    test_gen = testGenerator(test_path, target_size=target_size, as_gray=as_gray)
+    for img,img_Entry in test_gen:
+        img_name = img_Entry.name.rsplit('.', 1)[0]
+        pred = model.predict(img, batch_size=1)
+        pred_img = keras_img2img(pred)
+        save_img = keras_img2img(img)
+        io.imsave(os.path.join(save_path, f"{img_name}.png"), save_img)
+        io.imsave(os.path.join(save_path, f"{img_name}_predict.png"), pred_img)
