@@ -85,35 +85,16 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
                                       seed=seed)
 
     train_generator = zip(image_generator, mask_generator)
+
     for (img, mask) in train_generator:
         img, mask = adjustData(img, mask, flag_multi_class, num_class)
         yield (img, mask)
 
 
-def clarifruit_test_generator(batch_size, test_path, folder, aug_dict, save_prefix,
-                              color_mode="grayscale",
-                              save_to_dir=None,
-                              target_size=(256, 256),
-                              seed=1):
-    image_generator = custom_generator(batch_size=batch_size,
-                                       train_path=test_path,
-                                       folder=folder,
-                                       aug_dict=aug_dict,
-                                       save_prefix=save_prefix,
-                                       color_mode=color_mode,
-                                       save_to_dir=save_to_dir,
-                                       target_size=target_size,
-                                       seed=seed)
-
-    for img in image_generator:
-        if np.max(img) > 1:
-            img = img / 255
-        yield img
 
 
-def saveResult(save_path, npyfile):
-    for i, item in enumerate(npyfile):
-        img = item[:, :, 0]
-        io.imsave(os.path.join(save_path, "%d_predict.png" % i), img)
-
-
+def saveResult(save_path,datagen, npyfile):
+    for name, item in zip(datagen.filenames,npyfile):
+        name = os.path.basename(name)
+        img = item.astype(np.uint8)
+        io.imsave(os.path.join(save_path, f"{name}_predict.png"), img)

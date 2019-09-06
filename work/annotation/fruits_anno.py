@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 class GoogleLabels:
 
-    def __init__(self, anno_path,csv_path, src_images_path, dest_path, is_mask=False):
+    def __init__(self, anno_path, csv_path, src_images_path,dest_images_path, mask_dest_path, is_mask=False):
         self.anno_path = anno_path
         self.csv_path = csv_path
         self.src_image_path = src_images_path
-        self.dest_path = dest_path
+        self.dest_images_path = dest_images_path
+        self.mask_dest_path = mask_dest_path
         self.is_mask = is_mask
 
 
@@ -103,7 +104,7 @@ class GoogleLabels:
         url_path = urlparse(image_uri).path
         file_name = os.path.basename(url_path)
 
-        local_image_path = url_path.replace('/Cherry/images/', self.src_image_path)
+        local_image_path = url_path.replace('/Cherry/images', self.src_image_path)
 
         img = cv2.imread(local_image_path, cv2.IMREAD_UNCHANGED)
 
@@ -134,7 +135,7 @@ class GoogleLabels:
             except Exception:
                 logger.error('Cannot draw annotation!', exc_info=1)
 
-        cv2.imwrite(os.path.join(self.dest_path, file_name), image)
+        cv2.imwrite(os.path.join(self.mask_dest_path, file_name), image)
         return local_image_path
 
     def get_from_csv(self):
@@ -144,7 +145,7 @@ class GoogleLabels:
             for row in reader:
                 url_path = urlparse(row[0]).path
 
-                local_image_path = url_path.replace('/Cherry/images/', self.src_image_path)
+                local_image_path = url_path.replace('/Cherry/images', self.src_image_path)
                 res.append(local_image_path)
         return res
 
@@ -154,7 +155,7 @@ class GoogleLabels:
             height, width = img.shape[:2]
             image = np.zeros((height, width, 1), np.uint8)
             file_name = os.path.basename(file)
-            cv2.imwrite(os.path.join(self.dest_path, file_name), image)
+            cv2.imwrite(os.path.join(self.mask_dest_path, file_name), image)
 
     def move_anno_images(self,img_list):
         train_path = os.path
@@ -170,9 +171,9 @@ class GoogleLabels:
             anno_paths.add(self.load_anno(anno_str))
 
         images_list = set(self.get_from_csv())
-        train_path = r'D:\Clarifruit\cherry_stem\data\train'
+
         for img in images_list:
-            _ = shutil.copy(img, train_path)
+            _ = shutil.copy(img, self.dest_images_path)
 
 
         no_anno = images_list.difference(anno_paths)
