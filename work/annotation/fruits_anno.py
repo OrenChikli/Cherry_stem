@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 import csv
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +156,11 @@ class GoogleLabels:
             file_name = os.path.basename(file)
             cv2.imwrite(os.path.join(self.dest_path, file_name), image)
 
+    def move_anno_images(self,img_list):
+        train_path = os.path
+
+
     def save_all_anno_images(self):
-
-
         with open(self.anno_path, 'r') as ano_file:
             anno_str_list = ano_file.readlines()
 
@@ -167,6 +170,11 @@ class GoogleLabels:
             anno_paths.add(self.load_anno(anno_str))
 
         images_list = set(self.get_from_csv())
+        train_path = r'D:\Clarifruit\cherry_stem\data\train'
+        for img in images_list:
+            _ = shutil.copy(img, train_path)
+
+
         no_anno = images_list.difference(anno_paths)
         self.make_blank_masks(no_anno)
 
