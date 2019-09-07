@@ -73,6 +73,20 @@ def train_unet():
     prediction(model, test_path_image, pred_path, target_size,as_gray=False)
 
 
+def create_train_val_test():
+    data_path = r'D:\Clarifruit\cherry_stem\data\unet_data'
+
+    orig_folder_name = 'orig'
+
+    x_folder_name = 'image'
+    y_folder_name = 'label'
+
+
+    train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\train'
+    test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\test'
+
+
+
 def main():
     #annotate()
     train_unet()
