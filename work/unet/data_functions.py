@@ -6,18 +6,30 @@ import os
 import skimage.io as io
 import skimage.transform as trans
 
-from .model import *
 
 
-def custom_generator(batch_size, train_path, folder, aug_dict, save_prefix,
+def custom_generator(batch_size, src_path, folder, aug_dict, save_prefix,
                      color_mode="grayscale",
                      save_to_dir=None,
                      target_size=(256, 256),
                      seed=1):
+    """
+    Create a datagen generator
+    :param batch_size: the batch size of each step
+    :param src_path: the path to the data
+    :param folder: the name of the folder in the src_path
+    :param aug_dict: a dictionary with the data augmentation parameters of the images
+    :param save_prefix: if output images are saved, this is the prefix in the file names
+    :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
+    :param save_to_dir: path to save output images, if None nothing is saved, default is None
+    :param target_size: pixel size of output images,default is (256,256)
+    :param seed: random seed used in image generation, default is 1
+    :return: a flow_from_dictionary keras datagenerator
+    """
     datagen = ImageDataGenerator(**aug_dict)
 
     gen = datagen.flow_from_directory(
-        train_path,
+        src_path,
         classes=[folder],
         class_mode=None,
         color_mode=color_mode,
@@ -36,6 +48,21 @@ def train_val_generators(batch_size, src_path, folder, aug_dict, save_prefix,
                          target_size=(256, 256),
                          validation_split=0.2,
                          seed=1):
+    """
+
+    Create a datagen generator with  train validation split
+    :param batch_size: the batch size of each step
+    :param src_path: the path to the data
+    :param folder: the name of the folder in the src_path
+    :param aug_dict: a dictionary with the data augmentation parameters of the images
+    :param save_prefix: if output images are saved, this is the prefix in the file names
+    :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
+    :param save_to_dir: path to save output images, if None nothing is saved, default is None
+    :param target_size: pixel size of output images,default is (256,256)
+    :param validation_split: size of the validation data set, default is 0.2
+    :param seed: random seed used in image generation, default is 1
+    :return: a flow_from_dictionary keras datagenerator
+    """
     datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
 
     train_gen = datagen.flow_from_directory(
@@ -72,6 +99,25 @@ def clarifruit_train_val_generators(batch_size, src_path, image_folder, mask_fol
                                     target_size=(256, 256),
                                     validation_split=0.2,
                                     seed=1):
+    """
+
+    Creates train&val image generators with images and masks
+
+    :param batch_size: the batch size of each step
+    :param src_path: the path to the data
+    :param image_folder: the name of the image folder in the src_path
+    :param mask_folder: the name of the mask folder in the src_path
+    :param aug_dict: a dictionary with the data augmentation parameters of the images
+    :param image_color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
+    :param mask_color_mode: how to load the masks, options are "grayscale", "rgb", default is "grayscale"
+    :param image_save_prefix: if output images are saved, this is the prefix in the file names
+    :param mask_save_prefix: if output masks are saved, this is the prefix in the file names
+    :param save_to_dir: path to save output images, if None nothing is saved, default is None
+    :param target_size: pixel size of output images,default is (256,256)
+    :param validation_split: size of the validation data set, default is 0.2
+    :param seed: random seed used in image generation, default is 1
+    :return: a flow_from_dictionary keras datagenerator
+    """
 
     image_train_generator, image_val_generator = train_val_generators(batch_size=batch_size,
                                                                       src_path=src_path,
@@ -115,7 +161,7 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
     """
 
     image_generator = custom_generator(batch_size=batch_size,
-                                       train_path=train_path,
+                                       src_path=train_path,
                                        folder=image_folder,
                                        aug_dict=aug_dict,
                                        save_prefix=image_save_prefix,
@@ -125,7 +171,7 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
                                        seed=seed)
 
     mask_generator = custom_generator(batch_size=batch_size,
-                                      train_path=train_path,
+                                      src_path=train_path,
                                       folder=mask_folder,
                                       aug_dict=aug_dict,
                                       save_prefix=mask_save_prefix,
@@ -139,7 +185,7 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
     return train_generator
 
 
-def testGenerator(test_path, target_size=(256, 256), as_gray=True):
+def test_generator(test_path, target_size=(256, 256), as_gray=True):
     img_list = os.scandir(test_path)
     for img_name in img_list:
         img = io.imread(os.path.join(test_path, img_name), as_gray=as_gray)
@@ -149,19 +195,14 @@ def testGenerator(test_path, target_size=(256, 256), as_gray=True):
         yield img, img_name
 
 
-def keras_img2img(img):
-    img = img[0]
-    img = 255 * img
-    img = img.astype(np.uint8)
-    return img
-
-
-def prediction(model, test_path, save_path, target_size, as_gray=False):
-    test_gen = testGenerator(test_path, target_size=target_size, as_gray=as_gray)
+def prediction(model,test_path, save_path, target_size,threshold=0.5, as_gray=False):
+    test_gen = test_generator(test_path, target_size=target_size, as_gray=as_gray)
     for img, img_Entry in test_gen:
         img_name = img_Entry.name.rsplit('.', 1)[0]
         pred = model.predict(img, batch_size=1)
-        pred_img = keras_img2img(pred)
-        save_img = keras_img2img(img)
+        pred_img = 255 * (pred[0] > threshold)
+        pred_img = pred_img.astype(np.uint8)
+        save_img = 255 * img[0]
+        save_img = save_img.astype(np.uint8)
         io.imsave(os.path.join(save_path, f"{img_name}.png"), save_img)
         io.imsave(os.path.join(save_path, f"{img_name}_predict.png"), pred_img)
