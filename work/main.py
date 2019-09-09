@@ -1,6 +1,6 @@
-#from work.annotation import fruits_anno
-#from work.unet.data_functions import *
-#from work.unet.model import *
+from work.annotation import fruits_anno
+from work.unet.data_functions import *
+from work.unet.model import *
 from work.unet.segmentation import *
 import cv2
 
@@ -62,11 +62,10 @@ def train_unet(): #TODO update to use current versions
                                            mask_color_mode=color_mode,
                                            image_save_prefix=x_prefix,
                                            mask_save_prefix=y_prefix,
-                                           flag_multi_class=False,
-                                           num_class=2,
                                            save_to_dir=None,
                                            target_size=target_size,
                                            seed=1)
+
     model = unet(input_size=input_size,pretrained_weights=weights_file_name)
     model_checkpoint = ModelCheckpoint(weights_file_name, monitor='loss', verbose=1, save_best_only=True)
     #model.fit_generator(train_gen, steps_per_epoch=100, epochs=3, callbacks=[model_checkpoint])
@@ -81,38 +80,44 @@ def segment():
 
     orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
     mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
+    seg_path = r'D:\Clarifruit\cherry_stem\data\segmentation'
 
-    as_gray = True
-    display_flag=True
-    threshold = 1
+    seg_folder = 'segments'
+    seg_activation_folder = 'activation'
 
+    # segmentaion paths
+    curr_seg_path = create_path(seg_path, image_name)
+
+    curr_segments_path = create_path(curr_seg_path, seg_folder)
+    curr_activation_path = create_path(curr_seg_path,seg_activation_folder)
+
+
+    boundaries_display_flag=False
+    threshold = 1 #for the segmenation folder
+
+    #load the src image and mask image
     img_path = os.path.join(orig_path,image_name)
     mask_imgh_path = os.path.join(mask_path,image_name)
-    # image = io.imread(img_path, as_gray=as_gray)
-    # mask = io.imread(mask_imgh_path, as_gray=True)
     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
     mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
-    mask_binary = np.where(mask==255,True,False)
+    mask_binary = np.where(mask==255,True,False) #create binary version of the mask image
 
 
-    #weighted_img = mask_color_img(img, mask_binary, color=(0, 0, 255), alpha=0.5)
-    #cv2.imshow("weighted", weighted_img)
-    #cv2.waitKey(0)
+    #segmentation enhancment
     sg=Segmentation(image=img,ground_truth=mask_binary)
-    sg.apply(display_flag=display_flag)
-    seg_path='D:\Clarifruit\cherry_stem\data\segmentation'
-    #curr_seg_path = os.path.join(seg_path,image_name)
-    #if not os.path.exists(curr_seg_path):
-        #os.mkdir(curr_seg_path)
-    #sg.save_segments(curr_seg_path)
-    #sg.filter_segments()
-    sg.filter_segments(sg.filter_segments_by_prediction,threshold=threshold)
+    sg.apply_segmentation(display_flag=boundaries_display_flag)
+    sg.save_segments(curr_segments_path)
+    seg_activation = sg.filter_segments(threshold=threshold)
+    curr_activation_full = os.path.join(curr_activation_path,f'thres_{threshold}.jpg')
+    cv2.imwrite(curr_activation_full,binary_to_grayscale(seg_activation))
 
-    #cv2.imshow("mask", mask)
-    #cv2.waitKey(0)
-    #cv2.imshow("Segmented", res_mask)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    # show on source_image
+    color=(0,0,255)
+    alpha=0.8
+    binary_seg_activation = np.where
+    weighted = mask_color_img(img, seg_activation, color, alpha)
+    plt.imshow(cv2.cvtColor(weighted, cv2.COLOR_BGR2RGB))
+    plt.show()
 
 
 
