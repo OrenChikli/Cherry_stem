@@ -1,5 +1,8 @@
-from work.annotation import fruits_anno
-from work.unet.data_functions import *
+#from work.annotation import fruits_anno
+#from work.unet.data_functions import *
+#from work.unet.model import *
+from work.unet.segmentation import *
+import cv2
 
 def annotate():
     raw_data_path = r'D:\Clarifruit\cherry_stem\data\raw_data'
@@ -23,7 +26,7 @@ def annotate():
     gl.save_all_anno_images()
 
 
-def train_unet():
+def train_unet(): #TODO update to use current versions
     train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\train'
     test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\test'
     test_aug_path = os.path.join(test_path, 'aug')
@@ -73,23 +76,53 @@ def train_unet():
     prediction(model, test_path_image, pred_path, target_size,as_gray=False)
 
 
-def create_train_val_test():
-    data_path = r'D:\Clarifruit\cherry_stem\data\unet_data'
+def segment():
+    image_name = '74714-32897.png.jpg'
 
-    orig_folder_name = 'orig'
+    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
 
-    x_folder_name = 'image'
-    y_folder_name = 'label'
+    as_gray = True
+    display_flag=True
+    threshold = 1
+
+    img_path = os.path.join(orig_path,image_name)
+    mask_imgh_path = os.path.join(mask_path,image_name)
+    # image = io.imread(img_path, as_gray=as_gray)
+    # mask = io.imread(mask_imgh_path, as_gray=True)
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
+    mask_binary = np.where(mask==255,True,False)
 
 
-    train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\train'
-    test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\test'
+    #weighted_img = mask_color_img(img, mask_binary, color=(0, 0, 255), alpha=0.5)
+    #cv2.imshow("weighted", weighted_img)
+    #cv2.waitKey(0)
+    sg=Segmentation(image=img,ground_truth=mask_binary)
+    sg.apply(display_flag=display_flag)
+    seg_path='D:\Clarifruit\cherry_stem\data\segmentation'
+    #curr_seg_path = os.path.join(seg_path,image_name)
+    #if not os.path.exists(curr_seg_path):
+        #os.mkdir(curr_seg_path)
+    #sg.save_segments(curr_seg_path)
+    #sg.filter_segments()
+    sg.filter_segments(sg.filter_segments_by_prediction,threshold=threshold)
+
+    #cv2.imshow("mask", mask)
+    #cv2.waitKey(0)
+    #cv2.imshow("Segmented", res_mask)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
+
+
 
 
 
 def main():
     #annotate()
-    train_unet()
+    #train_unet()
+    segment()
 
 
 if __name__ == "__main__":
