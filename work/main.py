@@ -1,8 +1,9 @@
 from work.annotation import fruits_anno
 from work.unet.data_functions import *
-from work.unet.model import *
-from work.unet.segmentation import *
-import cv2
+#from work.unet.model import *
+from work.segmentation.segmentation import *
+
+from tqdm import tqdm
 
 def annotate():
     raw_data_path = r'D:\Clarifruit\cherry_stem\data\raw_data'
@@ -75,8 +76,10 @@ def train_unet(): #TODO update to use current versions
     prediction(model, test_path_image, pred_path, target_size,as_gray=False)
 
 
-def segment():
-    image_name = '74714-32897.png.jpg'
+
+
+def activate_segmentation():
+    image_name = '45665-81662.png.jpg'
 
     orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
     mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
@@ -85,50 +88,62 @@ def segment():
     seg_folder = 'segments'
     seg_activation_folder = 'activation'
 
-    # segmentaion paths
-    curr_seg_path = create_path(seg_path, image_name)
+    boundaries_display_flag = True
+    save_flag = True
+    threshold = 10  # for the segmenation folder
 
-    curr_segments_path = create_path(curr_seg_path, seg_folder)
-    curr_activation_path = create_path(curr_seg_path,seg_activation_folder)
+    # fiz segmentation parameters
+    scale = 200
+    sigma = 0.5
 
+    min_size = 100
 
-    boundaries_display_flag=False
-    threshold = 1 #for the segmenation folder
+    #mask_draw_params
+    color=(255,0,255)
+    alpha=1
 
-    #load the src image and mask image
-    img_path = os.path.join(orig_path,image_name)
-    mask_imgh_path = os.path.join(mask_path,image_name)
-    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-    mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
-    mask_binary = np.where(mask==255,True,False) #create binary version of the mask image
-
-
-    #segmentation enhancment
-    sg=Segmentation(image=img,ground_truth=mask_binary)
-    sg.apply_segmentation(display_flag=boundaries_display_flag)
-    sg.save_segments(curr_segments_path)
-    seg_activation = sg.filter_segments(threshold=threshold)
-    curr_activation_full = os.path.join(curr_activation_path,f'thres_{threshold}.jpg')
-    cv2.imwrite(curr_activation_full,binary_to_grayscale(seg_activation))
-
-    # show on source_image
-    color=(0,0,255)
-    alpha=0.8
-    binary_seg_activation = np.where
-    weighted = mask_color_img(img, seg_activation, color, alpha)
-    plt.imshow(cv2.cvtColor(weighted, cv2.COLOR_BGR2RGB))
-    plt.show()
+    segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
+             threshold, scale, sigma, min_size,color,alpha,boundaries_display_flag,save_flag)
 
 
+def get_multi_segments():
+
+    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
+    seg_path = r'D:\Clarifruit\cherry_stem\data\segmentation'
+
+    seg_folder = 'segments'
+    seg_activation_folder = 'activation'
+
+    difficult_list = ['45665-81662.png.jpg',
+                      '45783-98635.png.jpg',
+                      '74714-32897.png.jpg',
+                      '74714-32897.png.jpg',
+                      '74717-45732.png.jpg',
+                      '74719-86289.png.jpg',
+                      '77824-74792.png.jpg',
+                      '78702-22132.png.jpg',
+                      '78702-32898.png.jpg',
+                      '78702-35309.png.jpg',
+                      '78712-02020.png.jpg']
 
 
+    threshold = 10  # for the segmenation folder
 
+    scale = 200
+    sigma = 0.5
+
+    min_size = 70
+
+
+    segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,difficult_list,
+        threshold=threshold, scale=scale, sigma=sigma, min_size=min_size)
 
 def main():
     #annotate()
     #train_unet()
-    segment()
-
+    activate_segmentation()
+    #get_multi_segments()
 
 if __name__ == "__main__":
     main()
