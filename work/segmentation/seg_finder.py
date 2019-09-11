@@ -4,9 +4,9 @@ import numpy as np
 from skimage.util import img_as_float
 from skimage.segmentation import mark_boundaries
 from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
-from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
-from Hawkeye.src.hawkeye.cv.image import Image
-
+#from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
+#from Hawkeye.src.hawkeye.cv.image import Image
+from work.segmentation.image import Image
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ class SegmentFinder:
 
         self.path = path
         self.window_name = self.IMAGE_WINDOW_NAME + ' - ' + self.path
-        local_path = FileUtils.download_image_with_cache(path)
-        self.image = Image(local_path)
+        #local_path = FileUtils.download_image_with_cache(path)
+        self.image = Image(path)
         self.image.prepare_for_detection()
         self.float_image = img_as_float(self.image.resized)
 
@@ -72,14 +72,3 @@ class SegmentFinder:
         self.apply()
 
 
-# sf = SegmentFinder('https://images.clarifruit.com/1/2047/2018/08/09/38405-11208.png')
-# sf = SegmentFinder('https://images.clarifruit.com/2/2143/2018/11/5/67489-16790.png')
-sf = SegmentFinder('https://images.clarifruit.com/2/2143/2018/06/12/28596-46382.png')
-# sf = SegmentFinder('/Users/roman/work/ClariFruit/DP/grapes_stem/train2/original/28617-03527.png')
-
-# https://images.clarifruit.com/2/2143/2018/11/18//tmp/70463-27564.png
-
-sf.display()
-
-cv2.waitKey(0)
-cv2.destroyAllWindows()

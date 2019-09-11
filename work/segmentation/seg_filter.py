@@ -1,6 +1,10 @@
 import logging
 import numpy as np
 import cv2
+#from Hawkeye.src.hawkeye.cv.image import Image
+#from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
+
+from work.segmentation.image import Image
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +27,9 @@ class SegmentFilter:
     def __init__(self, path):
         self.path = path
         self.window_name = self.IMAGE_WINDOW_NAME + ' - ' + self.path
-
-        self.image = cv2.imread(path,cv2.IMREAD_UNCHANGED)
-        #self.image.prepare_for_detection()
+        #local_path = FileUtils.download_image_with_cache(path)
+        self.image = Image(path)
+        self.image.prepare_for_detection()
         self.seg_image = None
 
     def on_trackbar_change(self, x):
@@ -36,8 +40,7 @@ class SegmentFilter:
 
         # cv2.imshow(self.window_name, self.image.segmentation.boundaries)
 
-        #height, width = self.image.resized.shape[:2]
-        height, width = self.image.shape[:2]
+        height, width = self.image.resized.shape[:2]
         if height > width:
             cv2.imshow('Original', self.image.resized.transpose(1, 0, 2))
             cv2.imshow(self.window_name, self.image.resized.transpose(1, 0, 2))
@@ -61,6 +64,9 @@ class SegmentFilter:
 
         self.filter_segments()
 
+        # Requires build with QT support
+        # cv2.displayStatusBar(self.window_name, text='123')
+
     def on_click(self, event, x, y, flags, param):
 
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -71,6 +77,7 @@ class SegmentFilter:
 
             seg_val = self.image.segmentation.segments[y, x]
             seg_h, seg_s, seg_v = self.image.segmentation.get_segment_hsv(seg_val)
+            # print(self.image.segmentation.segments == seg_val)
 
             count = np.count_nonzero(self.image.segmentation.segments == seg_val)
 
@@ -125,62 +132,5 @@ class SegmentFilter:
         logger.debug('Save path: ' + self.image.img_path)
         cv2.imwrite(self.image.img_path + '.m.png', self.image.resized)
         cv2.imwrite(self.image.img_path + '.mm.png', self.seg_image)
-
-
-
-
-def visualize():
-    # https://images.clarifruit.com/1/2047/2018/08/09/38376-48758.png
-    # sv = SegmentFilter('https://images.clarifruit.com/26/3130/2018/10/09/60488-49030.png')
-
-    # Cherry
-    # sv = SegmentFilter('https://images.clarifruit.com/1/2047/2018/08/09/38376-48758.png')
-    # sv = SegmentFilter('https://images.clarifruit.com/8262/1967/2019/01/02/78573-57087.png')
-
-    # Scarlotta
-    # sv = SegmentFilter('https://images.clarifruit.com/2/2143/2018/10/18/62989-46435.png')
-    # sv = SegmentFilter('https://images.clarifruit.com/2/2143/2018/10/18/62989-86586.png')
-    # sv = SegmentFilter('https://images.clarifruit.com/2/2143/2018/10/29/65926-72275.png')
-
-    # Black grapes
-    # sv = SegmentFilter('https://images.clarifruit.com/2/2143/2018/08/10/38521-83707.png')
-    # sv = SegmentFilter('/Users/roman/work/ClariFruit/DP/grapes_stem/train2/original/28617-03527.png')
-
-    # from glob import glob
-    # glob('/Users/roman/work/Acclaro/Temp/images.clarifruit.com/'
-    #      '2/2143/2018/06/3/*.png')
-    # sv = SegmentFilter(png')
-
-    #
-    # with open('/Users/roman/work/ClariFruit/images/stem/images.txt', 'r') as f:
-    #     lines = f.readlines()
-    #
-    #
-    # for line in lines:
-    #     sv = SegmentFilter(line)
-    #     sv.display_sigmentation_filter()
-    #     sv.save_with_mask()
-
-    # sv = SegmentFilter('/Users/roman/work/ClariFruit/DP/grapes_stem/results/14_predict.png')
-    # sv = SegmentFilter('https://images.clarifruit.com/2/2143/2018/11/2/66911-51788.png')
-
-    # Cherry tomatoes with stem
-    # sv = SegmentFilter('/Volumes/Samsung_T5/data/tomatoes_detection/images/74065-72783.png.jpg')
-
-    # Cherries
-    sv = SegmentFilter('https://images.clarifruit.com/8262/1967/2019/02/14/86182-24673.png')
-
-    # Peach
-    # sv = SegmentFilter('https://images.clarifruit.com/1/2047/2018/08/09/38405-11208.png')
-
-    sv.display_sigmentation_filter()
-
-    # sv.save_with_mask()
-
-    cv2.waitKey(0)
-
-    # sv.save_with_mask()
-
-    cv2.destroyAllWindows()
 
 
