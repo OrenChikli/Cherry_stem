@@ -2,9 +2,9 @@ import logging
 import numpy as np
 import cv2
 #from .aws.s3 import S3
-from work.segmentation.exceptions import ReadImageException
-from work.segmentation.utils import Utils
-from work.segmentation.segmentation import Segmentation
+from .exceptions import ReadImageException
+from .utils import Utils
+from .segmentation import Segmentation
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,7 @@ class Image:
 
         self.debug = self.resized.copy()
         self.gray = cv2.cvtColor(self.resized, cv2.COLOR_BGR2GRAY)
-        self.blurred = cv2.GaussianBlur(self.gray, (5, 5), 2, 2)
+        #self.blurred = cv2.GaussianBlur(self.gray, (5, 5), 2, 2)
         self.hsv = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HSV)
         self.hls = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HLS)
 
@@ -163,7 +163,7 @@ class Image:
         # self.ycc = cv2.cvtColor(self.resized, cv2.COLOR_BGR2YCR_CB)
 
         self.segmentation = self.get_segmentation_class()
-        self.segmentation.apply()
+        self.segmentation.apply_segmentation()
 
         logger.debug(" <- prepare_for_detection")
 

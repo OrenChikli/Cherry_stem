@@ -3,7 +3,7 @@ import base64
 import cv2
 import numpy as np
 from itertools import compress
-from work.segmentation.common import Common
+from .common import Common
 
 logger = logging.getLogger(__name__)
 

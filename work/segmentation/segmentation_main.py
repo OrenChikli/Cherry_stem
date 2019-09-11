@@ -1,99 +1,74 @@
 from work.annotation import fruits_anno
 from work.unet.data_functions import *
 
-from work.segmentation import segmentation,seg_filter,seg_finder,seg_info
+from work.segmentation.clarifruit_segmentation import segmentation,seg_filter,seg_finder,seg_info
+from work.segmentation.clarifruit_segmentation.image import Image
+import numpy as np
+from tqdm import tqdm
 
+def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
+            threshold=1, scale=100, sigma=0.5, min_size=50,
+            draw_color=(255, 0, 255), draw_alpha=1.0,
+            boundaries_display_flag=False,
+            save_flag=True,
+            img_color='color'):
+    # segmentaion paths
+    seg_path = os.path.join(seg_path, 'individual')
+    if save_flag:
+        curr_seg_path = create_path(seg_path, image_name)
 
-def activate_segmentation():
-    image_name = '45665-81662.png.jpg'
+        curr_segments_path = create_path(curr_seg_path, seg_folder)
+        curr_activation_path = create_path(curr_seg_path, seg_activation_folder)
+    else:
+        curr_seg_path = ""
+        curr_segments_path= ""
+        curr_activation_path = ""
 
-    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
-    seg_path = r'D:\Clarifruit\cherry_stem\data\segmentation'
-
-    seg_folder = 'segments'
-    seg_activation_folder = 'activation'
-
-    boundaries_display_flag = True
-    save_flag = True
-    threshold = 50  # for the segmenation folder
-    img_color = 'color'  # keep color at the moment doesnt work with grayscale
-
-    # fiz segmentation parameters
-    scale = 100
-    sigma = 0.5
-
-    min_size = 100
-
-    # mask_draw_params
-    color = (255, 0, 255)
-    alpha = 1
-
-    segmentation.segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-                         threshold, scale, sigma, min_size, color, alpha, boundaries_display_flag, save_flag,
-                         img_color)
-
-
-def get_multi_segments():
-    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\label'
-    seg_path = r'D:\Clarifruit\cherry_stem\data\segmentation'
-
-    seg_folder = 'segments'
-    seg_activation_folder = 'activation'
-
-    difficult_list = ['45665-81662.png.jpg',
-                      '45783-98635.png.jpg',
-                      '74714-32897.png.jpg',
-                      '74714-32897.png.jpg',
-                      '74717-45732.png.jpg',
-                      '74719-86289.png.jpg',
-                      '77824-74792.png.jpg',
-                      '78702-22132.png.jpg',
-                      '78702-32898.png.jpg',
-                      '78702-35309.png.jpg',
-                      '78712-02020.png.jpg']
-
-    threshold = 100  # for the segmenation folder
-
-    scale = 100
-    sigma = 0.5
-
-    min_size = 100
-
-    segmentation.segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder, difficult_list,
-                               threshold=threshold, scale=scale, sigma=sigma, min_size=min_size)
-
-
-def visualize():
-    image_name = '45665-81662.png.jpg'
-
-    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
-
+    # load the src image and mask image
     img_path = os.path.join(orig_path, image_name)
-    sv = seg_filter.SegmentFilter(img_path)
-    sv.display_sigmentation_filter()
+    mask_imgh_path = os.path.join(mask_path, image_name)
+    img = Image(img_path)
+    #img = cv2.imread(img_path, COLOR_DICT[img_color])
+    mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
+    mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
 
-    cv2.waitKey(0)
+    # segmentation enhancment
+    sg = segmentation.Segmentation(image=img.original, ground_truth=mask_binary)
+    sg.apply_segmentation(scale=scale,
+                          sigma=sigma,
+                          min_size=min_size,
+                          display_flag=boundaries_display_flag)
 
-    cv2.destroyAllWindows()
+    seg_activation = sg.filter_segments(threshold=threshold)
+    curr_activation_full = os.path.join(curr_activation_path, f'thres_{threshold}.jpg')
+
+    # show on source_image
+
+    weighted = segmentation.mask_color_img(img.original, seg_activation, draw_color, draw_alpha)
+
+    seg_out_path_final = os.path.join(curr_activation_path, f'thres_{threshold}_weighted.jpg')
+
+    if save_flag:
+        sg.save_segments(curr_segments_path)
+        cv2.imwrite(curr_activation_full, segmentation.binary_to_grayscale(seg_activation))
+        cv2.imwrite(seg_out_path_final, weighted)
+
+    return seg_activation
 
 
-def hsv():
-    image_name = '45665-81662.png.jpg'
+def segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,img_list,
+                  threshold=1, scale=100, sigma=0.5, min_size=50):
+    #img_list = os.scandir(orig_path)
+    for img in tqdm(img_list):
+        curr_segment = segment(img, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
+                               threshold=threshold, scale=scale, sigma=sigma, min_size=min_size,
+                               boundaries_display_flag=False,
+                               save_flag=False)
+        save_path = os.path.join(seg_path, 'final')
+        save_path = os.path.join(save_path, img)
+        save_segment = segmentation.binary_to_grayscale(curr_segment)
+        cv2.imwrite(save_path, save_segment)
 
-    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
-    img_color = 'color'
-
-    img_path = os.path.join(orig_path, image_name)
-    img = cv2.imread(img_path, segmentation.COLOR_DICT[img_color])
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # segmentation.visualize_rgb(img)
-    # segmentation.visualize_hsv(img)
-    # codes from http://www.workwithcolor.com/green-color-hue-range-01.htm
-    # left = (178,236,93) # color Inchworm
-    # right = (65,72,51) #Rifle Green
-    # segmentation.color_thres(img, left, right)
 
 
 # use roman functions

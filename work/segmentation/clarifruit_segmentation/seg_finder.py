@@ -6,7 +6,7 @@ from skimage.segmentation import mark_boundaries
 from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
 #from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
 #from Hawkeye.src.hawkeye.cv.image import Image
-from work.segmentation.image import Image
+from .image import Image
 
 logger = logging.getLogger(__name__)
 

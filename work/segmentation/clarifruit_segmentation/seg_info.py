@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import cv2
 #from Hawkeye.src.hawkeye.cv.image import Image
-from work.segmentation.image import Image
+from .image import Image
 #from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
 
 logger = logging.getLogger(__name__)

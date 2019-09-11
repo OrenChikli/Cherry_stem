@@ -8,6 +8,7 @@ from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
 from .utils import Utils
 from .common import Common
 
+
 import matplotlib.pyplot as plt
 import os
 from work.unet.data_functions import create_path
@@ -26,12 +27,13 @@ logger = logging.getLogger(__name__)
 
 class Segmentation:
 
-    def __init__(self, image,ground_truth):
+    def __init__(self, image,ground_truth=None):
 
         logger.debug(" -> __init__")
 
-        self.ground_truth = ground_truth
+
         self.image = image
+        self.ground_truth = ground_truth
         self.segments = None
         self.boundaries = None
         self.segments_count = 0
@@ -42,7 +44,7 @@ class Segmentation:
         logger.debug(" <- __init__")
 
     def get_segments(self, scale=100, sigma=0.5, min_size=50):
-        float_image = img_as_float((self.image))
+        float_image = img_as_float((self.image.original))
         return felzenszwalb(float_image, scale=scale, sigma=sigma, min_size=min_size)
 
     def apply_segmentation(self, scale=100, sigma=0.5, min_size=50, display_flag=False):
@@ -61,6 +63,82 @@ class Segmentation:
             self.boundaries = mark_boundaries(self.image.resized, self.segments, color=(1, 1, 0))
 
         return self.boundaries
+    def filter_by_hsv(self, filter_hsv, segments=None):
+        logger.debug(" -> filter_by_hsv")
+
+        # image = self.image.resized
+        # mask = np.zeros(image.shape[:2], dtype="uint8")
+        # image_hues = self.image.hsv[:, :, 0]
+
+        segments_list = segments if segments is not None else self.segments_no_bg
+
+        selected_segments = []
+        # loop over the unique segment values
+        # for (i, seg_val) in enumerate(np.unique(self.segments)):
+        for seg_val in segments_list:
+
+            # seg_gray = self.image.gray[self.segments == seg_val]
+
+            # seg_h, seg_s, seg_v = self.get_segment_hsv(seg_val)
+            seg_h, seg_s, seg_v = self.get_segment_hsv(seg_val)
+
+            # return self.check_color_match_fruit(seg_h, seg_s, seg_v)
+
+            # Checking if the color of the segment matches the fruit
+            # if fruit.check_segment_match_fruit(seg_hsv_values):
+            # if fruit.check_color_match_fruit(seg_h, seg_s, seg_v):
+            if filter_hsv(seg_h, seg_s, seg_v):
+                selected_segments.append(seg_val)
+
+                # mask[self.segments == seg_val] = 255
+                # seg_values.append(seg_val)
+
+        # boundaries_mask = np.zeros(image.shape[:2], dtype="uint8")
+
+        # boundaries_mask = mark_boundaries(boundaries_mask, self.segments, color=(1, 1, 1))[:, :, 0]
+        # boundaries_mask_temp = cv2.bitwise_not(boundaries_mask_temp, mask)
+        # boundaries_mask = 1 - boundaries_mask
+
+        # boundaries_mask_gray = cv2.cvtColor(boundaries_mask_temp, cv2.COLOR_BGR2GRAY)
+
+        # mask1 = np.zeros(image.shape[:2], dtype="uint8")
+        # mask1[mask1 == [255, 255, 255]] = 255
+
+        # seg_image = cv2.bitwise_and(image, image, mask=cv2.cvtColor(boundaries_mask_temp, cv2.COLOR_BGR2GRAY))
+
+        # bool_arr = np.isin(self.segments, selected_segments)
+        mask = np.isin(self.segments, selected_segments).astype(np.uint8) * 255
+
+        # mask[np.isin(self.segments, selected_segments)] = 255
+
+        # mask = bool_arr
+
+        # if Common.imgLogLevel in ['trace']:
+        #     # show the masked region
+        #     cv2.imshow("Mask", mask)
+        #
+        #     image = self.image.resized
+        #     seg_image = cv2.bitwise_and(image, image, mask=mask)
+        #     # seg_image = cv2.bitwise_and(seg_image, seg_image, mask=img_as_ubyte(boundaries_mask))
+        #     cv2.imshow("Applied", seg_image)
+
+        logger.debug(" <- filter_by_hsv")
+
+        return mask, set(selected_segments)
+
+    def _get_segment_hsv(self, seg_val):
+        # Getting hsv values of the current segment
+        seg_hsv_values = self.image.hsv[self.segments == seg_val]
+        # seg_hsv_values = self.image.hls[self.segments == seg_val]
+        seg_h, seg_h_var = Utils.calc_hue_mean_and_var(seg_hsv_values[:, 0])
+        [_, seg_s, seg_v] = seg_hsv_values.mean(axis=0)
+        # [_, seg_s_var, seg_v_var] = seg_hsv.var(axis=0)
+
+        return np.array([seg_h, seg_s, seg_v], np.float64)
+        # return [seg_h, seg_s, seg_v]
+
+    def get_segment_hsv(self, seg_val):
+        return self.segments_hsv[seg_val]
 
     def save_segments(self, save_path):
         for i, segment in self.segment_iterator():
@@ -119,67 +197,6 @@ def color_segmentation(img_path):
     plt.show()
 
 
-def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-            threshold=1, scale=100, sigma=0.5, min_size=50,
-            draw_color=(255, 0, 255), draw_alpha=1.0,
-            boundaries_display_flag=False,
-            save_flag=True,
-            img_color='color'):
-    # segmentaion paths
-    seg_path = os.path.join(seg_path, 'individual')
-    if save_flag:
-        curr_seg_path = create_path(seg_path, image_name)
-
-        curr_segments_path = create_path(curr_seg_path, seg_folder)
-        curr_activation_path = create_path(curr_seg_path, seg_activation_folder)
-    else:
-        curr_seg_path = ""
-        curr_segments_path= ""
-        curr_activation_path = ""
-
-    # load the src image and mask image
-    img_path = os.path.join(orig_path, image_name)
-    mask_imgh_path = os.path.join(mask_path, image_name)
-    img = cv2.imread(img_path, COLOR_DICT[img_color])
-    mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
-    mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
-
-    # segmentation enhancment
-    sg = Segmentation(image=img, ground_truth=mask_binary)
-    sg.apply_segmentation(scale=scale,
-                          sigma=sigma,
-                          min_size=min_size,
-                          display_flag=boundaries_display_flag)
-
-    seg_activation = sg.filter_segments(threshold=threshold)
-    curr_activation_full = os.path.join(curr_activation_path, f'thres_{threshold}.jpg')
-
-    # show on source_image
-
-    weighted = mask_color_img(img, seg_activation, draw_color, draw_alpha)
-
-    seg_out_path_final = os.path.join(curr_activation_path, f'thres_{threshold}_weighted.jpg')
-
-    if save_flag:
-        sg.save_segments(curr_segments_path)
-        cv2.imwrite(curr_activation_full, binary_to_grayscale(seg_activation))
-        cv2.imwrite(seg_out_path_final, weighted)
-
-    return seg_activation
-
-
-def segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,img_list,
-                  threshold=1, scale=100, sigma=0.5, min_size=50):
-    #img_list = os.scandir(orig_path)
-    for img in tqdm(img_list):
-        curr_segment = segment(img, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-                               threshold=threshold, scale=scale, sigma=sigma, min_size=min_size,
-                               boundaries_display_flag=False,
-                               save_flag=False)
-        save_path = os.path.join(seg_path, 'final')
-        save_path = os.path.join(save_path, img)
-        save_segment = binary_to_grayscale(curr_segment)
-        cv2.imwrite(save_path, save_segment)
 
 def visualize_rgb(img):
     r, g, b = cv2.split(img)
