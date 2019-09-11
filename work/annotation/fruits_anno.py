@@ -144,8 +144,9 @@ class GoogleLabels:
             reader = csv.reader(f)
             for row in reader:
                 url_path = urlparse(row[0]).path
-
-                local_image_path = url_path.replace('/Cherry/images', self.src_image_path)
+                f_name = row[0].rsplit('/')[-1]
+                #local_image_path = url_path.replace('/Cherry/images', self.src_image_path)
+                local_image_path = os.path.join(self.src_image_path,f_name)
                 res.append(local_image_path)
         return res
 
@@ -159,6 +160,19 @@ class GoogleLabels:
 
     def move_anno_images(self,img_list):
         train_path = os.path
+
+    def get_images_no_mask(self):
+        curr_dest_path = os.path.join(self.dest_images_path,'no_annotation')
+        if not os.path.exists(curr_dest_path):
+            os.mkdir(curr_dest_path)
+        img_list = set([img.path for img in os.scandir(self.src_image_path)])
+
+        annotated_images_list = set(self.get_from_csv())
+
+        no_annotation_list= img_list.difference(annotated_images_list)
+
+        for img in no_annotation_list:
+            _ = shutil.copy(img, curr_dest_path)
 
 
     def save_all_anno_images(self):

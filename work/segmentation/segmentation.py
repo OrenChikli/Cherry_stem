@@ -8,7 +8,14 @@ import matplotlib.pyplot as plt
 import os
 from work.unet.data_functions import create_path
 from tqdm import tqdm
+import argparse
 
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib import colors
+
+
+COLOR_DICT = {'gray':cv2.IMREAD_GRAYSCALE,'color':cv2.IMREAD_UNCHANGED}
 
 class Segmentation:
 
@@ -23,7 +30,6 @@ class Segmentation:
 
     def get_segments(self, scale=100, sigma=0.5, min_size=50):
         float_image = img_as_float((self.image))
-        # float_image, scale=100, sigma=0.5, min_size=50
         return felzenszwalb(float_image, scale=scale, sigma=sigma, min_size=min_size)
 
     def apply_segmentation(self, scale=100, sigma=0.5, min_size=50, display_flag=False):
@@ -65,6 +71,8 @@ class Segmentation:
         return res
 
 
+
+
 def check_folder_path(src_path):
     if not os.path.exists(src_path):
         raise FileNotFoundError(f"could find path {src_path}")
@@ -102,7 +110,8 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
             threshold=1, scale=100, sigma=0.5, min_size=50,
             draw_color=(255, 0, 255), draw_alpha=1.0,
             boundaries_display_flag=False,
-            save_flag=True):
+            save_flag=True,
+            img_color='color'):
     # segmentaion paths
     seg_path = os.path.join(seg_path, 'individual')
     if save_flag:
@@ -118,7 +127,7 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
     # load the src image and mask image
     img_path = os.path.join(orig_path, image_name)
     mask_imgh_path = os.path.join(mask_path, image_name)
-    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(img_path, COLOR_DICT[img_color])
     mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
     mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
 
@@ -158,3 +167,64 @@ def segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_fol
         save_path = os.path.join(save_path, img)
         save_segment = binary_to_grayscale(curr_segment)
         cv2.imwrite(save_path, save_segment)
+
+def visualize_rgb(img):
+    r, g, b = cv2.split(img)
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1, projection="3d")
+    pixel_colors = get_pixel_colors(img)
+    axis.scatter(r.flatten(), g.flatten(), b.flatten(), facecolors=pixel_colors, marker=".")
+    axis.set_xlabel("Red")
+    axis.set_ylabel("Green")
+    axis.set_zlabel("Blue")
+    plt.show()
+
+
+def get_pixel_colors(img):
+    pixel_colors = img.reshape((np.shape(img)[0] * np.shape(img)[1], 3))
+    norm = colors.Normalize(vmin=-1., vmax=1.)
+    norm.autoscale(pixel_colors)
+    pixel_colors = norm(pixel_colors).tolist()
+    return pixel_colors
+
+
+def visualize_hsv(img):
+    hsv= cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    h, s, v = cv2.split(hsv)
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1, projection="3d")
+    pixel_colors = get_pixel_colors(img)
+    axis.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, marker=".")
+    axis.set_xlabel("Hue")
+    axis.set_ylabel("Saturation")
+    axis.set_zlabel("Value")
+    plt.show()
+
+def color_thres(img,left_thres,right_thes):
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    mask = cv2.inRange(hsv, left_thres,right_thes)
+    result = cv2.bitwise_and(img, img, mask=mask)
+    plt.subplot(1, 2, 1)
+    plt.imshow(mask, cmap="gray")
+    plt.subplot(1, 2, 2)
+    plt.imshow(result)
+    plt.show()
+
+
+def color():
+    # construct the argument parser and parse the arguments
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--image", required=True, help="Path to the image")
+    ap.add_argument("-c", "--clusters", required=True, type=int,
+                    help="# of clusters")
+    args = vars(ap.parse_args())
+
+    # load the image and convert it from BGR to RGB so that
+    # we can dispaly it with matplotlib
+    image = cv2.imread(args["image"])
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # show our image
+    plt.figure()
+    plt.axis("off")
+    plt.imshow(image)

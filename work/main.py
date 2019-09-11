@@ -1,9 +1,10 @@
 from work.annotation import fruits_anno
 from work.unet.data_functions import *
 #from work.unet.model import *
-from work.segmentation.segmentation import *
+#from work.segmentation.segmentation import *
+from work.segmentation import segmentation,seg_filter
 
-from tqdm import tqdm
+
 
 def annotate():
     raw_data_path = r'D:\Clarifruit\cherry_stem\data\raw_data'
@@ -24,7 +25,9 @@ def annotate():
                                   mask_dest_path=mask_dest_path,
                                   is_mask=True)
 
-    gl.save_all_anno_images()
+    #gl.save_all_anno_images()
+
+    gl.get_images_no_mask()
 
 
 def train_unet(): #TODO update to use current versions
@@ -90,10 +93,11 @@ def activate_segmentation():
 
     boundaries_display_flag = True
     save_flag = True
-    threshold = 10  # for the segmenation folder
+    threshold = 50  # for the segmenation folder
+    img_color='color' # keep color at the moment doesnt work with grayscale
 
     # fiz segmentation parameters
-    scale = 200
+    scale = 100
     sigma = 0.5
 
     min_size = 100
@@ -102,8 +106,8 @@ def activate_segmentation():
     color=(255,0,255)
     alpha=1
 
-    segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-             threshold, scale, sigma, min_size,color,alpha,boundaries_display_flag,save_flag)
+    segmentation.segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
+             threshold, scale, sigma, min_size,color,alpha,boundaries_display_flag,save_flag,img_color)
 
 
 def get_multi_segments():
@@ -128,22 +132,67 @@ def get_multi_segments():
                       '78712-02020.png.jpg']
 
 
-    threshold = 10  # for the segmenation folder
+    threshold = 100  # for the segmenation folder
 
-    scale = 200
+    scale = 100
     sigma = 0.5
 
-    min_size = 70
+    min_size = 100
 
 
-    segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,difficult_list,
+    segmentation.segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,difficult_list,
         threshold=threshold, scale=scale, sigma=sigma, min_size=min_size)
 
+
+
+def visualize():
+    image_name = '45665-81662.png.jpg'
+
+    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+
+    img_path = os.path.join(orig_path,image_name)
+    sv = seg_filter.SegmentFilter(img_path)
+    sv.display_sigmentation_filter()
+
+    cv2.waitKey(0)
+
+    cv2.destroyAllWindows()
+
+
+def hsv():
+    image_name = '45665-81662.png.jpg'
+
+    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+    img_color='color'
+
+    img_path = os.path.join(orig_path, image_name)
+    img = cv2.imread(img_path, segmentation.COLOR_DICT[img_color])
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #segmentation.visualize_rgb(img)
+    #segmentation.visualize_hsv(img)
+    #codes from http://www.workwithcolor.com/green-color-hue-range-01.htm
+    #left = (178,236,93) # color Inchworm
+    #right = (65,72,51) #Rifle Green
+    #segmentation.color_thres(img, left, right)
+
+
+def roman_segment():
+    image_name = '45665-81662.png.jpg'
+
+    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+    img_color='color'
+
+    img_path = os.path.join(orig_path, image_name)
+    img = cv2.imread(img_path, segmentation.COLOR_DICT[img_color])
+
+
 def main():
-    #annotate()
+    annotate()
     #train_unet()
-    activate_segmentation()
+    #activate_segmentation()
     #get_multi_segments()
+    #visualize()
+    #hsv()
 
 if __name__ == "__main__":
     main()
