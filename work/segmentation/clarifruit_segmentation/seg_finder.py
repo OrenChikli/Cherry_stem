@@ -22,6 +22,7 @@ class SegmentFinder:
     def __init__(self, path):
         logger.debug(" -> __init__")
 
+        #self.mask_path=mask_path
         self.path = path
         self.window_name = self.IMAGE_WINDOW_NAME + ' - ' + self.path
         #local_path = FileUtils.download_image_with_cache(path)

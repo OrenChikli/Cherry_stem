@@ -1,2 +1,3 @@
 /data/
-/work/*.hdfs5
+/work/unet/*.hdfs5
+/cherry_venv/

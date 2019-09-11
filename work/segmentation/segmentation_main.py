@@ -10,8 +10,7 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
             threshold=1, scale=100, sigma=0.5, min_size=50,
             draw_color=(255, 0, 255), draw_alpha=1.0,
             boundaries_display_flag=False,
-            save_flag=True,
-            img_color='color'):
+            save_flag=True):
     # segmentaion paths
     seg_path = os.path.join(seg_path, 'individual')
     if save_flag:
@@ -33,7 +32,7 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
     mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
 
     # segmentation enhancment
-    sg = segmentation.Segmentation(image=img.original, ground_truth=mask_binary)
+    sg = segmentation.Segmentation(image=img, ground_truth=mask_binary)
     sg.apply_segmentation(scale=scale,
                           sigma=sigma,
                           min_size=min_size,
@@ -99,16 +98,28 @@ def use_seg_filter(img_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+
 def seg_main():
     image_name = '45665-81662.png.jpg'
 
-    orig_path = r'D:\Clarifruit\cherry_stem\data\unet_data\orig\image'
+    orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
+    seg_path =  r'D:\Clarifruit\cherry_stem\data\segmentation'
+
     img_path = os.path.join(orig_path, image_name)
+    seg_folder = 'segmentation'
+    seg_activation_folder = 'activation'
 
     #use_seg_info(img_path)
-    #use_seg_finder(img_path)
-    use_seg_filter(img_path)
-
+    use_seg_finder(img_path)
+    #use_seg_filter(img_path)
+    """
+    segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
+                threshold=1, scale=100, sigma=0.5, min_size=50,
+                draw_color=(255, 0, 255), draw_alpha=1.0,
+                boundaries_display_flag=False,
+                save_flag=True)
+    """
 
 if __name__ == '__main__':
     seg_main()
