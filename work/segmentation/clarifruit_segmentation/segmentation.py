@@ -39,6 +39,7 @@ class Segmentation:
         self.segments_hsv = None
         self.bg_segments = set()
         self.segments_no_bg = set()
+        self.filtered_segments = None
 
         logger.debug(" <- __init__")
 
@@ -158,6 +159,30 @@ class Segmentation:
             seg_sum = np.count_nonzero(segment_activation)
             if seg_sum >= threshold:
                 res[segment] = True
+        self.filtered_segments = res
+
+
+    def mask_color_img(self, color=(0, 255, 255), alpha=0.3):
+        '''
+        img: cv2 image
+        mask: bool or np.where
+        color: BGR triplet [_, _, _]. Default: [0, 255, 255] is yellow.
+        alpha: float [0, 1].
+
+        Ref: http://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
+        '''
+        out = self.image.resized.copy()
+        color = (255, 255, 0)
+        alpha = 1
+        img_layer = out.copy()
+        img_layer[self.filtered_segments] = color
+        out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
+        return out
+
+    @staticmethod
+    def binary_to_grayscale(img):
+        #res = img.copy()
+        res = (255 * img).astype(np.uint8)
         return res
 
 
@@ -174,20 +199,7 @@ def binary_to_grayscale(img):
     return res
 
 
-def mask_color_img(img, mask, color=(0, 255, 255), alpha=0.3):
-    '''
-    img: cv2 image
-    mask: bool or np.where
-    color: BGR triplet [_, _, _]. Default: [0, 255, 255] is yellow.
-    alpha: float [0, 1].
 
-    Ref: http://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
-    '''
-    out = img.copy()
-    img_layer = img.copy()
-    img_layer[mask] = color
-    out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
-    return out
 
 
 def color_segmentation(img_path):

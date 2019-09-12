@@ -182,8 +182,8 @@ class Image:
         # self.lab = cv2.cvtColor(self.resized, cv2.COLOR_BGR2LAB)
         # self.ycc = cv2.cvtColor(self.resized, cv2.COLOR_BGR2YCR_CB)
 
-        self.segmentation = self.get_segmentation_class()
-        self.segmentation.apply_segmentation()
+        #self.segmentation = self.get_segmentation_class()
+        #self.segmentation.apply_segmentation()
 
         logger.debug(" <- prepare_for_detection")
 

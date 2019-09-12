@@ -121,7 +121,7 @@ def use_seg_filter(img_path):
 
 
 def seg_main():
-    image_name = '74714-32897.png.jpg'
+    image_name = '45665-81662.png.jpg'
 
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
     mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
@@ -132,11 +132,11 @@ def seg_main():
     seg_folder = 'segmentation'
     seg_activation_folder = 'activation'
 
-    segment(image_name,orig_path,mask_path,seg_path,seg_folder,seg_activation_folder)
+    #segment(image_name,orig_path,mask_path,seg_path,seg_folder,seg_activation_folder)
     #use_seg_info(img_path)
     #use_seg_finder(img_path)
     #use_seg_filter(img_path)
-    #use_seg_finder_with_ground_truth(img_path,img_mask_path)
+    use_seg_finder_with_ground_truth(img_path,img_mask_path)
     """
     segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
                 threshold=1, scale=100, sigma=0.5, min_size=50,

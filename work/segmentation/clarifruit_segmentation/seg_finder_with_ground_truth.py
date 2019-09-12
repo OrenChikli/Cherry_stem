@@ -7,6 +7,8 @@ from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
 #from Hawkeye.src.hawkeye.utils.file_utils import FileUtils
 #from Hawkeye.src.hawkeye.cv.image import Image
 from .image import Image
+from .segmentation import Segmentation
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +34,12 @@ class MaskSegmentFinder:
         #local_path = FileUtils.download_image_with_cache(path)
         self.image = Image(path,mask_path)
         self.image.prepare_for_detection()
-        self.float_image = img_as_float(self.image.resized)
+        #self.float_image = img_as_float(self.image.resized)
 
-        self.segments = None
-        self.boundaries = None
-        self.segments_count = 0
+        self.segmentation = Segmentation(self.image)
+
+        self.filtered_segments = None
+        self.disp_mask = None
 
         self.threshold = 1
         self.scale = 100
@@ -61,12 +64,14 @@ class MaskSegmentFinder:
         self.sigma = cv2.getTrackbarPos(MaskSegmentFinder.SIGMA_TRACKBAR_NAME, self.window_name) / 100
         self.min_size = cv2.getTrackbarPos(MaskSegmentFinder.MSIZE_TRACKBAR_NAME, self.window_name)
 
-        self.segments = felzenszwalb(self.float_image, scale=self.scale, sigma=self.sigma, min_size=self.min_size)
-        self.segments_count = len(np.unique(self.segments))
-        self.filtered_segments =self.filter_segments(self.threshold)
+        self.segmentation.apply_segmentation(scale=self.scale,sigma=self.sigma,min_size=self.min_size)
 
-        self.boundaries = mark_boundaries(self.image.resized, self.filtered_segments, color=(1, 1, 0))
-        cv2.imshow(self.window_name, self.boundaries)
+        self.segmentation.filter_segments(self.threshold)
+        #self.disp_mask= Segmentation.binary_to_grayscale(self.segmentation.filtered_segments)
+        self.disp_mask = self.segmentation.mask_color_img(self)
+
+        #self.boundaries = mark_boundaries(self.image.resized, self.filtered_segments, color=(1, 1, 0))
+        cv2.imshow(self.window_name, self.disp_mask)
 
         logger.debug(" <- apply")
 
@@ -79,18 +84,5 @@ class MaskSegmentFinder:
 
         self.apply()
 
-    def segment_iterator(self):
-        n_segments = self.segments.max()
-        for i in range(n_segments):
-            segment = np.where(self.segments == i, True, False)
-            yield i, segment
 
-    def filter_segments(self, threshold=1):
-        res = np.zeros_like(self.segments, dtype=np.bool)
-        for i, segment in self.segment_iterator():
-            segment_activation = self.image.mask_resized * segment
-            seg_sum = np.count_nonzero(segment_activation)
-            if seg_sum >= threshold:
-                res[segment] = True
-        return res
 
