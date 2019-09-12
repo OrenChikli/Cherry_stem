@@ -27,13 +27,12 @@ logger = logging.getLogger(__name__)
 
 class Segmentation:
 
-    def __init__(self, image,ground_truth=None):
+    def __init__(self, image):
 
         logger.debug(" -> __init__")
 
 
         self.image = image
-        self.ground_truth = ground_truth
         self.segments = None
         self.boundaries = None
         self.segments_count = 0
@@ -44,7 +43,7 @@ class Segmentation:
         logger.debug(" <- __init__")
 
     def get_segments(self, scale=100, sigma=0.5, min_size=50):
-        float_image = img_as_float((self.image.original))
+        float_image = img_as_float(self.image.resized)
         return felzenszwalb(float_image, scale=scale, sigma=sigma, min_size=min_size)
 
     def apply_segmentation(self, scale=100, sigma=0.5, min_size=50, display_flag=False):
@@ -155,7 +154,7 @@ class Segmentation:
     def filter_segments(self, threshold=1):
         res = np.zeros_like(self.segments, dtype=np.bool)
         for i, segment in self.segment_iterator():
-            segment_activation = self.ground_truth * segment
+            segment_activation = self.image.mask_resized_binary * segment
             seg_sum = np.count_nonzero(segment_activation)
             if seg_sum >= threshold:
                 res[segment] = True

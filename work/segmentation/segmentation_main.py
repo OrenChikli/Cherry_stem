@@ -1,18 +1,29 @@
 from work.annotation import fruits_anno
 from work.unet.data_functions import *
 
-from work.segmentation.clarifruit_segmentation import segmentation,seg_filter,seg_finder,seg_info
-from work.segmentation.clarifruit_segmentation.image import Image
+from work.segmentation.clarifruit_segmentation import segmentation,seg_filter,seg_finder,seg_info,\
+    seg_finder_with_ground_truth
+
 import numpy as np
 from tqdm import tqdm
+from work.segmentation.clarifruit_segmentation.image import Image
+
 
 def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
             threshold=1, scale=100, sigma=0.5, min_size=50,
             draw_color=(255, 0, 255), draw_alpha=1.0,
             boundaries_display_flag=False,
             save_flag=True):
+
+
+
+
+    img_path = os.path.join(orig_path,image_name)
+    mask_img_path = os.path.join(mask_path, image_name)
+
     # segmentaion paths
     seg_path = os.path.join(seg_path, 'individual')
+
     if save_flag:
         curr_seg_path = create_path(seg_path, image_name)
 
@@ -24,15 +35,15 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
         curr_activation_path = ""
 
     # load the src image and mask image
-    img_path = os.path.join(orig_path, image_name)
-    mask_imgh_path = os.path.join(mask_path, image_name)
-    img = Image(img_path)
+    img = Image(img_path,mask_img_path)
+    img.prepare_for_detection()
+
     #img = cv2.imread(img_path, COLOR_DICT[img_color])
-    mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
-    mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
+    #mask = cv2.imread(mask_imgh_path, cv2.IMREAD_GRAYSCALE)
+    #mask_binary = np.where(mask == 255, True, False)  # create binary version of the mask image
 
     # segmentation enhancment
-    sg = segmentation.Segmentation(image=img, ground_truth=mask_binary)
+    sg = segmentation.Segmentation(image=img)
     sg.apply_segmentation(scale=scale,
                           sigma=sigma,
                           min_size=min_size,
@@ -90,6 +101,14 @@ def use_seg_finder(img_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def use_seg_finder_with_ground_truth(img_path,mask_path):
+    sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path,mask_path)
+
+    sf.display()
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 def use_seg_filter(img_path):
     sf = seg_filter.SegmentFilter(img_path)
 
@@ -99,20 +118,25 @@ def use_seg_filter(img_path):
     cv2.destroyAllWindows()
 
 
+
+
 def seg_main():
-    image_name = '45665-81662.png.jpg'
+    image_name = '74714-32897.png.jpg'
 
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
     mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
     seg_path =  r'D:\Clarifruit\cherry_stem\data\segmentation'
 
     img_path = os.path.join(orig_path, image_name)
+    img_mask_path = os.path.join(mask_path,image_name)
     seg_folder = 'segmentation'
     seg_activation_folder = 'activation'
 
+    segment(image_name,orig_path,mask_path,seg_path,seg_folder,seg_activation_folder)
     #use_seg_info(img_path)
-    use_seg_finder(img_path)
+    #use_seg_finder(img_path)
     #use_seg_filter(img_path)
+    #use_seg_finder_with_ground_truth(img_path,img_mask_path)
     """
     segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
                 threshold=1, scale=100, sigma=0.5, min_size=50,

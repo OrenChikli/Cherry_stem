@@ -5,6 +5,7 @@ import cv2
 from .exceptions import ReadImageException
 from .utils import Utils
 from .segmentation import Segmentation
+from skimage.util import img_as_float
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +13,9 @@ logger = logging.getLogger(__name__)
 class Image:
     RESIZED_IMAGE_LONG_SIDE = 768
 
-    def __init__(self, img_path):
+    def __init__(self, img_path,mask_path=None):
         self.img_path = img_path
+        self.mask_path = mask_path
 
         self.original = None
         self.debug = None
@@ -24,6 +26,8 @@ class Image:
         self.gray = None
         self.blurred = None
         self.segmentation = None
+
+
 
         # self.lab = None
         # self.ycc = None
@@ -94,6 +98,7 @@ class Image:
         logger.debug(" -> read")
         logger.debug("Reading image %s", self.img_path)
 
+
         try:
             logger.debug("Reading image locally by OpenCV")
             self.original = cv2.imread(self.img_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -101,6 +106,16 @@ class Image:
         except:
             logger.exception('Failed reading image: ' + self.img_path)
             raise ReadImageException('Failed reading image: ' + self.img_path)
+
+        if self.mask_path:
+            logger.debug("Reading mask %s",self.mask_path)
+
+            try:
+                logger.debug("Reading mask image locally by OpenCV")
+                self.mask = cv2.imread(self.mask_path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_IGNORE_ORIENTATION)
+            except:
+                logger.exception('Failed reading  mask image: ' + self.mask_path)
+                raise ReadImageException('Failed reading  mask image: ' + self.mask_path)
 
         if self.original is None:
             error_message = "Can't read image from "
@@ -153,8 +168,13 @@ class Image:
         self.debug = self.resized.copy()
         self.gray = cv2.cvtColor(self.resized, cv2.COLOR_BGR2GRAY)
         #self.blurred = cv2.GaussianBlur(self.gray, (5, 5), 2, 2)
-        self.hsv = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HSV)
-        self.hls = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HLS)
+        #self.hsv = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HSV)
+        #self.hls = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HLS)
+        self.float = img_as_float(self.original)
+
+        if self.mask is not None:
+            self.mask_resized, _ = Utils.resize_image(self.mask,self.RESIZED_IMAGE_LONG_SIDE)
+            self.mask_resized_binary = np.where(self.mask_resized == 255, True, False)
 
         # self.hsv[:, :, 2] = np.clip(self.hsv[:, :, 2].astype(np.uint16) + 24, 0, 255).astype(np.uint8)
         # self.resized = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
