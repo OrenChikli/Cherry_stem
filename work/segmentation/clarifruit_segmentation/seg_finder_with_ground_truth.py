@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class MaskSegmentFinder:
-
-    THRESHOLD_TRACKBAR_NAME = 'threshold'
+    PR_THRESHOLD_TRACKBAR_NAME = ' Activation pixel precentage threshold'
+    THRESHOLD_TRACKBAR_NAME = 'Activation pixel threshold'
     SCALE_TRACKBAR_NAME = 'Scale'
     SIGMA_TRACKBAR_NAME = 'Sigma'
     MSIZE_TRACKBAR_NAME = 'Min Size'
@@ -42,6 +42,7 @@ class MaskSegmentFinder:
         self.disp_mask = None
 
         self.threshold = 1
+        self.pr_threshold = 0.05
         self.scale = 100
         self.sigma = 0.5
         self.min_size = 50
@@ -59,6 +60,7 @@ class MaskSegmentFinder:
 
         logger.debug(" -> apply")
 
+        self.pr_threshold = cv2.getTrackbarPos(MaskSegmentFinder.PR_THRESHOLD_TRACKBAR_NAME, self.window_name) / 100
         self.threshold = cv2.getTrackbarPos(MaskSegmentFinder.THRESHOLD_TRACKBAR_NAME, self.window_name)
         self.scale = cv2.getTrackbarPos(MaskSegmentFinder.SCALE_TRACKBAR_NAME, self.window_name)
         self.sigma = cv2.getTrackbarPos(MaskSegmentFinder.SIGMA_TRACKBAR_NAME, self.window_name) / 100
@@ -66,7 +68,7 @@ class MaskSegmentFinder:
 
         self.segmentation.apply_segmentation(scale=self.scale,sigma=self.sigma,min_size=self.min_size)
 
-        self.segmentation.filter_segments(self.threshold)
+        self.segmentation.filter_segments(self.threshold,self.pr_threshold)
         #self.disp_mask= Segmentation.binary_to_grayscale(self.segmentation.filtered_segments)
         self.disp_mask = self.segmentation.mask_color_img(self)
 
@@ -77,6 +79,8 @@ class MaskSegmentFinder:
 
     def display(self):
         cv2.imshow(self.window_name, self.image.resized)
+
+        cv2.createTrackbar(MaskSegmentFinder.PR_THRESHOLD_TRACKBAR_NAME, self.window_name,1, 10, self.on_trackbar_change)
         cv2.createTrackbar(MaskSegmentFinder.THRESHOLD_TRACKBAR_NAME,self.window_name,1,100, self.on_trackbar_change)
         cv2.createTrackbar(MaskSegmentFinder.SCALE_TRACKBAR_NAME, self.window_name, 100, 1000, self.on_trackbar_change)
         cv2.createTrackbar(MaskSegmentFinder.SIGMA_TRACKBAR_NAME, self.window_name, 50, 100, self.on_trackbar_change)

@@ -10,7 +10,7 @@ from work.segmentation.clarifruit_segmentation.image import Image
 
 
 def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-            threshold=1, scale=100, sigma=0.5, min_size=50,
+            threshold=1,pr_threshold=0.05, scale=100, sigma=0.5, min_size=50,
             draw_color=(255, 0, 255), draw_alpha=1.0,
             boundaries_display_flag=False,
             save_flag=True):
@@ -49,7 +49,7 @@ def segment(image_name, orig_path, mask_path, seg_path, seg_folder, seg_activati
                           min_size=min_size,
                           display_flag=boundaries_display_flag)
 
-    seg_activation = sg.filter_segments(threshold=threshold)
+    seg_activation = sg.filter_segments(threshold=threshold,pr_threshold=pr_threshold)
     curr_activation_full = os.path.join(curr_activation_path, f'thres_{threshold}.jpg')
 
     # show on source_image

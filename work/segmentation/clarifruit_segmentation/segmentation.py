@@ -152,12 +152,15 @@ class Segmentation:
             segment = np.where(self.segments == i, True, False)
             yield i, segment
 
-    def filter_segments(self, threshold=1):
+    def filter_segments(self, threshold=1,pr_threshold=0.05):
         res = np.zeros_like(self.segments, dtype=np.bool)
         for i, segment in self.segment_iterator():
+            seg_sum = np.count_nonzero(segment)
             segment_activation = self.image.mask_resized_binary * segment
-            seg_sum = np.count_nonzero(segment_activation)
-            if seg_sum >= threshold:
+            seg_activation_sum = np.count_nonzero(segment_activation)
+            activation_pr = 100 * (seg_activation_sum / seg_sum)
+
+            if seg_activation_sum >= threshold and activation_pr > pr_threshold:
                 res[segment] = True
         self.filtered_segments = res
 
