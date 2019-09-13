@@ -1,103 +1,53 @@
 import logging
 import numpy as np
 import cv2
-#from .aws.s3 import S3
+
 from .exceptions import ReadImageException
 from .utils import Utils
 from .segmentation import Segmentation
 from skimage.util import img_as_float
 
 logger = logging.getLogger(__name__)
+import os
+import shutil
 
 
 class Image:
     RESIZED_IMAGE_LONG_SIDE = 768
 
-    def __init__(self, img_path,mask_path=None):
+    def __init__(self, img_path, mask_path=None):
+
+        self.image_name = os.path.basename(img_path)
         self.img_path = img_path
         self.mask_path = mask_path
 
         self.original = None
+        self.original_mask = None
+
         self.debug = None
         self.resized = None
+        self.mask_resized = None
         self.resize_factor = None
-        self.hsv = None
-        self.hls = None
-        self.gray = None
-        self.blurred = None
+        #self.hsv = None
+        #self.hls = None
+        #self.gray = None
+        #self.blurred = None
         self.segmentation = None
 
-
-
-        # self.lab = None
-        # self.ycc = None
-
-        #self.read()
         self.read_local()
 
-    """    
-    def read(self):
+    def move_to(self, dest_path_image, dest_path_label):
+        img_path = os.path.join(dest_path_image, self.image_name)
+        label_path = os.path.join(dest_path_label, self.image_name)
 
-        logger.debug(" -> read")
-        logger.debug("Reading image %s", self.img_path)
-
-        s3_images_bucket_name = 'food-meter-images'
-
-        try:
-            url_parse_result = urlparse(self.img_path)
-            if url_parse_result.scheme in ['https', 'http', 's3']:
-                logger.debug("Remote image path found")
-
-                path = url_parse_result.path[1:]  # removing leading '/'
-                if s3_images_bucket_name in path:
-                    # Removing the first element of the path (assuming the bucket name may only appear in the first element)
-                    logger.debug("Bucket name found in path (%s), removing it.", s3_images_bucket_name)
-                    path = str(pathlib.Path(*pathlib.Path(path).parts[1:]))
-
-                # Getting image from s3
-                logger.debug('Trying to download the image from s3, %s', path)
-                s3 = S3(s3_images_bucket_name)
-                img_file_content = s3.get_file_content(path)
-
-                if img_file_content is not None:
-                    logger.debug('Image downloaded from s3. Opening in using PIL')
-                    # Image downloaded from s3
-                    # img_arr = np.frombuffer(img_file_content, np.uint8)
-                    # self.original = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
-
-                    image = np.array(pil_image.open(io.BytesIO(img_file_content)), dtype=np.uint8)
-                else:
-                    # Image not found in s3, download from the url
-                    logger.debug('Image not found in s3, opening from remote location using skimage.')
-                    image = sk_io.imread(self.img_path)
-
-                self.original = self._convert_to_bgr(image)
-            else:
-                # Local path
-                logger.debug("Reading image locally by OpenCV")
-                self.original = cv2.imread(self.img_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
-                # self.original = cv2.imread(self.img_path, cv2.IMREAD_UNCHANGED)
-                # cv2.IMREAD_IGNORE_ORIENTATION
-
-            # self.original = self._convert_to_bgr(image)
-        except:
-            logger.exception('Failed reading image: ' + self.img_path)
-            raise ReadImageException('Failed reading image: ' + self.img_path)
-
-        if self.original is None:
-            error_message = "Can't read image from "
-            logger.error(error_message, self.img_path)
-            # print(error_message, self.img_path)
-            raise ReadImageException(error_message, self.img_path)
-
-        logger.debug(" <- read")"""
+        _ = shutil.move(self.img_path, img_path)
+        _ = shutil.move(self.mask_path, label_path)
 
 
     def read_local(self):
 
         logger.debug(" -> read")
         logger.debug("Reading image %s", self.img_path)
-
 
         try:
             logger.debug("Reading image locally by OpenCV")
@@ -108,11 +58,12 @@ class Image:
             raise ReadImageException('Failed reading image: ' + self.img_path)
 
         if self.mask_path:
-            logger.debug("Reading mask %s",self.mask_path)
+            logger.debug("Reading mask %s", self.mask_path)
 
             try:
                 logger.debug("Reading mask image locally by OpenCV")
                 self.mask = cv2.imread(self.mask_path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_IGNORE_ORIENTATION)
+
             except:
                 logger.exception('Failed reading  mask image: ' + self.mask_path)
                 raise ReadImageException('Failed reading  mask image: ' + self.mask_path)
@@ -165,8 +116,8 @@ class Image:
         # self.resized1, self.resize_factor = Utils.resize_image(self.original, self.RESIZED_IMAGE_LONG_SIDE)
         # self.resized = self.white_balance(self.resized1)
 
-        self.debug = self.resized.copy()
-        self.gray = cv2.cvtColor(self.resized, cv2.COLOR_BGR2GRAY)
+        #self.debug = self.resized.copy()
+        #self.gray = cv2.cvtColor(self.resized, cv2.COLOR_BGR2GRAY)
         #self.blurred = cv2.GaussianBlur(self.gray, (5, 5), 2, 2)
         #self.hsv = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HSV)
         #self.hls = cv2.cvtColor(self.resized, cv2.COLOR_BGR2HLS)
@@ -179,40 +130,9 @@ class Image:
         # self.hsv[:, :, 2] = np.clip(self.hsv[:, :, 2].astype(np.uint16) + 24, 0, 255).astype(np.uint8)
         # self.resized = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
 
-        # self.lab = cv2.cvtColor(self.resized, cv2.COLOR_BGR2LAB)
-        # self.ycc = cv2.cvtColor(self.resized, cv2.COLOR_BGR2YCR_CB)
-
-        #self.segmentation = self.get_segmentation_class()
-        #self.segmentation.apply_segmentation()
 
         logger.debug(" <- prepare_for_detection")
 
-    # def adjust_white_balance_by_ref_object(self, ref_object):
-    #     median_color_bgr = ref_object.get_median_color()
-    #
-    #     gamma = np.log(255.) / np.log(median_color_bgr)
-    #
-    #     b = self.adjust_gamma(self.resized[:, :, 0], gamma[0])
-    #     g = self.adjust_gamma(self.resized[:, :, 1], gamma[1])
-    #     r = self.adjust_gamma(self.resized[:, :, 2], gamma[2])
-    #
-    #     result = np.stack((b, g, r), axis=-1)
-    #
-    #     if Common.imgLogLevel in ['trace']:
-    #         cv2.imshow("gamma", result)
-    #
-    #     median_color_bgr1 = ref_object.get_median_color(result, 1)
-    #
-    #     x = 0
-
-    # def white_balance(self, img):
-    #     result = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    #     avg_a = np.average(result[:, :, 1])
-    #     avg_b = np.average(result[:, :, 2])
-    #     result[:, :, 1] = result[:, :, 1] - ((avg_a - 128) * (result[:, :, 0] / 255.0) * 1.1)
-    #     result[:, :, 2] = result[:, :, 2] - ((avg_b - 128) * (result[:, :, 0] / 255.0) * 1.1)
-    #     result = cv2.cvtColor(result, cv2.COLOR_LAB2BGR)
-    #     return result
 
     def adjust_gamma(self, image, gamma=1.0):
 

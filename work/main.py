@@ -1,8 +1,7 @@
 from work.annotation import fruits_anno
-from work.unet.data_functions import *
+from work.unet.clarifruit_unet.data_functions import *
 #from work.unet.model import *
 #from work.segmentation.segmentation import *
-from work.segmentation import segmentation,seg_filter,seg_finder,seg_info
 import logging
 
 

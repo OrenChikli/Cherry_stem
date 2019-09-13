@@ -11,13 +11,15 @@ from .common import Common
 
 import matplotlib.pyplot as plt
 import os
-from work.unet.data_functions import create_path
+from work.unet.clarifruit_unet.data_functions import create_path
 from tqdm import tqdm
 import argparse
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib import colors
+
+from datetime import datetime
 
 
 COLOR_DICT = {'gray':cv2.IMREAD_GRAYSCALE,'color':cv2.IMREAD_UNCHANGED}
@@ -27,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 class Segmentation:
 
-    def __init__(self, image):
+    def __init__(self, image,
+                 scale=100, sigma=0.5, min_size=50, threshold=1, pr_threshold=0.05):
 
         logger.debug(" -> __init__")
 
@@ -41,17 +44,31 @@ class Segmentation:
         self.segments_no_bg = set()
         self.filtered_segments = None
 
+
+        self.threshold = threshold
+        self.pr_threshold = pr_threshold
+        self.scale = scale
+        self.sigma = sigma
+        self.min_size = min_size
+
+
         logger.debug(" <- __init__")
 
-    def get_segments(self, scale=100, sigma=0.5, min_size=50):
+    def get_segments(self):
         float_image = img_as_float(self.image.resized)
-        return felzenszwalb(float_image, scale=scale, sigma=sigma, min_size=min_size)
+        return felzenszwalb(float_image, scale=self.scale, sigma=self.sigma, min_size=self.min_size)
 
-    def apply_segmentation(self, scale=100, sigma=0.5, min_size=50, display_flag=False):
 
-        self.segments = self.get_segments(scale=scale, sigma=sigma, min_size=min_size)
+
+
+    def apply_segmentation(self, display_flag=False):
+
+        self.segments = self.get_segments()
         segments = np.unique(self.segments)
         self.segments_count = len(segments)
+
+        if self.image.mask_path is not None:
+            self.filter_segments()
 
         if display_flag:
             self.boundaries = mark_boundaries(self.image, self.segments, color=(1, 1, 0))
@@ -140,11 +157,6 @@ class Segmentation:
     def get_segment_hsv(self, seg_val):
         return self.segments_hsv[seg_val]
 
-    def save_segments(self, save_path):
-        for i, segment in self.segment_iterator():
-            seg_name = os.path.join(save_path, f"segment_{i}.jpg")
-            segment_image = binary_to_grayscale(segment)
-            cv2.imwrite(seg_name, segment_image)
 
     def segment_iterator(self):
         n_segments = self.segments.max()
@@ -152,20 +164,20 @@ class Segmentation:
             segment = np.where(self.segments == i, True, False)
             yield i, segment
 
-    def filter_segments(self, threshold=1,pr_threshold=0.05):
-        res = np.zeros_like(self.segments, dtype=np.bool)
+    def filter_segments(self, ):
+        self.filtered_segments = np.zeros_like(self.segments, dtype=np.bool)
         for i, segment in self.segment_iterator():
             seg_sum = np.count_nonzero(segment)
             segment_activation = self.image.mask_resized_binary * segment
             seg_activation_sum = np.count_nonzero(segment_activation)
             activation_pr = 100 * (seg_activation_sum / seg_sum)
 
-            if seg_activation_sum >= threshold and activation_pr > pr_threshold:
-                res[segment] = True
-        self.filtered_segments = res
+            if seg_activation_sum >= self.threshold and activation_pr > self.pr_threshold:
+                self.filtered_segments[segment] = True
 
 
-    def mask_color_img(self, color=(0, 255, 255), alpha=0.3):
+
+    def mask_color_img(self):
         '''
         img: cv2 image
         mask: bool or np.where
@@ -182,10 +194,74 @@ class Segmentation:
         out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
         return out
 
+    # saving functions
+    def save_segments(self, save_path):
+        for i, segment in self.segment_iterator():
+            seg_name = os.path.join(save_path, f"segment_{i}.jpg")
+            segment_image = binary_to_grayscale(segment)
+            cv2.imwrite(seg_name, segment_image)
+
+
+    def save_settings(self, save_path):
+        settings_dict = {'threshold': self.threshold,
+                         'pr_threshold': self.pr_threshold,
+                         'scale': self.scale,
+                         'sigma': self.sigma,
+                         'min_size': self.min_size}
+
+
+        settings_path = os.path.join(save_path, 'seg_parameters.txt')
+
+        with open(settings_path, 'w') as f:
+            for param_name, param_value in settings_dict.items():
+                f.write(f"{param_name} = {param_value}\n")
+
+    @staticmethod
+    def create_save_paths(image_name,src_save_path, seg_folder=None, activation_folder=None):
+        save_path = create_path(src_save_path, image_name)
+
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
+        save_path = create_path(save_path,current_time)
+
+        ret = [save_path]
+        if seg_folder:
+            segments_path = create_path(save_path, seg_folder)
+            ret.append(segments_path)
+        if activation_folder:
+            activation_path = create_path(save_path, activation_folder)
+            ret.append(activation_path)
+
+        return ret
+
+    def return_modified_mask(self):
+        return self.binary_to_grayscale(self.filtered_segments)
+
+
+
+    def save_results(self,src_save_path, seg_folder, activation_folder):
+
+        save_path,segments_path,activation_path = self.create_save_paths(self.image.image_name,
+                                                                         src_save_path,
+                                                                         seg_folder,
+                                                                         activation_folder)
+
+        self.save_settings(save_path)
+
+        #self.save_segments(segments_path)
+
+        res_mask = self.return_modified_mask()
+        res_mask_path = os.path.join(activation_path,self.image.image_name)
+
+        res_mask_ontop = self.mask_color_img()
+        res_mask_ontop_path = os.path.join(activation_path, f"ontop_{self.image.image_name}")
+
+        cv2.imwrite(res_mask_path, res_mask)
+        cv2.imwrite(res_mask_ontop_path, res_mask_ontop)
+
     @staticmethod
     def binary_to_grayscale(img):
-        #res = img.copy()
-        res = (255 * img).astype(np.uint8)
+        res = img.copy()
+        res = (255 * res).astype(np.uint8)
         return res
 
 
