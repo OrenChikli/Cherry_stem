@@ -171,10 +171,10 @@ def seg_main():
                 '78702-35309.png.jpg',
                 '78712-02020.png.jpg']
 
-    settings_dict = {'threshold': 10,
+    settings_dict = {'threshold': 1,
                      'pr_threshold': 0.05,
                      'scale': 100,
-                     'sigma': 0.5,
+                     'sigma': 0.1,
                      'min_size': 50}
 
     use_segment(image_name,orig_path, mask_path, seg_path, settings_dict)

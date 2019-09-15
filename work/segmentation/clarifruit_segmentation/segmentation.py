@@ -67,13 +67,17 @@ class Segmentation:
         segments = np.unique(self.segments)
         self.segments_count = len(segments)
 
+
         if self.image.mask_path is not None:
             self.filter_segments()
 
         if display_flag:
-            self.boundaries = mark_boundaries(self.image, self.segments, color=(1, 1, 0))
-            plt.imshow(self.boundaries)
-            plt.show()
+            cv2.imshow("enhanced mask",self.filtered_segments)
+            cv2.waitKey(0)
+
+            #self.boundaries = mark_boundaries(self.image, self.segments, color=(1, 1, 0))
+            #plt.imshow(self.boundaries)
+            #plt.show()
 
     def get_boundaries(self):
         if self.boundaries is None:
@@ -164,16 +168,19 @@ class Segmentation:
             segment = np.where(self.segments == i, True, False)
             yield i, segment
 
-    def filter_segments(self, ):
-        self.filtered_segments = np.zeros_like(self.segments, dtype=np.bool)
+    def filter_segments(self):
+        self.filtered_segments = np.zeros_like(self.segments,dtype=np.bool)
         for i, segment in self.segment_iterator():
             seg_sum = np.count_nonzero(segment)
             segment_activation = self.image.mask_resized_binary * segment
+            #segment_activation = np.bitwise_and(self.image.mask_resized_binary, segment)
             seg_activation_sum = np.count_nonzero(segment_activation)
-            activation_pr = 100 * (seg_activation_sum / seg_sum)
-
+            activation_pr = (seg_activation_sum / seg_sum)
             if seg_activation_sum >= self.threshold and activation_pr > self.pr_threshold:
                 self.filtered_segments[segment] = True
+
+        #self.filtered_segments *= (255.0/self.filtered_segments.max())
+        #self.filtered_segments = self.filtered_segments.astype(np.uint8)
 
 
 
@@ -220,7 +227,7 @@ class Segmentation:
     def create_save_paths(image_name,src_save_path, seg_folder=None, activation_folder=None):
         save_path = create_path(src_save_path, image_name)
 
-        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         save_path = create_path(save_path,current_time)
 
         ret = [save_path]
