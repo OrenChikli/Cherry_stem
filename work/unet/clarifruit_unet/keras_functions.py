@@ -4,7 +4,11 @@ from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 import skimage.io as io
 import skimage.transform as trans
-import os
+from datetime import datetime
+from keras.callbacks import ModelCheckpoint,EarlyStopping, ReduceLROnPlateau,TensorBoard, LearningRateScheduler
+from .data_functions import *
+from .unet_model import *
+
 # DATA GENERATORS
 def custom_generator(batch_size, src_path, folder, aug_dict, save_prefix,
                      color_mode="grayscale",
@@ -15,7 +19,7 @@ def custom_generator(batch_size, src_path, folder, aug_dict, save_prefix,
     Create a datagen generator
     :param batch_size: the batch size of each step
     :param src_path: the path to the data
-    :param folder: the name of the folder in the src_path
+    :param folder: the name of the folder in the data_path
     :param aug_dict: a dictionary with the data augmentation parameters of the images
     :param save_prefix: if output images are saved, this is the prefix in the file names
     :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
@@ -51,7 +55,7 @@ def train_val_generators(batch_size, src_path, folder, aug_dict, save_prefix,
     Create a datagen generator with  train validation split
     :param batch_size: the batch size of each step
     :param src_path: the path to the data
-    :param folder: the name of the folder in the src_path
+    :param folder: the name of the folder in the data_path
     :param aug_dict: a dictionary with the data augmentation parameters of the images
     :param save_prefix: if output images are saved, this is the prefix in the file names
     :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
@@ -103,8 +107,8 @@ def clarifruit_train_val_generators(batch_size, src_path, image_folder, mask_fol
 
     :param batch_size: the batch size of each step
     :param src_path: the path to the data
-    :param image_folder: the name of the image folder in the src_path
-    :param mask_folder: the name of the mask folder in the src_path
+    :param image_folder: the name of the image folder in the data_path
+    :param mask_folder: the name of the mask folder in the data_path
     :param aug_dict: a dictionary with the data augmentation parameters of the images
     :param image_color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
     :param mask_color_mode: how to load the masks, options are "grayscale", "rgb", default is "grayscale"
@@ -183,20 +187,24 @@ def clarifruit_train_generator(batch_size, train_path, image_folder, mask_folder
     return train_generator
 
 
-def test_generator(test_path, target_size=(256, 256), as_gray=True):
+def test_generator(test_path, target_size=(256, 256), color_mode=cv2.IMREAD_COLOR):
     img_list = os.scandir(test_path)
-    for img_name in img_list:
-        img = io.imread(os.path.join(test_path, img_name), as_gray=as_gray)
+    for img_entry in img_list:
+        img_path = os.path.join(test_path, img_entry.name)
+        img = cv2.imread(img_path,color_mode)
+        #img = io.imread(, as_gray=as_gray)
+        if color_mode == cv2.IMREAD_GRAYSCALE:
+            img = np.reshape(img, img.shape +(1,))
         img = img / 255
         img = trans.resize(img, target_size)
         img = np.reshape(img, (1,) + img.shape)
-        yield img, img_name
+        yield img, img_entry.name
 
 
-def prediction(model, test_path, save_path, target_size, threshold=0.5, as_gray=False):
-    test_gen = test_generator(test_path, target_size=target_size, as_gray=as_gray)
-    for img, img_Entry in test_gen:
-        img_name = img_Entry.name.rsplit('.', 1)[0]
+def prediction(model, test_path, save_path, target_size, threshold=0.5, color_mode=cv2.IMREAD_COLOR):
+    test_gen = test_generator(test_path, target_size=target_size, color_mode=color_mode)
+    for img, img_name in test_gen:
+        img_name = img_name.rsplit('.', 1)[0]
         pred = model.predict(img, batch_size=1)
         pred_image_raw = (255 * pred[0]).astype(np.uint8)
         pred_img = (255 * (pred[0] > threshold)).astype(np.uint8)
@@ -205,3 +213,41 @@ def prediction(model, test_path, save_path, target_size, threshold=0.5, as_gray=
         io.imsave(os.path.join(save_path, f"{img_name}.png"), save_img)
         io.imsave(os.path.join(save_path, f"{img_name}_raw_predict.png"), pred_image_raw)
         io.imsave(os.path.join(save_path, f"{img_name}_predict.png"), pred_img)
+
+
+def clarifruit_train(params_dict, callbacks_in, pre_weights_file_path=None):
+    save_path = params_dict['dest_path']
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    curr_folder = create_path(save_path, current_time)
+    save_settings_to_file(params_dict, "model_settings.txt", curr_folder)
+
+    fit_params = params_dict['model_fit_params']
+
+    train_generator, val_generator = clarifruit_train_val_generators(batch_size=fit_params['batch_size'],
+                                                                     src_path=params_dict['src_path'],
+                                                                     image_folder=params_dict['x_folder_name'],
+                                                                     mask_folder=params_dict['y_folder_name'],
+                                                                     aug_dict=params_dict['data_gen_params'],
+                                                                     image_color_mode=params_dict['color_mode'],
+                                                                     mask_color_mode='grayscale',
+                                                                     image_save_prefix=params_dict['x_folder_name'],
+                                                                     mask_save_prefix=params_dict['y_folder_name'],
+                                                                     save_to_dir=None,
+                                                                     target_size=params_dict['target_size'],
+                                                                     seed=1)
+
+    weights_file_out = os.path.join(curr_folder, params_dict['weights_file_name'])
+    model_checkpoint = [ModelCheckpoint(weights_file_out, monitor='loss', verbose=1, save_best_only=True)]
+    callbacks = model_checkpoint + callbacks_in
+
+    model = unet(input_size=params_dict['input_size'], pretrained_weights=pre_weights_file_path)
+
+    model.fit_generator(
+        train_generator,
+        steps_per_epoch=fit_params['steps_per_epoch'],
+        validation_data=val_generator,
+        validation_steps=fit_params['validation_steps'],
+        epochs=fit_params['epochs'],
+        callbacks=callbacks)
+
+    return model,current_time

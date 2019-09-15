@@ -20,9 +20,10 @@ def create_path(src_path, path_extention):
     return new_path
 
 
-def image_train_test_split(src_path, dest_path, x_name, y_name, test_size=0.3):
-    train_path = create_path(dest_path, 'train')
-    test_path = create_path(dest_path, 'test')
+def image_train_test_split(src_path, dest_path, x_name, y_name, test_size=0.3,test_name='test',train_name='train'):
+    cur_test_path = create_path(dest_path,f'test_split_{test_size}')
+    train_path = create_path(cur_test_path, train_name)
+    test_path = create_path(cur_test_path, test_name)
 
     X_path = os.path.join(src_path, x_name)
     y_path = os.path.join(src_path, y_name)
@@ -44,7 +45,25 @@ def image_train_test_split(src_path, dest_path, x_name, y_name, test_size=0.3):
     copy_images(test_data, X_path, X_test_path)
     copy_images(test_data, y_path, y_test_path)
 
-    return train_path, test_path
+    return cur_test_path
+
+
+def get_from(src_path,data_path, src_folder, x_folder, y_folder):
+
+
+    x_src_path = os.path.join(src_path, x_folder)
+    y_src_path = os.path.join(src_path, y_folder)
+    src_path = os.path.join(data_path, src_folder)
+
+    images = [img.name for img in os.scandir(src_path)]
+
+
+    x_dest_path = create_path(data_path, x_folder)
+    y_dest_path = create_path(data_path, y_folder)
+
+    copy_images(images,x_src_path,x_dest_path)
+    copy_images(images,y_src_path,y_dest_path)
+
 
 
 def copy_images(src_image_list, src_path, dest_path):
@@ -57,6 +76,22 @@ def create_X_y_paths(src_path, X_name, y_name):
     X_path = create_path(src_path, X_name)
     y_path = create_path(src_path, y_name)
     return X_path, y_path
+
+def save_settings_to_file(params_dict,file_name,save_path):
+    settings_path = os.path.join(save_path, file_name)
+
+    with open(settings_path, 'w') as f:
+        for param_name, param_value in params_dict.items():
+            if type(param_value) == dict:
+                f.write("\n")
+                f.write(f"{param_name}:\n")
+                for item, value in param_value.items():
+                    f.write(f"\t{item} = {value}\n")
+                f.write("\n")
+            else:
+                f.write(f"{param_name} = {param_value}\n")
+
+
 
 
 # IMAGE FUNCTIONS

@@ -82,8 +82,8 @@ def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
 # use roman functions
 # TODO finish move images function
 """ 
-def move_images(orig_path,mask_path,img_list,dest_path):
-    dest_image_path = create_path(dest_path,'image')
+def move_images(orig_path,mask_path,img_list,src_folder):
+    dest_image_path = create_path(src_folder,'image')
     dest_mask_path = 
     for img_name in img_list:
         curr_img_path = os.path.join(orig_path,img_name)
@@ -144,7 +144,7 @@ def canny(img):
 
 
 def seg_main():
-    image_name = '74714-32897.png.jpg'
+    image_name = 'orig_72596-28736.png.jpg'
 
     #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'

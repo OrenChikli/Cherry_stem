@@ -158,8 +158,7 @@ class GoogleLabels:
             file_name = os.path.basename(file)
             cv2.imwrite(os.path.join(self.mask_dest_path, file_name), image)
 
-    def move_anno_images(self,img_list):
-        train_path = os.path
+
 
     def get_images_no_mask(self):
         curr_dest_path = os.path.join(self.dest_images_path,'no_annotation')

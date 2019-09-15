@@ -1,57 +1,95 @@
 import os
-from work.unet.clarifruit_unet import unet_model, keras_functions
+from work.unet.clarifruit_unet import data_functions, keras_functions, unet_model
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau,TensorBoard, LearningRateScheduler
+import cv2
 
+def splitter():
+    raw_src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Source'
 
-def train_unet(): #TODO update to use current versions
-    train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\train'
-    test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\test'
-    test_aug_path = os.path.join(test_path, 'aug')
-
-    target_size = (256, 256)
-    modes_dict = {'grayscale': 1, 'rgb': 3}
-
-    color_mode = 'rgb'
+    split_dest = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split'
 
     x_folder_name = 'image'
     y_folder_name = 'label'
 
-    x_prefix = 'image'
-    y_prefix = 'label'
+    train_folder = 'train'
+    test_folder = 'test'
 
-    weights_file_name = 'unet_cherry_stem.hdfs5'
-    input_size = (*target_size, modes_dict[color_mode])
+    src_path = data_functions.image_train_test_split(raw_src_path, split_dest, x_folder_name, y_folder_name, test_size=0.3,
+                                      train_name=train_folder, test_name=test_folder)
 
-    data_gen_args = dict(rotation_range=0.2,
+
+
+def get_data_via_with_mask():
+    src_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
+    data_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines'
+    src_folder = 'with_maskes'
+    x_folder = 'image'
+    y_folder = 'label'
+
+    data_functions.get_from(src_path,data_path,src_folder, x_folder, y_folder)
+
+def train_unet():
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train'
+
+    x_folder_name = 'image'
+    y_folder_name = 'label'
+
+
+    model_save_dest_path = r'D:\Clarifruit\cherry_stem\data\unet_data\model data'
+
+    modes_dict = {'grayscale': 1, 'rgb': 3}  # translate for image dimentions
+
+    target_size = (256, 256)
+    color_mode = 'grayscale'
+
+    weights_file_name = 'unet_cherry_stem.hdf5'
+
+    data_gen_args = dict(rescale=1. / 255,
+                         rotation_range=0.5,
                          width_shift_range=0.05,
                          height_shift_range=0.05,
                          shear_range=0.05,
-                         zoom_range=0.05,
+                         zoom_range=0.2,
                          horizontal_flip=True,
+                         vertical_flip=True,
                          fill_mode='nearest')
 
-    train_gen = keras_functions.clarifruit_train_generator(batch_size=2,
-                                                           train_path=train_path,
-                                                           image_folder=x_folder_name,
-                                                           mask_folder=y_folder_name,
-                                                           aug_dict=data_gen_args,
-                                                           image_color_mode=color_mode,
-                                                           mask_color_mode=color_mode,
-                                                           image_save_prefix=x_prefix,
-                                                           mask_save_prefix=y_prefix,
-                                                           save_to_dir=None,
-                                                           target_size=target_size,
-                                                           seed=1)
+    fit_params = dict(batch_size=10,
+                      epochs=5,
+                      steps_per_epoch=10,
+                      validation_steps=10)
 
-    model = unet_model.unet(input_size=input_size, pretrained_weights=weights_file_name)
-    model_checkpoint = unet_model.ModelCheckpoint(weights_file_name, monitor='loss', verbose=1, save_best_only=True)
-    #model.fit_generator(train_gen, steps_per_epoch=100, epochs=3, callbacks=[model_checkpoint])
+    params_dict = dict(src_path=src_path,
+                       dest_path=model_save_dest_path,
 
-    test_path_image = os.path.join(test_path,x_folder_name)
-    pred_path = os.path.join(test_path,'pred')
-    keras_functions.prediction(model, test_path_image, pred_path, target_size, as_gray=False)
+                       x_folder_name=x_folder_name,
+                       y_folder_name=y_folder_name,
 
-def unet_main():
-    pass
+                       target_size=target_size,
+                       color_mode=color_mode,
+                       input_size=(*target_size, modes_dict[color_mode]),
+
+                       weights_file_name=weights_file_name,
+
+                       data_gen_params=data_gen_args,
+                       model_fit_params=fit_params)
+    # early_stoping = EarlyStopping(monitor='val_loss',verbose=1, patience=3)
+    reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
+                                  patience=2, min_lr=0.000001,
+                                  cooldown=1, verbose=1)
+    # callbacks = [early_stoping, model_checkpoint,reduce_lr]
+    callbacks = [reduce_lr]
+    model = keras_functions.clarifruit_train(params_dict, callbacks)
+
+def use_predict():
+    pre_trained_weights = r'D:\Clarifruit\cherry_stem\data\unet_data\model data\2019-09-15_17-23-27\unet_cherry_stem.hdf5'
+    model = unet_model.unet(input_size=(256,256,1), pretrained_weights= pre_trained_weights)
+
+    pred_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\pred\1'
+    image_train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train\image'
+    keras_functions.prediction(model, image_train_path, pred_path, (256,256),
+                               threshold=0.5, color_mode=cv2.IMREAD_GRAYSCALE)
 
 if __name__ == '__main__':
-    pass
+    #train_unet()
+    use_predict()

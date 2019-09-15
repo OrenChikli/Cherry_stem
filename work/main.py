@@ -1,4 +1,4 @@
-from work.annotation import fruits_anno
+from work.annotation.clarifruit_annotation import fruits_anno
 from work.unet.clarifruit_unet.data_functions import *
 #from work.unet.model import *
 #from work.segmentation.segmentation import *
