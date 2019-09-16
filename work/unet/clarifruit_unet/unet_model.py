@@ -6,7 +6,9 @@ from keras import backend as keras
 
 logger = logging.getLogger(__name__)
 
-def unet(pretrained_weights=None, input_size=(256, 256, 1)):
+def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy'),
+         pretrained_weights=None, input_size=(256, 256, 1)):
+
     logger.debug(f"<- unet model with input_size={input_size} andpretraind_weights={pretrained_weights} ")
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
@@ -55,7 +57,7 @@ def unet(pretrained_weights=None, input_size=(256, 256, 1)):
 
     model = Model(inputs=inputs, outputs=conv10)
 
-    model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
     # model.summary()
 
