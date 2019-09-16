@@ -1,0 +1,27 @@
+2019-09-16 10:05:28,742:__main__:123
+2019-09-16 10:08:32,380:__main__:123
+2019-09-16 10:08:48,805:__main__:111
+2019-09-16 10:08:59,608:__main__:111
+2019-09-16 10:09:12,502:__main__:111
+2019-09-16 10:09:20,368:__main__:111
+2019-09-16 10:09:33,104:__main__:<-prediction with params:
+test_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train\image
+ save_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\pred\1
+ target_size=(256, 256)
+threshold=0.5
+,color_mode =0
+2019-09-16 10:10:15,176:__main__:<-prediction with params:
+test_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train\image
+ save_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\pred\1
+ target_size=(256, 256)
+threshold=0.5
+,color_mode =0
+2019-09-16 10:10:47,979:__main__:<-prediction with params:
+test_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train\image
+ save_path=D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\pred\1
+ target_size=(256, 256)
+threshold=0.5
+,color_mode =0
+2019-09-16 10:12:56,559:__main__:123
+2019-09-16 10:14:23,852:__main__:111
+2019-09-16 10:15:03,083:__main__:11122

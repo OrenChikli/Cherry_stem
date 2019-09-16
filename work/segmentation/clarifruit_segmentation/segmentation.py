@@ -6,17 +6,12 @@ from skimage.util import img_as_float
 from skimage.segmentation import mark_boundaries
 from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
 from .utils import Utils
-from .common import Common
-
 
 import matplotlib.pyplot as plt
 import os
-from work.unet.clarifruit_unet.data_functions import create_path
-from tqdm import tqdm
+from work.preprocess.data_functions import create_path
 import argparse
 
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 from matplotlib import colors
 
 from datetime import datetime

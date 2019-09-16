@@ -1,7 +1,28 @@
-import os
-from work.unet.clarifruit_unet import data_functions, keras_functions, unet_model
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau,TensorBoard, LearningRateScheduler
+from work.unet.clarifruit_unet import unet_model, keras_functions
+from work.preprocess import data_functions
+from keras.callbacks import ReduceLROnPlateau
 import cv2
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('unet_main.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+logger.debug("123")
+
 
 def splitter():
     raw_src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Source'
@@ -15,7 +36,7 @@ def splitter():
     test_folder = 'test'
 
     src_path = data_functions.image_train_test_split(raw_src_path, split_dest, x_folder_name, y_folder_name, test_size=0.3,
-                                      train_name=train_folder, test_name=test_folder)
+                                                     train_name=train_folder, test_name=test_folder)
 
 
 
@@ -26,9 +47,11 @@ def get_data_via_with_mask():
     x_folder = 'image'
     y_folder = 'label'
 
-    data_functions.get_from(src_path,data_path,src_folder, x_folder, y_folder)
+    data_functions.get_from(src_path, data_path, src_folder, x_folder, y_folder)
 
 def train_unet():
+    logger.debug(" <-train_unet")
+
     src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train'
 
     x_folder_name = 'image'
@@ -79,6 +102,7 @@ def train_unet():
                                   cooldown=1, verbose=1)
     # callbacks = [early_stoping, model_checkpoint,reduce_lr]
     callbacks = [reduce_lr]
+
     model = keras_functions.clarifruit_train(params_dict, callbacks)
 
 def use_predict():
@@ -87,9 +111,10 @@ def use_predict():
 
     pred_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\pred\1'
     image_train_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split\test_split_0.3\train\image'
-    keras_functions.prediction(model, image_train_path, pred_path, (256,256),
+    keras_functions.prediction(model, image_train_path, pred_path, (256, 256),
                                threshold=0.5, color_mode=cv2.IMREAD_GRAYSCALE)
 
 if __name__ == '__main__':
+
     #train_unet()
     use_predict()

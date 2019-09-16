@@ -1,4 +1,4 @@
-from work.unet.clarifruit_unet.data_functions import *
+from work.preprocess.data_functions import *
 
 from work.segmentation.clarifruit_segmentation import segmentation,seg_filter,seg_finder,seg_info,\
     seg_finder_with_ground_truth
