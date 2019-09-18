@@ -76,12 +76,12 @@ def main():
     unet_params = dict(optimizer='Adam',
                        loss='binary_crossentropy',
                        metrics=['accuracy'],
-                       pretrained_weights=None)
+                       pretrained_weights=r'D:\Clarifruit\cherry_stem\data\unet_data\model data\2019-09-15_15-33-49\unet_cherry_stem.hdf5')
 
     fit_params = dict(target_size=(256, 256),
                       color_mode='rgb',
                       batch_size=10,
-                      epochs=3,
+                      epochs=1,
                       steps_per_epoch=10,
                       valdiation_split=0.2,
                       validation_steps=10)
@@ -95,9 +95,11 @@ def main():
     init_dict = data_functions.join_dicts(path_params,unet_params,fit_params,extra_params)
 
     model = keras_functions.ClarifruitUnet(**init_dict)
-    model.train_model(path_params, data_gen_args, unet_params,fit_params,callbacks=callbacks,save_flag=False)
-    model.save_model(path_params, data_gen_args, unet_params,fit_params,optimizer_params)
-    #model.prediction()
+    model.clarifruit_train_val_generators()
+    model.get_unet_model()
+    #model.train_model(path_params, data_gen_args, unet_params,fit_params,callbacks=callbacks,save_flag=False)
+    #model.save_model(path_params, data_gen_args, unet_params,fit_params,optimizer_params)
+    model.prediction()
 
 def load_from_files():
     src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_14-30-38'

@@ -2,8 +2,9 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-def overlay(img,mask,alpha=1,color=(255,255,0)):
-    pass
+def overlay(img,mask,alpha=1):
+        out = cv2.addWeighted(mask, alpha, img, 1 - alpha, 0)
+        return out
 
 
 def put_binary_ontop(img,binary_mask,mask_color=(255, 255, 0),alpha = 1):

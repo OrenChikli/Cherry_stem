@@ -11,6 +11,7 @@ from work.unet.clarifruit_unet.unet_model import *
 #from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import json
 
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -236,7 +237,7 @@ class ClarifruitUnet:
         for img_entry in img_list:
 
             img = cv2.imread(img_entry.path,COLOR_TO_OPENCV[self.color_mode])
-            orig_shape = img.shape[:2]
+            orig_shape = img.shape[-2::-1]
             if self.color_mode == "grayscale":
                 img = np.reshape(img, img.shape + (1,))
             img = img / 255
@@ -245,8 +246,10 @@ class ClarifruitUnet:
             yield img, img_entry, orig_shape
 
     def prediction(self, threshold=0.5):
+        if self.train_time is None:
+            self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        save_path = os.path.join(self.dest_path,self.train_time)
+        save_path = create_path(self.dest_path,self.train_time)
         save_path = create_path(save_path, 'pred')
 
         test_gen = self.test_generator(self.test_path)
@@ -257,20 +260,34 @@ class ClarifruitUnet:
             pred = self.model.predict(img, batch_size=1)
 
             save_img = cv2.imread(img_entry.path,COLOR_TO_OPENCV[self.color_mode])
-            pred = cv2.resize(pred,orig_shape)
+
 
             pred_image_raw = (255 * pred[0]).astype(np.uint8)
             pred_img = (255 * (pred[0] > threshold)).astype(np.uint8)
 
-            display_functions.overlay(save_img,pred_img,1)
+            #mask_ontop_binary = display_functions.put_binary_ontop(img[0],pred_img[0])
+            #mask_ontop = display_functions.put_binary_ontop(save_img[0], pred_image_raw[0])
+
+            #mask_ontop_binary = cv2.resize(mask_ontop_binary, orig_shape).T
+            #mask_ontop = cv2.resize(mask_ontop, orig_shape).T
+
+            pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
+
+            pred_img = cv2.resize(pred_img, orig_shape)
+
+
             #save_img = (255 * img[0]).astype(np.uint8)
+            #mask_ontop_binary = display_functions.put_binary_ontop(save_img,pred_img)
+            #mask_ontop = display_functions.put_binary_ontop(save_img, pred_image_raw)
 
             cv2.imwrite(os.path.join(save_path, f"{img_name}.jpg"), save_img)
             cv2.imwrite(os.path.join(save_path, f"{img_name}_raw_predict.jpg"), pred_image_raw)
-            cv2.imwrite(os.path.join(save_path, f"{img_name}_predict.png"), pred_img)
+            cv2.imwrite(os.path.join(save_path, f"{img_name}_predict.jpg"), pred_img)
 
-    def display_res_generator(self,save_path):
-        pass
+            #cv2.imwrite(os.path.join(save_path, f"{img_name}_binary_ontop.jpg"), mask_ontop_binary)
+            #cv2.imwrite(os.path.join(save_path, f"{img_name}_raw_ontop.jpg"), mask_ontop)
+
+
 
     def get_unet_model(self):
         self.model = unet(optimizer=self.optimizer,
