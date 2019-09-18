@@ -2,6 +2,8 @@ from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
 import logging
+import tensorflow.compat.v1.logging as tf_logging # to stop tensorflow from displaying depracetion messages
+tf_logging.set_verbosity(tf_logging.ERROR)
 from keras import backend as keras
 
 logger = logging.getLogger(__name__)

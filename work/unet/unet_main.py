@@ -50,7 +50,7 @@ def get_data_via_with_mask():
 
 
 def main():
-    init_params = dict(
+    path_params = dict(
         train_path=r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes',
         test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig',
         x_folder_name='image',
@@ -60,32 +60,57 @@ def main():
 
     data_gen_args = dict(rescale=1. / 255,
                          rotation_range=0.5,
-                         width_shift_range=0.05,
-                         height_shift_range=0.05,
+                         width_shift_range=0.25,
+                         height_shift_range=0.25,
                          shear_range=0.05,
                          zoom_range=0.2,
                          horizontal_flip=True,
                          vertical_flip=True,
                          fill_mode='nearest')
 
-    unet_params = dict(optimizer=Adam(lr=1e-4),
+    optimizer_params =dict(lr=1e-4)
+
+    extra_params = dict(data_gen_args=data_gen_args,
+                        optimizer_params=optimizer_params)
+
+    unet_params = dict(optimizer='Adam',
                        loss='binary_crossentropy',
                        metrics=['accuracy'],
-                       pretrained_weights =r'D:\Clarifruit\cherry_stem\data\unet_data\model data\2019-09-15_19-05-19\unet_cherry_stem.hdf5')
+                       pretrained_weights=None)
 
     fit_params = dict(target_size=(256, 256),
-                      color_mode='grayscale',
+                      color_mode='rgb',
                       batch_size=10,
-                      epochs=1,
+                      epochs=3,
                       steps_per_epoch=10,
+                      valdiation_split=0.2,
                       validation_steps=10)
 
-    model = keras_functions.train_model(init_params,
-                                        data_gen_args,
-                                        unet_params,
-                                        fit_params)
-    model.prediction()
+    reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
+                                  patience=2, min_lr=0.000001,
+                                  cooldown=1, verbose=1)
 
+    callbacks = [reduce_lr]
+
+    init_dict = data_functions.join_dicts(path_params,unet_params,fit_params,extra_params)
+
+    model = keras_functions.ClarifruitUnet(**init_dict)
+    model.train_model(path_params, data_gen_args, unet_params,fit_params,callbacks=callbacks,save_flag=False)
+    model.save_model(path_params, data_gen_args, unet_params,fit_params,optimizer_params)
+    #model.prediction()
+
+def load_from_files():
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_14-30-38'
+    path_params, data_gen_args, unet_params, fit_params, optimizer_params = data_functions.load_model(src_path)
+
+    extra_params = dict(data_gen_args=data_gen_args,
+                        optimizer_params=optimizer_params)
+
+    init_dict = data_functions.join_dicts(path_params, unet_params, fit_params, extra_params)
+
+    model = keras_functions.ClarifruitUnet(**init_dict)
+    model.train_model(path_params, data_gen_args, unet_params,fit_params,save_flag=False)
+    model.save_model(path_params, data_gen_args, unet_params,fit_params,optimizer_params)
 
 if __name__ == '__main__':
     main()
