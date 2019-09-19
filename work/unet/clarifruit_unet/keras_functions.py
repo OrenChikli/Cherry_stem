@@ -7,7 +7,11 @@ import skimage.transform as trans
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
 from work.preprocess.data_functions import *
-from work.unet.clarifruit_unet.unet_model import *
+from keras.optimizers import *
+from work.unet.clarifruit_unet.unet_model import unet
+from work.segmentation.clarifruit_segmentation import segmentation1
+from work.unet.clarifruit_unet import unet_model
+from work.segmentation.clarifruit_segmentation import *
 #from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import json
 
@@ -237,7 +241,10 @@ class ClarifruitUnet:
         for img_entry in img_list:
 
             img = cv2.imread(img_entry.path,COLOR_TO_OPENCV[self.color_mode])
-            orig_shape = img.shape[-2::-1]
+            if img.shape[-1] == 3:
+                orig_shape = img.shape[-2::-1]
+            else:
+                orig_shape = img.shape[::-1]
             if self.color_mode == "grayscale":
                 img = np.reshape(img, img.shape + (1,))
             img = img / 255
@@ -245,7 +252,8 @@ class ClarifruitUnet:
             img = np.reshape(img, (1,) + img.shape)
             yield img, img_entry, orig_shape
 
-    def prediction(self, threshold=0.5):
+
+    def prediction(self, threshold=0.6):
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
@@ -257,34 +265,40 @@ class ClarifruitUnet:
             img_name = img_entry.name.rsplit('.', 1)[0]
             img_name = img_name.rsplit('.', 1)[0]
 
-            pred = self.model.predict(img, batch_size=1)
-
-            save_img = cv2.imread(img_entry.path,COLOR_TO_OPENCV[self.color_mode])
+            pred = self.model.predict(img, batch_size=1)[0]
 
 
-            pred_image_raw = (255 * pred[0]).astype(np.uint8)
-            pred_img = (255 * (pred[0] > threshold)).astype(np.uint8)
+            #save_img = cv2.imread(img_entry.path,COLOR_TO_OPENCV[self.color_mode])
+            save_img = cv2.imread(img_entry.path, cv2.IMREAD_UNCHANGED)
 
-            #mask_ontop_binary = display_functions.put_binary_ontop(img[0],pred_img[0])
-            #mask_ontop = display_functions.put_binary_ontop(save_img[0], pred_image_raw[0])
-
-            #mask_ontop_binary = cv2.resize(mask_ontop_binary, orig_shape).T
-            #mask_ontop = cv2.resize(mask_ontop, orig_shape).T
-
+            pred_image_raw = (255 * pred).astype(np.uint8)
             pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
 
+            pred_img = (255 * (pred > threshold)).astype(np.uint8)
             pred_img = cv2.resize(pred_img, orig_shape)
 
+            settings_dict = {'pr_threshold': 0.5,
+                             'scale': 50,
+                             'sigma': 0.5,
+                             'min_size': 20}
 
-            #save_img = (255 * img[0]).astype(np.uint8)
-            #mask_ontop_binary = display_functions.put_binary_ontop(save_img,pred_img)
+            sg = segmentation1.Segmentation(save_img, pred_image_raw, **settings_dict)
+            sg.apply_segmentation()
+            enhanced_mask = sg.return_modified_mask()
+
+            enhanced_mask = cv2.resize(enhanced_mask, orig_shape)
+
+            mask_ontop_binary = display_functions.put_binary_ontop(save_img, pred_img)
+            enhanced_mask_ontop_binary = display_functions.put_binary_ontop(save_img,enhanced_mask)
             #mask_ontop = display_functions.put_binary_ontop(save_img, pred_image_raw)
 
-            cv2.imwrite(os.path.join(save_path, f"{img_name}.jpg"), save_img)
+
+            cv2.imwrite(os.path.join(save_path, f"{img_name}_enhanced_mask.jpg"), enhanced_mask)
             cv2.imwrite(os.path.join(save_path, f"{img_name}_raw_predict.jpg"), pred_image_raw)
             cv2.imwrite(os.path.join(save_path, f"{img_name}_predict.jpg"), pred_img)
 
-            #cv2.imwrite(os.path.join(save_path, f"{img_name}_binary_ontop.jpg"), mask_ontop_binary)
+            cv2.imwrite(os.path.join(save_path, f"{img_name}_enhanced_mask_ontop.jpg"), enhanced_mask_ontop_binary)
+            cv2.imwrite(os.path.join(save_path, f"{img_name}_binary_ontop.jpg"), mask_ontop_binary)
             #cv2.imwrite(os.path.join(save_path, f"{img_name}_raw_ontop.jpg"), mask_ontop)
 
 
@@ -304,13 +318,9 @@ class ClarifruitUnet:
             validation_steps=self.validation_steps,
             epochs=self.epochs,
             callbacks=self.callbacks,
+
             verbose=1)
 
-        # def set_params(self, train_path=None, dest_path=None, data_gen_args=None,
-        #                x_folder_name=None, y_folder_name=None, test_path=None,
-        #                batch_size=None, epochs=None, steps_per_epoch=None, validation_steps=None, callbacks=None,
-        #                target_size=None, color_mode=None, mask_color_mode=None,
-        #                optimizer=None, loss=None, metrics=None, train_time=None):
 
     def set_params(self, **kwargs):
 
@@ -372,29 +382,6 @@ class ClarifruitUnet:
 
 
 
-    """
-    def save_model(self):
-        # serialize model to JSON
-        model_json = self.model.to_json()
-        with open("model.json", "w") as json_file:
-            json_file.write(model_json)
-        # serialize weights to HDF5
-        model.save_weights("model.h5")
-        print("Saved model to disk")
-
-    # later...
-
-    # load json and create model
-    json_file = open('model.json', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = model_from_json(loaded_model_json)
-    # load weights into new model
-    loaded_model.load_weights("model.h5")
-    print("Loaded model from disk")
-
-    """
-
     def save_model(self, path_params, data_gen_args, unet_params, fit_params, optimizer_params):
 
         curr_folder = create_path(self.dest_path, self.train_time)
@@ -406,26 +393,31 @@ class ClarifruitUnet:
         save_settings_to_file(optimizer_params, "optimizer_params.json", curr_folder)
 
 
-
-
-
-    def train_model(self,path_params, data_gen_args, unet_params, fit_params, callbacks=None,save_flag=True):
-
-
+    def set_model_checkpint(self):
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        if save_flag:
-            curr_folder = create_path(self.dest_path, self.train_time)
+        curr_folder = create_path(self.dest_path, self.train_time)
 
-            out_model_path = os.path.join(curr_folder, self.weights_file_name)
-            model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
-                                                verbose=1, save_best_only=True)]
-            callbacks = model_checkpoint + callbacks
-            self.callbacks = callbacks
-            self.save_model(path_params, data_gen_args, unet_params, fit_params)
+        out_model_path = os.path.join(curr_folder, self.weights_file_name)
+        model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
+                                            verbose=1, save_best_only=True)]
+        self.callbacks = model_checkpoint
+
+    def train_model(self,path_params, data_gen_args, unet_params,fit_params,optimizer_params,callbacks=None,saveflag=False):
+
+        if saveflag:
+            self.set_model_checkpint()
+
+        if self.callbacks is not None:
+            self.callbacks += callbacks
         else:
-            self.callbacks = callbacks
+            self.callbacks = callbacks[0]
+
 
         self.clarifruit_train_val_generators()
         self.get_unet_model()
         self.fit_unet()
+
+        if saveflag:
+            self.save_model(path_params, data_gen_args, unet_params, fit_params, optimizer_params)
+
 

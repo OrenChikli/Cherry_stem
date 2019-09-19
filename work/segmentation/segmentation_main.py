@@ -1,11 +1,12 @@
 from work.preprocess.data_functions import *
 
-from work.segmentation.clarifruit_segmentation import segmentation,seg_filter,seg_finder,seg_info,\
+from work.segmentation.clarifruit_segmentation import segmentation1,segmentation,seg_filter,seg_finder,seg_info,\
     seg_finder_with_ground_truth
 
 from tqdm import tqdm
 from work.segmentation.clarifruit_segmentation.image import Image
 from datetime import datetime
+from work.preprocess.display_functions import *
 
 
 def segment(orig_path, mask_path, seg_path, seg_folder, activation_folder,
@@ -127,6 +128,26 @@ def use_seg_filter(img_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def new_segmentation():
+    image_name = '72596-28736.png.jpg'
+
+    #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
+    orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
+
+    img_path = os.path.join(orig_path,image_name)
+    mask_path =os.path.join(mask_path,image_name)
+    settings_dict = {'pr_threshold': 0.3,
+                     'scale': 100,
+                     'sigma': 0.1,
+                     'min_size': 60}
+
+    sg = segmentation1.Segmentation(img_path,mask_path,**settings_dict)
+    sg.apply_segmentation()
+    res = put_binary_ontop(sg.img,sg.filtered_segments)
+    plt.imshow(res)
+    plt.show()
+
 
 def seg_main():
     image_name = 'orig_72596-28736.png.jpg'
@@ -171,4 +192,5 @@ def seg_main():
     #segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder, img_list, settings_dict)
 
 if __name__ == '__main__':
-    seg_main()
+    #seg_main()
+    new_segmentation()

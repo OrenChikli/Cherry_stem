@@ -70,9 +70,7 @@ class Segmentation:
             cv2.imshow("enhanced mask",self.filtered_segments)
             cv2.waitKey(0)
 
-            #self.boundaries = mark_boundaries(self.image, self.segments, color=(1, 1, 0))
-            #plt.imshow(self.boundaries)
-            #plt.show()
+
 
     def get_boundaries(self):
         if self.boundaries is None:
@@ -82,15 +80,11 @@ class Segmentation:
     def filter_by_hsv(self, filter_hsv, segments=None):
         logger.debug(" -> filter_by_hsv")
 
-        # image = self.image.resized
-        # mask = np.zeros(image.shape[:2], dtype="uint8")
-        # image_hues = self.image.hsv[:, :, 0]
 
         segments_list = segments if segments is not None else self.segments_no_bg
 
         selected_segments = []
-        # loop over the unique segment values
-        # for (i, seg_val) in enumerate(np.unique(self.segments)):
+
         for seg_val in segments_list:
 
             # seg_gray = self.image.gray[self.segments == seg_val]

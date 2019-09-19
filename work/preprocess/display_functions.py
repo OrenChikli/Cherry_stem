@@ -1,5 +1,6 @@
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def overlay(img,mask,alpha=1):
@@ -7,7 +8,7 @@ def overlay(img,mask,alpha=1):
         return out
 
 
-def put_binary_ontop(img,binary_mask,mask_color=(255, 255, 0),alpha = 1):
+def put_binary_ontop(img,mask,mask_color=(255, 255, 0),alpha = 1):
     '''
     img: cv2 image
     mask: bool or np.where
@@ -17,10 +18,15 @@ def put_binary_ontop(img,binary_mask,mask_color=(255, 255, 0),alpha = 1):
     Ref: http://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
     '''
     out = img.copy()
-
     img_layer = out.copy()
-    img_layer[binary_mask] = mask_color
-    out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
+
+    if img.shape[-1] != 3:
+        mask_color = 255
+        out[np.where(mask)] = mask_color
+    else:
+        bin_bool = np.where(mask)
+        img_layer[np.where(mask)] = mask_color
+        out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
     return out
 
 

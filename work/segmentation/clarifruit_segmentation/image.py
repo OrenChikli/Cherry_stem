@@ -28,10 +28,7 @@ class Image:
         self.resized = None
         self.mask_resized = None
         self.resize_factor = None
-        #self.hsv = None
-        #self.hls = None
-        #self.gray = None
-        #self.blurred = None
+
         self.segmentation = None
 
         self.read_local()
