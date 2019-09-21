@@ -2,13 +2,14 @@ from keras.preprocessing.image import ImageDataGenerator
 
 from work.preprocess import display_functions
 import numpy as np
-#import skimage.io as io
+
 import skimage.transform as trans
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
 from work.preprocess.data_functions import *
 from keras.optimizers import *
 from work.unet.clarifruit_unet.unet_model import unet
+from work.preprocess import display_functions
 from work.segmentation.clarifruit_segmentation import segmentation1
 from work.unet.clarifruit_unet import unet_model
 from work.segmentation.clarifruit_segmentation import *
@@ -38,7 +39,8 @@ class ClarifruitUnet:
                  optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,
                  target_size=(256, 256), color_mode='rgb', mask_color_mode='grayscale',
                  batch_size=10, epochs=5, steps_per_epoch=10,
-                 valdiation_split=0.2, validation_steps=10):
+                 valdiation_split=0.2, validation_steps=10,
+                 train_time=None):
 
         logger.debug(" <- __init__")
 
@@ -49,7 +51,6 @@ class ClarifruitUnet:
         self.y_folder_name = y_folder_name
         self.weights_file_name = weights_file_name
 
-        self.weights_file_name = weights_file_name
 
         self.data_gen_args = data_gen_args
 
@@ -73,13 +74,14 @@ class ClarifruitUnet:
         self.val_generator = None
         self.model_checkpoint = None
         self.callbacks = callbacks
-        self.train_time = None
+        self.train_time = train_time
 
         self.save_to_dir = None
         self.validation_split = valdiation_split
         self.seed = 1
 
         self.clarifruit_train_val_generators()
+        #self.get_generators()
         self.get_unet_model()
 
         logger.debug(" -> __init__")
@@ -170,6 +172,53 @@ class ClarifruitUnet:
         logger.debug(f" -> train_val_generators src:\n{src_path}")
         return train_gen, val_gen
 
+
+
+    def from_path_generators(self,path):
+        logger.debug(f" <- clarifruit_train_val_generators")
+        image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
+                                                                               src_path=path,
+                                                                               folder=self.x_folder_name,
+                                                                               aug_dict=self.data_gen_args,
+                                                                               color_mode=self.color_mode,
+                                                                               save_prefix=self.x_folder_name,
+                                                                               save_to_dir=self.save_to_dir,
+                                                                               target_size=self.target_size,
+                                                                               seed=self.seed,
+                                                                               validation_split=self.validation_split)
+
+        mask_train_generator, mask_val_generator = self.train_val_generators(batch_size=self.batch_size,
+                                                                             src_path=path,
+                                                                             folder=self.y_folder_name,
+                                                                             aug_dict=self.data_gen_args,
+                                                                             color_mode=self.mask_color_mode,
+                                                                             save_prefix=self.y_folder_name,
+                                                                             save_to_dir=self.save_to_dir,
+                                                                             target_size=self.target_size,
+                                                                             seed=self.seed,
+                                                                             validation_split=self.validation_split)
+
+        train_generator = zip(image_train_generator, mask_train_generator)
+        val_generator = zip(image_val_generator, mask_val_generator)
+        logger.debug(f" -> clarifruit_train_val_generators")
+        return train_generator,val_generator
+
+    def get_generators(self):
+        white_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\white'
+        blank_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\blank'
+        red_black_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\red_black'
+
+        paths = [red_black_path,white_path,blank_path]
+        train_generators = []
+        val_generators = []
+        for path in paths:
+            train,val = self.from_path_generators(path)
+            train_generators += train
+            val_generators += val
+
+        self.val_generator = val_generators
+        self.train_generator = train_generators
+
     def clarifruit_train_val_generators(self):
         logger.debug(f" <- clarifruit_train_val_generators")
         image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
@@ -219,13 +268,16 @@ class ClarifruitUnet:
             yield img, img_entry, orig_shape
 
 
-    def prediction(self):
+    def prediction(self,threshold=0.5):
         logger.debug(" <- prediction")
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
         save_path = create_path(self.dest_path,self.train_time)
+        threshold_path = create_path(save_path, f'binary_thres_{threshold}')
+        mask_on_path = create_path(save_path,'mask_ontop')
         save_path = create_path(save_path, 'raw_pred')
+
 
         test_gen = self.test_generator(self.test_path)
         for img, img_entry,orig_shape in test_gen:
@@ -234,8 +286,16 @@ class ClarifruitUnet:
 
             pred_image_raw = (255 * pred).astype(np.uint8)
             pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
-
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image_raw)
+
+            pred_image_thres = (255 * (pred > threshold)).astype(np.uint8)
+            pred_image_thres = cv2.resize(pred_image_thres, orig_shape)
+            cv2.imwrite(os.path.join(threshold_path, img_entry.name), pred_image_thres)
+
+            real_img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
+            thres_ontop = display_functions.put_binary_ontop(real_img,pred_image_thres)
+            cv2.imwrite(os.path.join(mask_on_path, img_entry.name), thres_ontop)
+
         logger.debug(" -> prediction")
 
 
@@ -328,40 +388,41 @@ class ClarifruitUnet:
 
     def save_model(self, params_dict,checkpoint_flag=False):
         logger.debug(" <- save_model")
-
-        curr_folder = create_path(self.dest_path, self.train_time)
-        save_settings_to_file(params_dict, "model_params.json", curr_folder)
         if checkpoint_flag:
-            self.model.save_weights(os.path.join(curr_folder, "model.hdf5"))
+            curr_folder = self.set_model_checkpint()
+        else:
+            curr_folder = self.get_curr_folder()
 
+        save_dict = params_dict.copy()
+        save_dict.pop('callbacks')
+        save_settings_to_file(save_dict, "model_params.json", curr_folder)
         logger.debug(" -> save_model")
 
-
+    def get_curr_folder(self):
+        self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        curr_folder = create_path(self.dest_path, self.train_time)
+        return curr_folder
 
     def set_model_checkpint(self):
         logger.debug(" <- set_model_checkpoint")
-        self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        curr_folder = create_path(self.dest_path, self.train_time)
-
+        curr_folder = self.get_curr_folder()
         out_model_path = os.path.join(curr_folder, self.weights_file_name)
         model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
                                             verbose=1, save_best_only=True)]
 
         self.callbacks = model_checkpoint + self.callbacks
         logger.debug(" -> set_model_checkpoint")
+        return curr_folder
 
-    def train_model(self,saveflag=False):
 
+    def train_model(self,params_dict=None,saveflag=False):
+        logger.debug(f" <- train_model, save_flag{saveflag}")
         if saveflag:
-            self.set_model_checkpint()
-            self.save_model()
+            self.save_model(params_dict,saveflag)
 
 
         self.clarifruit_train_val_generators()
         self.get_unet_model()
         self.fit_unet()
 
-        if saveflag:
-            self.save_model(path_params, data_gen_args, unet_params, fit_params, optimizer_params)
-
-
+        logger.debug(" -> train_model")

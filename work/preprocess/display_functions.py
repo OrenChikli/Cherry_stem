@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def overlay(img,mask,alpha=1):
+def put_grayscale_mask_ontup(img,mask,alpha=1):
         out = cv2.addWeighted(mask, alpha, img, 1 - alpha, 0)
         return out
 
@@ -30,14 +30,3 @@ def put_binary_ontop(img,mask,mask_color=(255, 255, 0),alpha = 1):
     return out
 
 
-def canny(img):
-
-    img = cv2.imread('messi5.jpg', 0)
-    edges = cv2.Canny(img, 100, 200)
-
-    plt.subplot(121), plt.imshow(img, cmap='gray')
-    plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-    plt.subplot(122), plt.imshow(edges, cmap='gray')
-    plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
-
-    plt.show()

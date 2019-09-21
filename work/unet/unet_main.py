@@ -1,8 +1,7 @@
 from work.unet.clarifruit_unet import unet_model_functions
 from work.preprocess import data_functions
 from keras.callbacks import ReduceLROnPlateau
-from keras.optimizers import *
-import os
+
 
 from work.logger_settings import configure_logger
 import logging
@@ -57,8 +56,6 @@ def main():
                            vertical_flip=True,
                            fill_mode='nearest'),
 
-
-
         optimizer='Adam',
         optimizer_params=dict(lr=1e-4),
         loss='binary_crossentropy',
@@ -67,12 +64,12 @@ def main():
 
         target_size=(256, 256),
         color_mode='rgb',
-        mask_color_mode = 'grayscale',
+        mask_color_mode='grayscale',
         batch_size=10,
-        epochs=17,
-        steps_per_epoch=3000,
+        epochs=2,
+        steps_per_epoch=10,
         valdiation_split=0.2,
-        validation_steps=300)
+        validation_steps=10)
 
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
@@ -83,33 +80,24 @@ def main():
     params_dict['callbacks'] = callbacks
 
     model = unet_model_functions.ClarifruitUnet(**params_dict)
-    for i,j in vars(model).items():
-        print(i ,str(j))
-
-    #model.train_model(saveflag=True)
-
-    # model.prediction()
+    model.train_model(params_dict,True)
+    model.prediction()
 
 
 def load_from_files():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04'
-    path_params, data_gen_args, unet_params, fit_params, optimizer_params = data_functions.load_model(src_path)
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_22-30-30'
+    params_dict = data_functions.load_model(src_path)
 
-    extra_params = dict(data_gen_args=data_gen_args,
-                        optimizer_params=optimizer_params)
-
-    init_dict = data_functions.join_dicts(path_params, unet_params, fit_params, extra_params)
-
-    model = unet_model_functions.ClarifruitUnet(**init_dict)
-    model.set_params(train_time=os.path.basename(src_path))
-    model.clarifruit_train_val_generators()
-    model.get_unet_model()
+    model = unet_model_functions.ClarifruitUnet(**params_dict)
     model.prediction()
-    # model.train_model(path_params, data_gen_args, unet_params,fit_params,save_flag=False)
-    # model.save_model(path_params, data_gen_args, unet_params,fit_params,optimizer_params)
 
+def put_on():
+    img_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
+    mask_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\raw_pred'
+    dest_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\with_maskes'
+    data_functions.get_with_maskes(img_path,mask_path,dest_path)
 
 if __name__ == '__main__':
-     main()
-
-    #load_from_files()
+     #main()
+     load_from_files()
+     #put_on()

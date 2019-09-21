@@ -118,8 +118,8 @@ def seg_main():
 
     #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\raw_pred'
-    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\raw_pred'
+    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\segmentation'
 
     seg_folder='segmentation'
     seg_activation_folder ='activation'

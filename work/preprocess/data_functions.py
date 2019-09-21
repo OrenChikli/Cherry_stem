@@ -7,7 +7,7 @@ import shutil
 import cv2
 import matplotlib.pyplot as plt
 import json
-import pickle
+from work.preprocess import display_functions
 
 from pathlib import Path
 
@@ -84,26 +84,9 @@ def create_X_y_paths(src_path, X_name, y_name):
 def save_settings_to_file(params_dict, file_name, save_path):
 
     dest = os.path.join(save_path, file_name)
+
     with open(dest, 'w') as f:
-        json.dump(params_dict, f)
-
-"""
-def save_settings_to_file(params_dict,file_name,save_path):
-    settings_path = os.path.join(save_path, file_name)
-
-
-    with open(settings_path, 'w') as f:
-        for param_name, param_value in params_dict.items():
-            if type(param_value) == dict:
-                f.write("\n")
-                f.write(f"{param_name}:\n")
-                for item, value in param_value.items():
-                    f.write(f"\t{item} = {value}\n")
-                f.write("\n")
-            else:
-                f.write(f"{param_name} = {param_value}\n")
-
-"""
+        json.dump(params_dict, f,indent=1)
 
 
 # IMAGE FUNCTIONS
@@ -144,11 +127,6 @@ def plot_from_list(file_list,pred_path,orig_image_path,orig_mask_path,target_siz
 
 
 
-def join_dicts(*dicts):
-    res = {}
-    for curr_dict in dicts:
-        res.update(curr_dict)
-    return res
 
 def plot_res(test_img, ground_truth_mask, test_mask_raw):
     fig, ax = plt.subplots(2, 2, figsize=(12, 12))
@@ -166,8 +144,7 @@ def plot_res(test_img, ground_truth_mask, test_mask_raw):
     plt.show()
 
 def load_model(src_path):
-    res_return_dict = {}
-    #res_files = {}
+    params_dict = {}
     pretrained_weights={}
     files = os.scandir(src_path)
     for file_entry in files:
@@ -176,23 +153,23 @@ def load_model(src_path):
         file_extention = file_name_segments[-1]
         if file_extention == 'json':
             with open(file_entry.path, 'r') as f:
-                loaded_json = json.load(f)
-                res_return_dict[file_name] = loaded_json
+                params_dict = json.load(f)
 
-            #res_files.update(loaded_json)
         elif file_extention == 'hdf5':
             pretrained_weights = file_entry.path
 
-    #model = ClarifruitUnet(**res_files)
-    #model.set_params(pretrained_weights=pretrained_weights)
+    params_dict['pretrained_weights'] = pretrained_weights
+    params_dict['train_time'] = os.path.basename(src_path)
 
-    path_params= res_return_dict['path_params']
-    data_gen_args =res_return_dict['data_gen_args']
+    return params_dict
 
-    unet_params = res_return_dict['unet_params']
-    unet_params['pretrained_weights'] = pretrained_weights
 
-    fit_params =res_return_dict['fit_params']
-    optimizer_params =res_return_dict['optimizer_params']
-
-    return path_params, data_gen_args, unet_params, fit_params, optimizer_params
+def get_with_maskes(img_path,mask_path,dest_path,color=(0,255,255)):
+    img_list = os.scandir(img_path)
+    for img_entry in img_list:
+        img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
+        curr_mask_path = os.path.join(mask_path,img_entry.name)
+        mask = cv2.imread(curr_mask_path,cv2.IMREAD_UNCHANGED)
+        ontop = display_functions.put_binary_ontop(img,mask,color)
+        curr_dest_path = os.path.join(dest_path,img_entry.name)
+        cv2.imwrite(curr_dest_path,ontop)
