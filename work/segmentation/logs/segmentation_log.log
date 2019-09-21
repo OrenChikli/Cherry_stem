@@ -1,0 +1,45 @@
+2019-09-19 17:47:31,578:__main__: <- seg main
+2019-09-19 17:47:31,578:__main__: <- segment_multi
+2019-09-19 17:47:31,580:__main__:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-19_17-47
+2019-09-19 17:48:03,461:__main__: <- seg main
+2019-09-19 17:48:03,461:__main__: <- segment_multi
+2019-09-19 17:48:03,463:__main__:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-19_17-48
+2019-09-19 17:54:32,161:__main__: <- seg main
+2019-09-19 17:54:32,161:__main__: <- segment_multi
+2019-09-19 17:54:32,163:__main__:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-19_17-54
+2019-09-19 20:27:58,154:SegmentationLogger: <- seg main
+2019-09-19 20:27:58,154:SegmentationLogger: <- segment_multi
+2019-09-19 20:27:58,156:SegmentationLogger:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-19_20-27
+2019-09-19 20:27:58,156:SegmentationLogger: -> __init__
+2019-09-19 20:27:58,164:SegmentationLogger: -> apply_segmentation
+2019-09-19 20:27:58,755:SegmentationLogger: -> filter_segments
+2019-09-19 20:28:01,122:SegmentationLogger: <- filter_segments
+2019-09-19 20:28:01,122:SegmentationLogger: <- apply_segmentation
+2019-09-19 20:28:01,122:SegmentationLogger: <- __init__
+2019-09-19 20:28:01,127:SegmentationLogger: -> __init__
+2019-09-19 20:28:01,134:SegmentationLogger: -> apply_segmentation
+2019-09-19 20:28:01,736:SegmentationLogger: -> filter_segments
+2019-09-19 20:28:04,052:SegmentationLogger: <- filter_segments
+2019-09-19 20:28:04,052:SegmentationLogger: <- apply_segmentation
+2019-09-19 20:28:04,052:SegmentationLogger: <- __init__
+2019-09-19 20:28:04,057:SegmentationLogger: -> __init__
+2019-09-19 20:28:04,064:SegmentationLogger: -> apply_segmentation
+2019-09-19 20:28:04,667:SegmentationLogger: -> filter_segments
+2019-09-19 20:28:06,751:SegmentationLogger: <- filter_segments
+2019-09-19 20:28:06,751:SegmentationLogger: <- apply_segmentation
+2019-09-19 20:28:06,752:SegmentationLogger: <- __init__
+2019-09-19 20:28:06,757:SegmentationLogger: -> __init__
+2019-09-19 20:28:06,765:SegmentationLogger: -> apply_segmentation
+2019-09-19 20:28:07,392:SegmentationLogger: -> filter_segments
+2019-09-20 17:59:31,203:SegmentationLogger: <- seg main
+2019-09-20 17:59:31,203:SegmentationLogger: <- segment_multi
+2019-09-20 17:59:31,205:SegmentationLogger:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-20_17-59
+2019-09-20 17:59:31,205:SegmentationLogger: -> __init__
+2019-09-20 17:59:34,068:SegmentationLogger: <- __init__
+2019-09-20 17:59:34,077:SegmentationLogger: -> __init__
+2019-09-20 18:00:39,772:SegmentationLogger: <- seg main
+2019-09-20 18:00:39,772:SegmentationLogger: <- segment_multi
+2019-09-20 18:00:39,774:SegmentationLogger:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-20_18-00
+2019-09-20 18:33:15,018:SegmentationLogger: <- seg main
+2019-09-20 18:33:15,018:SegmentationLogger: <- segment_multi
+2019-09-20 18:33:15,020:SegmentationLogger:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-20_18-33

@@ -1,0 +1,5 @@
+2019-09-19 18:52:10,805:__main__: <- seg main
+2019-09-19 18:52:10,805:__main__: <- segment_multi
+2019-09-19 18:52:10,807:__main__:segmenting to D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation\several\2019-09-19_18-52
+2019-09-19 19:49:27,861:__main__: -> segment_multi
+2019-09-19 19:49:27,862:__main__: -> seg_main

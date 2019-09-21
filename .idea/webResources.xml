@@ -5,7 +5,6 @@
       <entry url="file://$PROJECT_DIR$">
         <entryData>
           <resourceRoots>
-            <path value="file://$PROJECT_DIR$/work/preprocess" />
             <path value="file://$PROJECT_DIR$/work/unet/clarifruit_unet" />
           </resourceRoots>
         </entryData>

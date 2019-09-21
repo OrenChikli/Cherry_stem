@@ -3,63 +3,46 @@ from work.preprocess.data_functions import *
 from work.segmentation.clarifruit_segmentation import segmentation1,segmentation,seg_filter,seg_finder,seg_info,\
     seg_finder_with_ground_truth
 
-from tqdm import tqdm
 from work.segmentation.clarifruit_segmentation.image import Image
 from datetime import datetime
 from work.preprocess.display_functions import *
+from work.logger_settings import *
+import logging
 
 
-def segment(orig_path, mask_path, seg_path, seg_folder, activation_folder,
-            threshold=1,pr_threshold=0.05, scale=100, sigma=0.5, min_size=50,
-            boundaries_display_flag=False,save_flag=True):
+configure_logger()
+logger = logging.getLogger(__name__)
 
-    # load the src image and mask image
-    img = Image(orig_path, mask_path)
-    img.prepare_for_detection()
+def segment_multi(orig_path, mask_path, seg_path,settings_dict,img_list=None):
+    logger.debug(" <- segment_multi")
+    if img_list is None:
+        img_list = [img_entry.name for img_entry in os.scandir(orig_path)]
 
-    # segmentation enhancment
-    sg = segmentation.Segmentation(image=img,
-                                   scale=scale,
-                                   sigma=sigma,
-                                   min_size=min_size,
-                                   threshold=threshold,
-                                   pr_threshold=pr_threshold)
-
-    sg.apply_segmentation(display_flag=boundaries_display_flag)
-
-    if save_flag:
-        seg_path = os.path.join(seg_path, 'individual')
-        sg.save_results(seg_path,seg_folder,activation_folder)
-
-    return sg
-
-
-def segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder, img_list,settings_dict):
-
-    dir_save_path = create_path(seg_path, 'final')
+    dir_save_path = create_path(seg_path, 'several')
 
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
     dir_save_path = create_path(dir_save_path, current_time)
+    save_settings_to_file(settings_dict,"segmentation_settings.json",dir_save_path)
+    logger.info(f"segmenting to {dir_save_path}")
 
-    for img in tqdm(img_list):
-        curr_segment = segment(img, orig_path, mask_path, seg_path, seg_folder, seg_activation_folder,
-                               threshold=settings_dict['threshold'],
-                               pr_threshold=settings_dict['pr_threshold'],
-                               scale=settings_dict['scale'],
-                               sigma=settings_dict['sigma'],
-                               min_size=settings_dict['min_size'],
-                               boundaries_display_flag=False,
-                               save_flag=False)
+    for img in img_list:
+        curr_img_path = os.path.join(orig_path,img)
+        curr_mask_path = os.path.join(mask_path,img)
+        curr_segment = segmentation1.Segmentation(img_path=curr_img_path,mask_path=curr_mask_path,
+                                                  scale=settings_dict['scale'],
+                                                  sigma=settings_dict['sigma'],
+                                                  min_size=settings_dict['min_size'],
+                                                  pr_threshold=settings_dict['pr_threshold'])
 
         res_mask = curr_segment.return_modified_mask()
-        orig_mask = curr_segment.image.mask_resized
 
-        save_path = os.path.join(dir_save_path, img)
-        save_path_orig_mask = os.path.join(dir_save_path,f"orig_{img}")
-        cv2.imwrite(save_path, res_mask)
-        cv2.imwrite(save_path_orig_mask,orig_mask)
+        base_name = img.rsplit('.',1)[0]
+        save_path_mask = os.path.join(dir_save_path,f"{base_name}_mask.jpg")
+        cv2.imwrite(save_path_mask,res_mask)
 
-    curr_segment.save_settings(dir_save_path)
+    logger.debug(" -> segment_multi")
+
+
 
 
 def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
@@ -70,29 +53,9 @@ def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
     img_path = os.path.join(orig_path,image_name)
     img_mask_path = os.path.join(mask_path,image_name)
 
-    _ = segment(img_path, img_mask_path, seg_path, seg_folder, seg_activation_folder,
-                           threshold=settings_dict['threshold'],
-                           pr_threshold=settings_dict['pr_threshold'],
-                           scale=settings_dict['scale'],
-                           sigma=settings_dict['sigma'],
-                           min_size=settings_dict['min_size'],
-                           boundaries_display_flag=False,
-                           save_flag=True)
+    #TODO insert new segmentation class
 
 
-# use roman functions
-# TODO finish move images function
-""" 
-def move_images(orig_path,mask_path,img_list,src_folder):
-    dest_image_path = create_path(src_folder,'image')
-    dest_mask_path = 
-    for img_name in img_list:
-        curr_img_path = os.path.join(orig_path,img_name)
-        curr_mask_path = os.path.join(mask_path,img_name)
-        img = Image(img_name,curr_img_path,curr_mask_path)
-        dest_img
-        img.move_to()
-"""
 
 def use_seg_info(img_path):
 
@@ -150,12 +113,13 @@ def new_segmentation():
 
 
 def seg_main():
+    logger.debug(" <- seg main")
     image_name = 'orig_72596-28736.png.jpg'
 
     #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
-    seg_path =  r'D:\Clarifruit\cherry_stem\data\segmentation'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\raw_pred'
+    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-18_22-19-04\segmentation'
 
     seg_folder='segmentation'
     seg_activation_folder ='activation'
@@ -178,19 +142,22 @@ def seg_main():
                 '78712-02020.png.jpg']
 
     settings_dict = {'threshold': 1,
-                     'pr_threshold': 0.05,
-                     'scale': 100,
+                     'pr_threshold': 0.3,
+                     'scale': 50,
                      'sigma': 0.1,
-                     'min_size': 50}
+                     'min_size': 20}
 
-    use_segment(image_name,orig_path, mask_path, seg_path, settings_dict)
+    #use_segment(image_name,orig_path, mask_path, seg_path, settings_dict)
     #use_seg_info(img_path)
     #use_seg_finder(img_path)
     #use_seg_filter(img_path)
     #use_seg_finder_with_ground_truth(img_path,img_mask_path)
     #img_list = [item.name for item in os.scandir(orig_path)]
-    #segment_multi(orig_path, mask_path, seg_path, seg_folder, seg_activation_folder, img_list, settings_dict)
+    segment_multi(orig_path, mask_path, seg_path,settings_dict)
+    logger.debug(" -> seg_main")
 
 if __name__ == '__main__':
-    #seg_main()
-    new_segmentation()
+
+
+    seg_main()
+    #new_segmentation()
