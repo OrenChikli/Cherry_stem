@@ -27,14 +27,6 @@ def put_binary_ontop(img,mask,mask_color=(255, 255, 0),alpha = 1):
         out = cv2.addWeighted(img_layer, alpha, out, 1 - alpha, 0, out)
     return out
 
-def cut_via_mask(img_path,mask_path,dest_path):
-    """Cut parts of an image using a mask - get the parts that overlap with the mask"""
-    for img_entry in os.scandir(img_path):
-        img = cv2.imread(img_entry.path,cv2.IMREAD_COLOR)
-        mask = cv2.imread(os.path.join(mask_path,img_entry.name),cv2.IMREAD_COLOR)
-        out = cv2.subtract(mask,img)
-        out = cv2.subtract(mask, out)
-        cv2.imwrite(os.path.join(dest_path,img_entry.name),out)
 
         #src1_mask = cv2.cvtColor(src1_mask, cv2.COLOR_GRAY2BGR)  # change mask to a 3 channel image
 

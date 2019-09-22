@@ -8,7 +8,7 @@ import cv2
 import matplotlib.pyplot as plt
 import json
 from work.preprocess import display_functions
-
+from scipy.spatial.distance import euclidean
 
 
 
@@ -160,3 +160,12 @@ def get_with_maskes(img_path,mask_path,dest_path,color=(0,255,255)):
         ontop = display_functions.put_binary_ontop(img,mask,color)
         curr_dest_path = os.path.join(dest_path,img_entry.name)
         cv2.imwrite(curr_dest_path,ontop)
+
+
+def find_closest(item,item_dict):
+    """calculate ecuclidean distance from item (a numpy object) to labeled items in
+    items dict and return closest label"""
+    distances = [(euclidean(item, curr_color), label) for label,curr_color in item_dict.items()]
+    max = sorted(distances)
+    best = max[0][1]
+    return best

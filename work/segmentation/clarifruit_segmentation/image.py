@@ -1,15 +1,16 @@
 import logging
 import numpy as np
 import cv2
-
+import os
+import shutil
 from .exceptions import ReadImageException
 from .utils import Utils
 from .segmentation import Segmentation
 from skimage.util import img_as_float
+from scipy.stats import circmean
 
 logger = logging.getLogger(__name__)
-import os
-import shutil
+
 
 
 class Image:
@@ -22,7 +23,8 @@ class Image:
 
         self.mask_path = mask_path
         self.mask = None
-        self.mask_hsav = None
+        self.cut_mask=None
+        self.mask_mean_h = None
 
         self.segmentation = None
 
@@ -73,7 +75,24 @@ class Image:
             logger.error(error_message, self.mask_path)
             raise ReadImageException(error_message, self.mask_path)
 
-
-
         logger.debug(" <- read")
 
+    def cut_via_mask(self,save_flag=False,dest_path=None):
+        """Cut parts of an image using a mask - get the parts that overlap with the mask"""
+        out = cv2.subtract(self.mask, self.img)
+        self.cut_mask = cv2.subtract(self.mask, out)
+        if save_flag:
+            cv2.imwrite(os.path.join(dest_path, self.image_name), out)
+
+    def get_mean_hue(self,save_flag=False,dest_path=None):
+        cut_mask_not_zero = self.cut_mask[self.cut_mask > 0]
+        cut_mask_hsv = cv2.cvtColor(self.cut_mask, cv2.COLOR_RGB2HSV) * cut_mask_not_zero
+        cut_mask_h = cut_mask_hsv[:, :, 0]
+        cut_mask_h = cut_mask_h[cut_mask_h > 0]
+        cut_mask_h_rad = np.deg2rad(cut_mask_h)
+        mean_hue = np.rad2deg(circmean(cut_mask_h_rad))
+        hsv = ((mean_hue, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
+        res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+        self.mask_mean_h = res_img
+        if save_flag:
+            cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
