@@ -85,10 +85,13 @@ def main():
 
 
 def load_from_files():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_22-30-30'
-    params_dict = data_functions.load_model(src_path)
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09'
+    params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path)
 
+    params_dict['test_path'] = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\A\image'
+    params_dict['dest_path'] = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\A\label'
     model = unet_model_functions.ClarifruitUnet(**params_dict)
+
     model.prediction()
 
 def put_on():

@@ -40,9 +40,11 @@ nbformat==4.4.0
 networkx==2.3
 notebook==6.0.1
 numpy==1.16.4
+opencv-contrib-python==4.1.1.26
 opencv-python==4.1.1.26
 pandocfilters==1.4.2
 parso==0.5.1
+pathlib==1.0.1
 pickleshare==0.7.5
 Pillow==6.1.0
 prometheus-client==0.7.1

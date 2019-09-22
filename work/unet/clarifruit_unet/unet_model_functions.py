@@ -15,6 +15,7 @@ from work.unet.clarifruit_unet import unet_model
 from work.segmentation.clarifruit_segmentation import *
 #from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import json
+from keras.models import model_from_json
 
 
 import logging
@@ -395,7 +396,12 @@ class ClarifruitUnet:
 
         save_dict = params_dict.copy()
         save_dict.pop('callbacks')
-        save_settings_to_file(save_dict, "model_params.json", curr_folder)
+        save_json(save_dict, "model_params.json", curr_folder)
+        model_json = self.model.to_json()
+
+        with open(os.path.join(curr_folder,"model.json"), "w") as json_file:
+            json_file.write(model_json)
+
         logger.debug(" -> save_model")
 
     def get_curr_folder(self):
@@ -419,10 +425,33 @@ class ClarifruitUnet:
         logger.debug(f" <- train_model, save_flag{saveflag}")
         if saveflag:
             self.save_model(params_dict,saveflag)
-
-
-        self.clarifruit_train_val_generators()
-        self.get_unet_model()
         self.fit_unet()
 
         logger.debug(" -> train_model")
+    @staticmethod
+
+    @staticmethod
+    def load_model(src_path):
+        #loaded_model=None
+        params_dict = {}
+        pretrained_weights = {}
+        files = os.scandir(src_path)
+        for file_entry in files:
+            file_name_segments = file_entry.name.rsplit('.', 1)
+            file_name = file_name_segments[0]
+            file_extention = file_name_segments[-1]
+            if file_entry.name == 'model_params.json':
+                params_dict = load_json(file_entry.path)
+            #elif file_entry.name == 'model.json':
+                #loaded_model = model_from_json(file_entry.path)
+                # load weights into new model
+
+
+            elif file_extention == 'hdf5':
+                pretrained_weights = file_entry.path
+
+        #loaded_model.load_weights("model.h5")
+        params_dict['pretrained_weights'] = pretrained_weights
+        params_dict['train_time'] = os.path.basename(src_path)
+
+        return params_dict

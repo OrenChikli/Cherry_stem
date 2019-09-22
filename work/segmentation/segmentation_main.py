@@ -22,7 +22,7 @@ def segment_multi(orig_path, mask_path, seg_path,settings_dict,img_list=None):
 
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
     dir_save_path = create_path(dir_save_path, current_time)
-    save_settings_to_file(settings_dict,"segmentation_settings.json",dir_save_path)
+    save_json(settings_dict, "segmentation_settings.json", dir_save_path)
     logger.info(f"segmenting to {dir_save_path}")
 
     for img in img_list:
@@ -118,8 +118,8 @@ def seg_main():
 
     #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
     orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\raw_pred'
-    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-21_18-19-20\segmentation'
+    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09\binary_thres_0.5'
+    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09\segmentation'
 
     seg_folder='segmentation'
     seg_activation_folder ='activation'

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import json
 from work.preprocess import display_functions
 
-from pathlib import Path
 
 
 
@@ -81,12 +80,18 @@ def create_X_y_paths(src_path, X_name, y_name):
     return X_path, y_path
 
 
-def save_settings_to_file(params_dict, file_name, save_path):
+def save_json(params_dict, file_name, save_path):
 
     dest = os.path.join(save_path, file_name)
 
     with open(dest, 'w') as f:
         json.dump(params_dict, f,indent=1)
+
+def load_json(path):
+
+    with open(path, 'r') as f:
+        res = json.load(f)
+    return res
 
 
 # IMAGE FUNCTIONS
@@ -143,25 +148,7 @@ def plot_res(test_img, ground_truth_mask, test_mask_raw):
 
     plt.show()
 
-def load_model(src_path):
-    params_dict = {}
-    pretrained_weights={}
-    files = os.scandir(src_path)
-    for file_entry in files:
-        file_name_segments = file_entry.name.rsplit('.', 1)
-        file_name = file_name_segments[0]
-        file_extention = file_name_segments[-1]
-        if file_extention == 'json':
-            with open(file_entry.path, 'r') as f:
-                params_dict = json.load(f)
 
-        elif file_extention == 'hdf5':
-            pretrained_weights = file_entry.path
-
-    params_dict['pretrained_weights'] = pretrained_weights
-    params_dict['train_time'] = os.path.basename(src_path)
-
-    return params_dict
 
 
 def get_with_maskes(img_path,mask_path,dest_path,color=(0,255,255)):

@@ -22,6 +22,7 @@ class Image:
 
         self.mask_path = mask_path
         self.mask = None
+        self.mask_hsav = None
 
         self.segmentation = None
 
