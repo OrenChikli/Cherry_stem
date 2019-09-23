@@ -81,18 +81,44 @@ def main():
 
     model = unet_model_functions.ClarifruitUnet(**params_dict)
     model.train_model(params_dict,True)
-    model.prediction()
+    model.prediction(threshold=0.4)
 
 
 def load_from_files():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20'
     params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path)
 
-    params_dict['test_path'] = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\A\image'
-    params_dict['dest_path'] = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\A\label'
+    reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
+                                  patience=2, min_lr=0.000001,
+                                  cooldown=1, verbose=1)
+
+    train_params = dict(
+
+        data_gen_args=dict(rescale=1. / 255,
+                           rotation_range=180,
+                           brightness_range=[0.2, 1.],
+                           width_shift_range=0.25,
+                           height_shift_range=0.25,
+                           shear_range=0.2,
+                           zoom_range=[0.5,1.0],
+                           horizontal_flip=True,
+                           vertical_flip=True,
+                           fill_mode='nearest'),
+
+        callbacks = [reduce_lr],
+
+        batch_size=10,
+        epochs=10,
+        steps_per_epoch=3000,
+        valdiation_split=0.2,
+        validation_steps=3000)
+
+    params_dict.update(train_params)
+
     model = unet_model_functions.ClarifruitUnet(**params_dict)
 
-    model.prediction()
+    #model.train_model(params_dict,saveflag=True)
+    model.prediction(threshold=0.3)
 
 def put_on():
     img_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'

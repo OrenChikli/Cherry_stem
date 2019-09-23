@@ -8,6 +8,7 @@ from .utils import Utils
 from .segmentation import Segmentation
 from skimage.util import img_as_float
 from scipy.stats import circmean
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Image:
 
-    def __init__(self, img_path, mask_path=None):
+    def __init__(self, img_path, mask_path=None, cut_mask_path=None):
 
         self.image_name = os.path.basename(img_path)
         self.img_path = img_path
@@ -23,9 +24,12 @@ class Image:
 
         self.mask_path = mask_path
         self.mask = None
-        self.cut_mask=None
-        self.mask_mean_h = None
 
+        self.cut_mask_path=cut_mask_path
+        self.cut_mask = None
+
+        self.mask_mean_h = None
+        self.mask_mean_color=None
         self.segmentation = None
 
         self.read_local()
@@ -41,51 +45,52 @@ class Image:
 
         logger.debug(" <- move_to")
 
-    def read_local(self):
-
-        logger.debug(" -> read")
-        logger.debug("Reading image %s", self.img_path)
-
-        try:
-            logger.debug("Reading image locally by OpenCV")
-            self.img = cv2.imread(self.img_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
-
-        except:
-            logger.exception('Failed reading image: ' + self.img_path)
-            raise ReadImageException('Failed reading image: ' + self.img_path)
-
-        if self.mask_path:
-            logger.debug("Reading mask %s", self.mask_path)
+    @staticmethod
+    def read_img(path, img_type):
+            logger.debug(f"Reading {img_type} {path}")
 
             try:
                 logger.debug("Reading mask image locally by OpenCV")
-                self.mask = cv2.imread(self.mask_path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_IGNORE_ORIENTATION)
+                if img_type == 'mask':
+                    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_IGNORE_ORIENTATION)
+                else:
+                    img = cv2.imread(path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+                if img is None:
+                    error_message = f"Can't read {img_type} from"
+                    logger.error(error_message, path)
+                    raise ReadImageException(error_message, path)
+                else:
+                    return img
 
             except:
-                logger.exception('Failed reading  mask image: ' + self.mask_path)
-                raise ReadImageException('Failed reading  mask image: ' + self.mask_path)
+                message = f"Failed reading {img_type}: {path}"
+                logger.exception(message)
+                raise ReadImageException(message)
 
-        if self.img is None:
-            error_message = "Can't read image from "
-            logger.error(error_message, self.img_path)
-            raise ReadImageException(error_message, self.img_path)
 
-        if self.mask_path is not None and self.mask is None:
-            error_message = "Can't read mask from "
-            logger.error(error_message, self.mask_path)
-            raise ReadImageException(error_message, self.mask_path)
+    def read_local(self):
+
+        logger.debug(" -> read")
+
+        self.img = self.read_img(self.img_path,'image')
+        if self.mask_path is not None:
+            self.mask = self.read_img(self.mask_path,'mask')
+        if self.cut_mask_path is not None:
+            self.cut_mask = self.read_img(self.cut_mask_path,'cut mask')
 
         logger.debug(" <- read")
 
     def cut_via_mask(self,save_flag=False,dest_path=None):
         """Cut parts of an image using a mask - get the parts that overlap with the mask"""
-        out = cv2.subtract(self.mask, self.img)
-        self.cut_mask = cv2.subtract(self.mask, out)
+        color_mask = cv2.cvtColor(self.mask, cv2.COLOR_GRAY2RGB)
+
+        out = cv2.subtract(color_mask, self.img)
+        self.cut_mask = cv2.subtract(color_mask, out)
         if save_flag:
-            cv2.imwrite(os.path.join(dest_path, self.image_name), out)
+            cv2.imwrite(os.path.join(dest_path, self.image_name), self.cut_mask)
 
     def get_mean_hue(self,save_flag=False,dest_path=None):
-        cut_mask_not_zero = self.cut_mask[self.cut_mask > 0]
+        cut_mask_not_zero = self.cut_mask > 0
         cut_mask_hsv = cv2.cvtColor(self.cut_mask, cv2.COLOR_RGB2HSV) * cut_mask_not_zero
         cut_mask_h = cut_mask_hsv[:, :, 0]
         cut_mask_h = cut_mask_h[cut_mask_h > 0]
@@ -94,5 +99,12 @@ class Image:
         hsv = ((mean_hue, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
         res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
         self.mask_mean_h = res_img
+        if save_flag:
+            cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
+
+    def get_mean_color(self,save_flag=False,dest_path=None):
+        out = cv2.mean(self.img, self.mask)[:-1]
+        res_img = np.ones(shape=self.img.shape, dtype=np.uint8) * np.uint8(out)
+        self.mask_mean_color= res_img
         if save_flag:
             cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)

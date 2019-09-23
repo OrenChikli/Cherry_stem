@@ -395,12 +395,13 @@ class ClarifruitUnet:
             curr_folder = self.get_curr_folder()
 
         save_dict = params_dict.copy()
-        save_dict.pop('callbacks')
+        if 'callbacks' in save_dict:
+            save_dict.pop('callbacks')
         save_json(save_dict, "model_params.json", curr_folder)
-        model_json = self.model.to_json()
+        #model_json = self.model.to_json()
 
-        with open(os.path.join(curr_folder,"model.json"), "w") as json_file:
-            json_file.write(model_json)
+        #with open(os.path.join(curr_folder,"model.json"), "w") as json_file:
+            #json_file.write(model_json)
 
         logger.debug(" -> save_model")
 
@@ -413,10 +414,12 @@ class ClarifruitUnet:
         logger.debug(" <- set_model_checkpoint")
         curr_folder = self.get_curr_folder()
         out_model_path = os.path.join(curr_folder, self.weights_file_name)
-        model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
+        model_checkpoint = [ModelCheckpoint(out_model_path, monitor='val_loss',
                                             verbose=1, save_best_only=True)]
-
-        self.callbacks = model_checkpoint + self.callbacks
+        if self.callbacks is None:
+            self.callbacks = model_checkpoint
+        else:
+            self.callbacks = model_checkpoint + self.callbacks
         logger.debug(" -> set_model_checkpoint")
         return curr_folder
 
@@ -428,7 +431,6 @@ class ClarifruitUnet:
         self.fit_unet()
 
         logger.debug(" -> train_model")
-    @staticmethod
 
     @staticmethod
     def load_model(src_path):
