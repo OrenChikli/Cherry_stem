@@ -275,8 +275,8 @@ class ClarifruitUnet:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
         save_path = create_path(self.dest_path,self.train_time)
-        threshold_path = create_path(save_path, f'binary_thres_{threshold}')
-        mask_on_path = create_path(save_path,'mask_ontop')
+        #threshold_path = create_path(save_path, f'binary_thres_{threshold}')
+        #mask_on_path = create_path(save_path,'mask_ontop')
         save_path = create_path(save_path, 'raw_pred')
 
 
@@ -289,13 +289,13 @@ class ClarifruitUnet:
             pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image_raw)
 
-            pred_image_thres = (255 * (pred > threshold)).astype(np.uint8)
-            pred_image_thres = cv2.resize(pred_image_thres, orig_shape)
-            cv2.imwrite(os.path.join(threshold_path, img_entry.name), pred_image_thres)
+            #pred_image_thres = (255 * (pred > threshold)).astype(np.uint8)
+            #pred_image_thres = cv2.resize(pred_image_thres, orig_shape)
+            #cv2.imwrite(os.path.join(threshold_path, img_entry.name), pred_image_thres)
 
-            real_img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
-            thres_ontop = display_functions.put_binary_ontop(real_img,pred_image_thres)
-            cv2.imwrite(os.path.join(mask_on_path, img_entry.name), thres_ontop)
+            #real_img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
+            #thres_ontop = display_functions.put_binary_ontop(real_img,pred_image_thres)
+            #cv2.imwrite(os.path.join(mask_on_path, img_entry.name), thres_ontop)
 
         logger.debug(" -> prediction")
 

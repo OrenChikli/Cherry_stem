@@ -40,7 +40,7 @@ class Segmentation:
     def apply_segmentation(self):
         logger.debug(" -> apply_segmentation")
         self.segments = self.get_segments()
-        if self.img.mask is not None:
+        if self.img.grayscale_mask is not None:
             self.filter_segments()
         logger.debug(" <- apply_segmentation")
 
@@ -58,7 +58,7 @@ class Segmentation:
         self.filtered_segments = np.zeros_like(self.segments,dtype=np.bool)
         for i, segment in self.segment_iterator():
             seg_sum = 255 * np.count_nonzero(segment)
-            segment_activation = self.img.mask[segment]
+            segment_activation = self.img.grayscale_mask[segment]
             seg_activation_sum = np.sum(segment_activation)
             activation_pr = (seg_activation_sum / seg_sum)
             if activation_pr > self.pr_threshold:

@@ -25,6 +25,13 @@ class StemExtractor:
             class_name = img_entry.name.split('.')[0]
             self.classes_dict[class_name] = img_color
 
+    def threshold_mask(self,threshold,save_path):
+
+        for img_entry in os.scandir(self.img_path):
+            mask_path = os.path.join(self.mask_path, img_entry.name)
+            img = Image(img_entry.path, mask_path,threshold=threshold)
+            cv2.imwrite(os.path.join(save_path, img.image_name), img.threshold_mask)
+
 
     def get_stems(self):
         for img_entry in os.scandir(self.img_path):
@@ -32,12 +39,18 @@ class StemExtractor:
             img = Image(img_entry.path, mask_path)
             img.cut_via_mask(save_flag=True,dest_path=self.stems_path)
 
-    def get_mean_h(self,save_path):
+    def get_mean_h(self, save_path):
         for img_entry in os.scandir(self.img_path):
             mask_path = os.path.join(self.mask_path, img_entry.name)
-            cut_mask_path = os.path.join(self.cut_mask_path,img_entry.name)
-            img = Image(img_entry.path, mask_path, cut_mask_path=cut_mask_path)
-            img.get_mean_hue(save_flag=True,dest_path=save_path)
+            img = Image(img_entry.path, mask_path)
+            img.get_mean_hue(save_flag=True, dest_path=save_path)
+
+    # def get_mean_h(self,save_path):
+    #     for img_entry in os.scandir(self.img_path):
+    #         mask_path = os.path.join(self.mask_path, img_entry.name)
+    #         cut_mask_path = os.path.join(self.cut_mask_path,img_entry.name)
+    #         img = Image(img_entry.path, mask_path, cut_mask_path=cut_mask_path)
+    #         img.get_mean_hue(save_flag=True,dest_path=save_path)
 
     def get_mean_color(self,save_path):
         for img_entry in os.scandir(self.img_path):
@@ -45,6 +58,8 @@ class StemExtractor:
             cut_mask_path = os.path.join(self.cut_mask_path,img_entry.name)
             img = Image(img_entry.path, mask_path, cut_mask_path=cut_mask_path)
             img.get_mean_color(save_flag=True,dest_path=save_path)
+
+
 
 
     def score_stem_color(self,img_path,dest_path):
@@ -58,8 +73,11 @@ class StemExtractor:
             res_dict[img_entry.name] = res
             data_functions.save_json(res_dict, "image_classifications_hsv.json", dest_path)
 
-
-
+    def sharpen_maskes(self,save_path):
+        for img_entry in os.scandir(self.img_path):
+            mask_path = os.path.join(self.mask_path, img_entry.name)
+            img = Image(img_entry.path, mask_path)
+            img.sharpen_mask(save_flag=True,dest_path=save_path)
 
 
 
@@ -72,23 +90,30 @@ def main():
 
     curr_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20'
 
-    mask_path = data_functions.create_path(curr_path,'binary_thres_0.3')
+    mask_path = data_functions.create_path(curr_path,'raw_pred')
+
+    threshold=0.5
+    thres_mask_path =data_functions.create_path(curr_path,f"binary_{threshold}")
+
+    sharpened_mask_path = data_functions.create_path(curr_path,'pred_shrap')
 
     stems_path = data_functions.create_path(curr_path,'stems')
     class_dest_path =data_functions.create_path(curr_path,'classification')
     mean_h_dest_path= data_functions.create_path(curr_path,'mean_h')
     mean_color_dest_path = data_functions.create_path(curr_path, 'color')
 
-    mean_h_dest_path = data_functions.create_path(mean_h_dest_path,'via_thres_0.3')
-    mean_color_dest_path = data_functions.create_path(mean_color_dest_path,'via_0.3')
-    stems_path = data_functions.create_path(stems_path, 'via_0.3')
+    mean_h_dest_path = data_functions.create_path(mean_h_dest_path,'sharpened')
+    mean_color_dest_path = data_functions.create_path(mean_color_dest_path,'sharpened')
+    stems_path = data_functions.create_path(stems_path, 'sharpened')
 
 
-    stem_exctractor = StemExtractor(classes_path,img_path,mask_path,stems_path,stems_path)
-    # stem_exctractor.get_stems()
-    # stem_exctractor.get_mean_h(mean_h_dest_path)
-    # stem_exctractor.get_mean_color(mean_color_dest_path)
-    stem_exctractor.score_stem_color(mean_color_dest_path,class_dest_path)
+    stem_exctractor = StemExtractor(classes_path,img_path,sharpened_mask_path,stems_path,stems_path)
+    stem_exctractor.threshold_mask(0.5,thres_mask_path)
+    stem_exctractor.sharpen_maskes(sharpened_mask_path)
+    #stem_exctractor.get_stems()
+    #stem_exctractor.get_mean_h(mean_h_dest_path)
+    #stem_exctractor.get_mean_color(mean_color_dest_path)
+    #stem_exctractor.score_stem_color(mean_color_dest_path,class_dest_path)
 
 
 if __name__ == '__main__':
