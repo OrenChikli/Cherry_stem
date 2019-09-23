@@ -92,15 +92,16 @@ class Image:
 
     def cut_via_mask(self,save_flag=False,dest_path=None):
         """Cut parts of an image using a mask - get the parts that overlap with the mask"""
-        color_mask = cv2.cvtColor(self.grayscale_mask, cv2.COLOR_GRAY2RGB)
+        color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
 
         out = cv2.subtract(color_mask, self.img)
         self.cut_mask = cv2.subtract(color_mask, out)
         if save_flag:
             cv2.imwrite(os.path.join(dest_path, self.image_name), self.cut_mask)
 
+
+
     def get_mean_hue(self, save_flag=False, dest_path=None):
-        thres_mask = self.grayscale_mask / 255 > 0.5
         color_mask = cv2.cvtColor(self.grayscale_mask, cv2.COLOR_GRAY2RGB) / 255
         weighted = (self.img * color_mask).astype(np.uint8)
         weighted_hsv = cv2.cvtColor(weighted, cv2.COLOR_RGB2HSV)
@@ -119,7 +120,7 @@ class Image:
         kernel = np.array([[-1, -1, -1],
                            [-1, 9, -1],
                            [-1, -1, -1]])
-        self.sharp_mask = cv2.filter2D(self.threshold_mask, -1, kernel)
+        self.sharp_mask = cv2.filter2D(self.grayscale_mask, -1, kernel)
         if save_flag:
             cv2.imwrite(os.path.join(dest_path, self.image_name), self.sharp_mask)
 
@@ -145,6 +146,6 @@ class Image:
     def get_mean_color(self,save_flag=False,dest_path=None):
         out = cv2.mean(self.img, self.grayscale_mask)[:-1]
         res_img = np.ones(shape=self.img.shape, dtype=np.uint8) * np.uint8(out)
-        self.mask_mean_color= res_img
+        self.mask_mean_color=res_img
         if save_flag:
             cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)

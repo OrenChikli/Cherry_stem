@@ -269,7 +269,7 @@ class ClarifruitUnet:
             yield img, img_entry, orig_shape
 
 
-    def prediction(self,threshold=0.5):
+    def prediction(self):
         logger.debug(" <- prediction")
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')

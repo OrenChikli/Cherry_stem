@@ -118,7 +118,7 @@ def load_from_files():
     model = unet_model_functions.ClarifruitUnet(**params_dict)
 
     #model.train_model(params_dict,saveflag=True)
-    model.prediction(threshold=0.2)
+    model.prediction()
 
 def put_on():
     img_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
