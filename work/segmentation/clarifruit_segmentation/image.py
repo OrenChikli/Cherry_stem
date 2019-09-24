@@ -135,7 +135,7 @@ class Image:
         self.mask_mean_color=res_img
 
 
-    def get_hist_via_mask(self,return_hist=False):
+    def get_hist_via_mask(self,return_hist=True,display_flag=False):
         img= self.img
         mask = self.threshold_mask
         self.cut_via_mask()
@@ -145,17 +145,18 @@ class Image:
         hist_green = cv2.calcHist([img], [1], mask, [256], [0, 256])
         hist_red = cv2.calcHist([img], [2], mask, [256], [0, 256])
 
-        fig, ax = plt.subplots(2, 2, figsize=(16, 10))
-        ax_flat = ax.flatten()
-        ax_flat[0].imshow(img[...,::-1])
-        ax_flat[1].imshow(mask, 'gray')
-        ax_flat[2].imshow(masked_img[...,::-1])
-        ax_flat[3].plot(hist_blue, label='blue', color='blue')
-        plt.plot(hist_green, label='green', color='green')
-        plt.plot(hist_red, label='red', color='red')
-        plt.xlim([0, 256])
-        plt.legend()
-        plt.show()
+        if display_flag:
+            fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+            ax_flat = ax.flatten()
+            ax_flat[0].imshow(img[...,::-1])
+            ax_flat[1].imshow(mask, 'gray')
+            ax_flat[2].imshow(masked_img[...,::-1])
+            ax_flat[3].plot(hist_blue, label='blue', color='blue')
+            plt.plot(hist_green, label='green', color='green')
+            plt.plot(hist_red, label='red', color='red')
+            plt.xlim([0, 256])
+            plt.legend()
+            plt.show()
 
         if return_hist:
             ret_hist = cv2.calcHist([img], [0, 1, 2], mask, [256, 256, 256], [0, 256, 0, 256, 0, 256])
