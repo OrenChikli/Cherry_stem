@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Image:
 
-    def __init__(self, img_path, mask_path=None,threshold=125):
+    def __init__(self, img_path, mask_path=None,threshold=None):
 
         self.image_name = os.path.basename(img_path)
         self.img_path = img_path
@@ -25,18 +25,19 @@ class Image:
         self.mask_path = mask_path
         self.grayscale_mask = None
 
-        self.sharp_mask = None
-
         self.threshold = threshold
         self.threshold_mask=None
-        self.sharp_threshold_mask = None
+
 
         self.image_cut = None
 
         self.mask_mean_h = None
         self.mask_mean_color=None
         self.segmentation = None
+
         self.read_local()
+        if threshold is not None:
+            self.get_threshold_mask()
 
 
     def move_to(self, dest_path_image, dest_path_label):
@@ -80,20 +81,12 @@ class Image:
         self.img = self.read_img(self.img_path,'image')
         if self.mask_path is not None:
             self.grayscale_mask = self.read_img(self.mask_path, 'mask')
-        if self.cut_mask_path is not None:
-            self.cut_mask = self.read_img(self.cut_mask_path,'cut mask')
 
         logger.debug(" <- read")
 
-    def get_threshold_mask(self,type_flag='orig'):
+    def get_threshold_mask(self):
         logger.debug(" <- get_threshold_mask")
-        if type_flag =='orig':
-            self.threshold_mask = (255*(self.grayscale_mask > self.threshold)).astype(np.uint8)
-        elif type_flag == 'sharp':
-            if self.sharp_mask is None:
-                self.get_sharp_mask()
-            self.sharp_threshold_mask = (255 * (self.sharp_mask > self.threshold)).astype(np.uint8)
-
+        self.threshold_mask = (255*(self.grayscale_mask > self.threshold)).astype(np.uint8)
         logger.debug(" -> get_threshold_mask")
 
     def get_sharp_mask(self):
@@ -102,27 +95,27 @@ class Image:
                            [-1, 9, -1],
                            [-1, -1, -1]])
 
-        self.sharp_mask = cv2.filter2D(self.grayscale_mask, -1, kernel)
+        self.grayscale_mask = cv2.filter2D(self.grayscale_mask, -1, kernel)
+
+        if self.threshold_mask is not None:
+            self.get_threshold_mask()
 
 
 
 
-    def cut_via_mask(self,type_flag='orig'):
+
+    def cut_via_mask(self):
         """Cut parts of an image using a mask - get the parts that overlap with the mask"""
         if self.threshold_mask is None:
             self.get_threshold_mask()
-        if type_flag == 'orig':
-            color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
-        elif type_flag == 'sharp':
-            if self.sharp_threshold_mask is None:
-                self.get_threshold_mask()
-            color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
+
+        color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
         out = cv2.subtract(color_mask, self.img)
         self.image_cut = cv2.subtract(color_mask, out)
 
 
     def get_mean_hue(self):
-        if self.cut_mask == None:
+        if self.image_cut == None:
             self.cut_via_mask()
 
         hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_RGB2HSV)
@@ -130,7 +123,7 @@ class Image:
         h_of_non_zero_areas = h[self.threshold_mask > 0]
         h_rad = np.deg2rad(h_of_non_zero_areas)
         mean_h = np.rad2deg(circmean(h_rad))
-        res_hsv = ((mean_h, 255, 255) * np.ones((50,50))).astype(np.uint8)
+        res_hsv = ((mean_h, 255, 255) * np.ones((50,50,3))).astype(np.uint8)
         res_img = cv2.cvtColor(res_hsv, cv2.COLOR_HSV2RGB)
         self.mask_mean_h = res_img
 
@@ -168,10 +161,8 @@ class Image:
     #     if save_flag:
     #         cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
 
-    def get_mean_color(self,save_flag=False,dest_path=None):
-        out = cv2.mean(self.img, self.grayscale_mask)[:-1]
-        res_img = np.ones(shape=self.img.shape, dtype=np.uint8) * np.uint8(out)
+    def get_mean_color(self):
+        out = cv2.mean(self.img, self.threshold_mask)[:-1]
+        res_img = np.ones(shape=(50,50,3), dtype=np.uint8) * np.uint8(out)
         self.mask_mean_color=res_img
-        if save_flag:
-            cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
-        return out
+
