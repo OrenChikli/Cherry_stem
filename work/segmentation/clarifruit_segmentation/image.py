@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Image:
 
-    def __init__(self, img_path, mask_path=None, cut_mask_path=None,threshold=0.5):
+    def __init__(self, img_path, mask_path=None,threshold=125):
 
         self.image_name = os.path.basename(img_path)
         self.img_path = img_path
@@ -24,20 +24,20 @@ class Image:
 
         self.mask_path = mask_path
         self.grayscale_mask = None
+
         self.sharp_mask = None
+
         self.threshold = threshold
+        self.threshold_mask=None
+        self.sharp_threshold_mask = None
 
-
-
-        self.cut_mask_path=cut_mask_path
-        self.cut_mask = None
+        self.image_cut = None
 
         self.mask_mean_h = None
         self.mask_mean_color=None
         self.segmentation = None
-
         self.read_local()
-        self.get_threshold_mask()
+
 
     def move_to(self, dest_path_image, dest_path_label):
         logger.debug("-> move_to")
@@ -85,48 +85,73 @@ class Image:
 
         logger.debug(" <- read")
 
-    def get_threshold_mask(self):
-        x= 255*(self.grayscale_mask > 255*self.threshold)
-        self.threshold_mask = (255*(self.grayscale_mask > 255*self.threshold)).astype(np.uint8)
+    def get_threshold_mask(self,type_flag='orig'):
+        logger.debug(" <- get_threshold_mask")
+        if type_flag =='orig':
+            self.threshold_mask = (255*(self.grayscale_mask > self.threshold)).astype(np.uint8)
+        elif type_flag == 'sharp':
+            if self.sharp_mask is None:
+                self.get_sharp_mask()
+            self.sharp_threshold_mask = (255 * (self.sharp_mask > self.threshold)).astype(np.uint8)
 
+        logger.debug(" -> get_threshold_mask")
 
-    def cut_via_mask(self,save_flag=False,dest_path=None):
-        """Cut parts of an image using a mask - get the parts that overlap with the mask"""
-        color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
-
-        out = cv2.subtract(color_mask, self.img)
-        self.cut_mask = cv2.subtract(color_mask, out)
-        if save_flag:
-            cv2.imwrite(os.path.join(dest_path, self.image_name), self.cut_mask)
-
-
-
-    def get_mean_hue(self, save_flag=False, dest_path=None):
-        color_mask = cv2.cvtColor(self.grayscale_mask, cv2.COLOR_GRAY2RGB) / 255
-        weighted = (self.img * color_mask).astype(np.uint8)
-        weighted_hsv = cv2.cvtColor(weighted, cv2.COLOR_RGB2HSV)
-        weighted_h = weighted_hsv[:, :, 0]
-        weighted_h_thres = weighted_h[weighted_h > 0]
-        h_rad = np.deg2rad(weighted_h_thres)
-        mean_h = np.rad2deg(circmean(h_rad))
-        hsv = ((mean_h, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
-        res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-        self.mask_mean_h = res_img
-        if save_flag:
-            cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
-
-    def sharpen_mask(self,save_flag=False,dest_path=None):
+    def get_sharp_mask(self):
 
         kernel = np.array([[-1, -1, -1],
                            [-1, 9, -1],
                            [-1, -1, -1]])
-        self.sharp_mask = cv2.filter2D(self.grayscale_mask, -1, kernel)
-        if save_flag:
-            cv2.imwrite(os.path.join(dest_path, self.image_name), self.sharp_mask)
 
-        # smoothed = cv2.GaussianBlur(self.mask,(5,5),0)
-        # cv2.imshow("smoothed",smoothed)
-        # res = cv2.subtract(self.mask,smoothed)
+        self.sharp_mask = cv2.filter2D(self.grayscale_mask, -1, kernel)
+
+
+
+
+    def cut_via_mask(self,type_flag='orig'):
+        """Cut parts of an image using a mask - get the parts that overlap with the mask"""
+        if self.threshold_mask is None:
+            self.get_threshold_mask()
+        if type_flag == 'orig':
+            color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
+        elif type_flag == 'sharp':
+            if self.sharp_threshold_mask is None:
+                self.get_threshold_mask()
+            color_mask = cv2.cvtColor(self.threshold_mask, cv2.COLOR_GRAY2RGB)
+        out = cv2.subtract(color_mask, self.img)
+        self.image_cut = cv2.subtract(color_mask, out)
+
+
+    def get_mean_hue(self):
+        if self.cut_mask == None:
+            self.cut_via_mask()
+
+        hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_RGB2HSV)
+        h = hsv[:, :, 0]
+        h_of_non_zero_areas = h[self.threshold_mask > 0]
+        h_rad = np.deg2rad(h_of_non_zero_areas)
+        mean_h = np.rad2deg(circmean(h_rad))
+        res_hsv = ((mean_h, 255, 255) * np.ones((50,50))).astype(np.uint8)
+        res_img = cv2.cvtColor(res_hsv, cv2.COLOR_HSV2RGB)
+        self.mask_mean_h = res_img
+
+
+
+
+
+    # def get_mean_hue(self, save_flag=False, dest_path=None):
+    #     color_mask = cv2.cvtColor(self.grayscale_mask, cv2.COLOR_GRAY2RGB) / 255
+    #     weighted = (self.img * color_mask).astype(np.uint8)
+    #     weighted_hsv = cv2.cvtColor(weighted, cv2.COLOR_RGB2HSV)
+    #     weighted_h = weighted_hsv[:, :, 0]
+    #     weighted_h_thres = weighted_h[weighted_h > 0]
+    #     h_rad = np.deg2rad(weighted_h_thres)
+    #     mean_h = np.rad2deg(circmean(h_rad))
+    #     hsv = ((mean_h, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
+    #     res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+    #     self.mask_mean_h = res_img
+    #     if save_flag:
+    #         cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
+
 
 
 
@@ -149,3 +174,4 @@ class Image:
         self.mask_mean_color=res_img
         if save_flag:
             cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
+        return out
