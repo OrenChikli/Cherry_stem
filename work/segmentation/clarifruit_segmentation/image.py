@@ -129,40 +129,75 @@ class Image:
 
 
 
-
-
-    # def get_mean_hue(self, save_flag=False, dest_path=None):
-    #     color_mask = cv2.cvtColor(self.grayscale_mask, cv2.COLOR_GRAY2RGB) / 255
-    #     weighted = (self.img * color_mask).astype(np.uint8)
-    #     weighted_hsv = cv2.cvtColor(weighted, cv2.COLOR_RGB2HSV)
-    #     weighted_h = weighted_hsv[:, :, 0]
-    #     weighted_h_thres = weighted_h[weighted_h > 0]
-    #     h_rad = np.deg2rad(weighted_h_thres)
-    #     mean_h = np.rad2deg(circmean(h_rad))
-    #     hsv = ((mean_h, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
-    #     res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-    #     self.mask_mean_h = res_img
-    #     if save_flag:
-    #         cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
-
-
-
-
-    # def get_mean_hue(self,save_flag=False,dest_path=None):
-    #     cut_mask_not_zero = self.cut_mask > 0
-    #     cut_mask_hsv = cv2.cvtColor(self.cut_mask, cv2.COLOR_RGB2HSV) * cut_mask_not_zero
-    #     cut_mask_h = cut_mask_hsv[:, :, 0]
-    #     cut_mask_h = cut_mask_h[cut_mask_h > 0]
-    #     cut_mask_h_rad = np.deg2rad(cut_mask_h)
-    #     mean_hue = np.rad2deg(circmean(cut_mask_h_rad))
-    #     hsv = ((mean_hue, 255, 255) * np.ones_like(self.img)).astype(np.uint8)
-    #     res_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-    #     self.mask_mean_h = res_img
-    #     if save_flag:
-    #         cv2.imwrite(os.path.join(dest_path, self.image_name), res_img)
-
     def get_mean_color(self):
         out = cv2.mean(self.img, self.threshold_mask)[:-1]
         res_img = np.ones(shape=(50,50,3), dtype=np.uint8) * np.uint8(out)
         self.mask_mean_color=res_img
 
+
+    def get_hist_via_mask(self,return_hist=False):
+        img= self.img
+        mask = self.threshold_mask
+        self.cut_via_mask()
+        masked_img = self.image_cut
+
+        hist_blue = cv2.calcHist([img], [0], mask, [256], [0, 256])
+        hist_green = cv2.calcHist([img], [1], mask, [256], [0, 256])
+        hist_red = cv2.calcHist([img], [2], mask, [256], [0, 256])
+
+        fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+        ax_flat = ax.flatten()
+        ax_flat[0].imshow(img[...,::-1])
+        ax_flat[1].imshow(mask, 'gray')
+        ax_flat[2].imshow(masked_img[...,::-1])
+        ax_flat[3].plot(hist_blue, label='blue', color='blue')
+        plt.plot(hist_green, label='green', color='green')
+        plt.plot(hist_red, label='red', color='red')
+        plt.xlim([0, 256])
+        plt.legend()
+        plt.show()
+
+        if return_hist:
+            ret_hist = cv2.calcHist([img], [0, 1, 2], mask, [256, 256, 256], [0, 256, 0, 256, 0, 256])
+            ret_hist = cv2.normalize(ret_hist, ret_hist).flatten()
+            individual_hists = {'blue':hist_blue,'green':hist_green,'red':hist_red}
+            return ret_hist, individual_hists
+
+
+"""def get_hist_via_mask(self, return_hist=False):
+    img = self.img
+    mask = self.threshold_mask
+    self.cut_via_mask()
+    masked_img = self.image_cut
+
+    hist_blue = cv2.calcHist([img], [0], mask, [256], [0, 256])
+    hist_green = cv2.calcHist([img], [1], mask, [256], [0, 256])
+    hist_red = cv2.calcHist([img], [2], mask, [256], [0, 256])
+
+    fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+    ax_flat = ax.flatten()
+    ax_flat[0].imshow(img[..., ::-1])
+    ax_flat[1].imshow(mask, 'gray')
+    ax_flat[2].imshow(masked_img[..., ::-1])
+    ax_flat[3].plot(hist_blue, label='blue', color='blue')
+    plt.plot(hist_green, label='green', color='green')
+    plt.plot(hist_red, label='red', color='red')
+    plt.xlim([0, 256])
+    plt.legend()
+    plt.show()
+    if return_hist:
+        return {'blue': hist_blue, 'green': hist_green, 'red': hist_red}"""
+
+
+
+"""
+        masked_img = self.image_cut
+        fig,ax = plt.figure(fig_size=(14,8))
+        hist_full = cv2.calcHist([img], [0], None, [256], [0, 256])
+        hist_mask = cv2.calcHist([img], [0], mask, [256], [0, 256])
+        plt.subplot(221), plt.imshow(img)
+        plt.subplot(222), plt.imshow(mask, 'gray')
+        plt.subplot(223), plt.imshow(masked_img)
+        plt.subplot(224), plt.plot(hist_full), plt.plot(hist_mask)
+        plt.xlim([0, 256])
+        plt.show()"""
