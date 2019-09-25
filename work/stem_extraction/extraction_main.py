@@ -1,21 +1,14 @@
-from work.preprocess import data_functions
 from work.stem_extraction.stem_extract import *
 
 from work.logger_settings import *
 
+from work.auxiliary import data_functions
+
 configure_logger()
 logger = logging.getLogger(__name__)
 
-from work.segmentation.clarifruit_segmentation.image import Image
 
-def get_ground_truth():
-
-    img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\stems'
-
-    mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\label'
-    save_path=r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes'
-
-    threshold = 100
+def get_ground_truth(img_path,mask_path,save_path,threshold):
 
     logger.info(f"getting ground truth with threshold: {threshold}")
     stem_exctractor = StemExtractor(img_path=img_path,
@@ -31,7 +24,7 @@ def compare_hists(img_path,mask_path,save_path,threshold,ground_truth_path):
                                     mask_path=mask_path,
                                     save_path=save_path,
                                     threshold=threshold)
-    logger.info("loading groung truth histogrames")
+    logger.info("loading groung truth histograms")
     stem_exctractor.load_ground_truth(ground_truth_path)
 
     logger.info("comparing ground truth histogrames with predictions")
@@ -40,9 +33,10 @@ def compare_hists(img_path,mask_path,save_path,threshold,ground_truth_path):
 
 
 
+
 def main():
-    h_classes_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\hsv'
-    color_classes_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\colors'
+    #h_classes_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\hsv'
+    #color_classes_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\colors'
 
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
@@ -51,15 +45,22 @@ def main():
 
     save_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20\masks'
 
-    ground_truth_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\thres_100\hist_orig'
+    #ground_truth_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\thres_100\hist_orig'
 
-    threshold = 100
+    threshold = 150
 
     type_flag = 'orig'
 
+    #img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C\image'
+    #save_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C'
+    #mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C\label'
+
+    #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
+    get_ground_truth(img_path, mask_path, save_path, threshold)
+
     #general_use(color_classes_path, h_classes_path, img_path, mask_path, threshold, type_flag)
 
-    compare_hists(img_path, mask_path, save_path, threshold, ground_truth_path)
+    #compare_hists(img_path, mask_path, save_path, threshold, ground_truth_path)
 
 
 def general_use(color_classes_path, h_classes_path, img_path, mask_path,save_path, threshold, type_flag):
@@ -91,4 +92,3 @@ def general_use(color_classes_path, h_classes_path, img_path, mask_path,save_pat
 
 if __name__ == '__main__':
     main()
-    #get_ground_truth()

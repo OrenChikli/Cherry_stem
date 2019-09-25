@@ -1,5 +1,5 @@
 from work.unet.clarifruit_unet import unet_model_functions
-from work.preprocess import data_functions
+from work.auxiliary import data_functions
 from keras.callbacks import ReduceLROnPlateau
 
 

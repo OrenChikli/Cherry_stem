@@ -6,7 +6,7 @@ from skimage.segmentation import mark_boundaries
 from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
 import matplotlib.pyplot as plt
 import os
-from work.preprocess.data_functions import create_path
+from work.auxiliary.data_functions import create_path
 from tqdm import tqdm
 import argparse
 

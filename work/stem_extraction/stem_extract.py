@@ -1,8 +1,8 @@
-from work.preprocess import data_functions
+from work.auxiliary import data_functions
 import os
 import cv2
 import numpy as np
-
+from tqdm import tqdm
 import shutil
 
 from work.logger_settings import *
@@ -10,7 +10,7 @@ from work.logger_settings import *
 configure_logger()
 logger = logging.getLogger(__name__)
 
-from work.segmentation.clarifruit_segmentation.image import Image
+from work.auxiliary.image import Image
 
 OPENCV_METHODS = (
     ("Correlation", cv2.HISTCMP_CORREL),
@@ -62,25 +62,25 @@ class StemExtractor:
             self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
         elif type_flag=='sharp':
             self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'sharp_binary')
-        for img in self.image_obj_iterator():
+        for img in tqdm(self.image_obj_iterator()):
             cv2.imwrite(os.path.join(self.threshold_masks_path, img.image_name), img.threshold_mask)
 
     def sharpen_maskes(self):
         self.sharp_masks_path = data_functions.create_path(self.save_path, 'sharpened')
-        for img in self.image_obj_iterator():
+        for img in tqdm(self.image_obj_iterator()):
             img.get_sharp_mask()
             cv2.imwrite(os.path.join(self.sharp_masks_path, img.image_name), img.grayscale_mask)
 
     def get_stems(self,type_flag='orig'):
         if type_flag == 'orig':
             self.cut_image_path = data_functions.create_path(self.thres_save_path, f'orig_stems')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.cut_via_mask()
                 cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.image_cut)
 
         if type_flag == 'sharp':
             self.cut_image_path = data_functions.create_path(self.thres_save_path, f'sharp_stems')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.get_sharp_mask()
                 img.cut_via_mask()
                 cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.grayscale_mask)
@@ -89,13 +89,13 @@ class StemExtractor:
     def get_mean_h(self,type_flag='orig'):
         if type_flag == 'orig':
             self.mean_h_path = data_functions.create_path(self.thres_save_path, f'orig_mean_h')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.get_mean_hue()
                 cv2.imwrite(os.path.join(self.mean_h_path, img.image_name), img.mask_mean_h)
 
         if type_flag == 'sharp':
             self.mean_h_path = data_functions.create_path(self.thres_save_path, f'sharp_mean_h')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.get_sharp_mask()
                 img.get_mean_hue()
                 cv2.imwrite(os.path.join(self.mean_h_path, img.image_name), img.mask_mean_h)
@@ -103,13 +103,13 @@ class StemExtractor:
     def get_mean_color(self, type_flag='orig'):
         if type_flag == 'orig':
             self.mean_color_path = data_functions.create_path(self.thres_save_path, f'orig_mean_color')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.get_mean_color()
                 cv2.imwrite(os.path.join(self.mean_color_path, img.image_name), img.mask_mean_color)
 
         if type_flag == 'sharp':
             self.mean_color_path = data_functions.create_path(self.thres_save_path, f'sharp_mean_color')
-            for img in self.image_obj_iterator():
+            for img in tqdm(self.image_obj_iterator()):
                 img.get_sharp_mask()
                 img.get_mean_color()
                 cv2.imwrite(os.path.join(self.mean_color_path, img.image_name), img.mask_mean_color)
@@ -125,7 +125,7 @@ class StemExtractor:
 
     def calc_hists(self,mask_type='orig'):
         dest_path = data_functions.create_path(self.thres_save_path, f'hist_{mask_type}')
-        for img in self.image_obj_iterator():
+        for img in tqdm(self.image_obj_iterator()):
             img_raw_name = img.image_name.split('.')[0]
             curr_dest_path = os.path.join(dest_path,f"{img_raw_name}.npy")
             fig_big_hist, _ = img.get_hist_via_mask(return_hist=True, display_flag=False)
@@ -138,7 +138,7 @@ class StemExtractor:
 
     def compare_hists(self,mask_type='orig'):
         dest_path = data_functions.create_path(self.thres_save_path, f'hist_{mask_type}_scores')
-        for img in self.image_obj_iterator():
+        for img in tqdm(self.image_obj_iterator()):
             fig_big_hist, _ = img.get_hist_via_mask(return_hist=True, display_flag=False)
             label=self.get_hist_score(fig_big_hist)
 
@@ -198,6 +198,9 @@ class StemExtractor:
             curr_dest_path = os.path.join(dest_path,res)
             _ = shutil.copy(img_entry.path, curr_dest_path)
 
+
+    def create_ground_truth_via_images(self):
+        pass
 
 
 

@@ -3,10 +3,8 @@ import numpy as np
 import cv2
 import os
 import shutil
-from .exceptions import ReadImageException
-from .utils import Utils
-from .segmentation import Segmentation
-from skimage.util import img_as_float
+from work.segmentation.clarifruit_segmentation.exceptions import ReadImageException
+
 from scipy.stats import circmean
 import matplotlib.pyplot as plt
 
@@ -134,7 +132,6 @@ class Image:
         res_img = np.ones(shape=(50,50,3), dtype=np.uint8) * np.uint8(out)
         self.mask_mean_color=res_img
 
-
     def get_hist_via_mask(self,return_hist=True,display_flag=False):
         img= self.img
         mask = self.threshold_mask
@@ -164,6 +161,36 @@ class Image:
             individual_hists = {'blue':hist_blue,'green':hist_green,'red':hist_red}
             return ret_hist, individual_hists
 
+    """
+    def get_hist_via_mask(self,return_hist=True,display_flag=False):
+        img= self.img
+        mask = self.threshold_mask
+        self.cut_via_mask()
+        masked_img = self.image_cut
+
+        hist_blue = cv2.calcHist([img], [0], mask, [256], [0, 256])
+        hist_green = cv2.calcHist([img], [1], mask, [256], [0, 256])
+        hist_red = cv2.calcHist([img], [2], mask, [256], [0, 256])
+
+        if display_flag:
+            fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+            ax_flat = ax.flatten()
+            ax_flat[0].imshow(img[...,::-1])
+            ax_flat[1].imshow(mask, 'gray')
+            ax_flat[2].imshow(masked_img[...,::-1])
+            ax_flat[3].plot(hist_blue, label='blue', color='blue')
+            plt.plot(hist_green, label='green', color='green')
+            plt.plot(hist_red, label='red', color='red')
+            plt.xlim([0, 256])
+            plt.legend()
+            plt.show()
+
+        if return_hist:
+            ret_hist = cv2.calcHist([img], [0, 1, 2], mask, [256, 256, 256], [0, 256, 0, 256, 0, 256])
+            ret_hist = cv2.normalize(ret_hist, ret_hist).flatten()
+            individual_hists = {'blue':hist_blue,'green':hist_green,'red':hist_red}
+            return ret_hist, individual_hists
+    """
 
 """def get_hist_via_mask(self, return_hist=False):
     img = self.img

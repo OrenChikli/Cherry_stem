@@ -1,11 +1,10 @@
-from work.preprocess.data_functions import *
+from work.auxiliary.data_functions import *
 
-from work.segmentation.clarifruit_segmentation import segmentation1,segmentation,seg_filter,seg_finder,seg_info,\
+from work.segmentation.clarifruit_segmentation import segmentation1, seg_filter,seg_finder,seg_info,\
     seg_finder_with_ground_truth
 
-from work.segmentation.clarifruit_segmentation.image import Image
 from datetime import datetime
-from work.preprocess.display_functions import *
+from work.auxiliary.display_functions import *
 from work.logger_settings import *
 import logging
 
@@ -57,23 +56,6 @@ def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
 
 
 
-def use_seg_info(img_path):
-
-    sv = seg_info.SegmentViewer(img_path)
-
-    sv.display_sigmentation_with_info()
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-def use_seg_finder(img_path):
-    sf = seg_finder.SegmentFinder(img_path)
-
-    sf.display()
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 def use_seg_finder_with_ground_truth(img_path,mask_path):
     sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path,mask_path)
@@ -83,13 +65,6 @@ def use_seg_finder_with_ground_truth(img_path,mask_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def use_seg_filter(img_path):
-    sf = seg_filter.SegmentFilter(img_path)
-
-    sf.display_sigmentation_filter()
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 def new_segmentation():
     image_name = '72596-28736.png.jpg'

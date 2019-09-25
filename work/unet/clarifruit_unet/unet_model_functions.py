@@ -1,15 +1,15 @@
 from keras.preprocessing.image import ImageDataGenerator
 
-from work.preprocess import display_functions
+from work.auxiliary import display_functions
 import numpy as np
 
 import skimage.transform as trans
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
-from work.preprocess.data_functions import *
+from work.auxiliary.data_functions import *
 from keras.optimizers import *
 from work.unet.clarifruit_unet.unet_model import unet
-from work.preprocess import display_functions
+from work.auxiliary import display_functions
 from work.segmentation.clarifruit_segmentation import segmentation1
 from work.unet.clarifruit_unet import unet_model
 from work.segmentation.clarifruit_segmentation import *

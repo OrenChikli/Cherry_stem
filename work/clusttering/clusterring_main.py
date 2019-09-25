@@ -1,4 +1,4 @@
-from work.preprocess.data_functions import load_json,create_path, copy_images
+from work.auxiliary.data_functions import load_json,create_path, copy_images
 from sklearn.cluster import KMeans
 import numpy as np
 import os

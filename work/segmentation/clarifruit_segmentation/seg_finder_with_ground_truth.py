@@ -1,7 +1,7 @@
 import logging
 import cv2
 
-from .image import Image
+from work.auxiliary.image import Image
 from .segmentation import Segmentation
 
 

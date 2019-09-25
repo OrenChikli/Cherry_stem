@@ -5,7 +5,7 @@ log_file = 'D:\Clarifruit\cherry_stem\work\logs\log_file.log'
 ERROR_FORMAT = "%(levelname)s:%(asctime)s in %(funcName)s in %(filename) at line %(lineno)d: %(message)s"
 DEBUG_FORMAT = '%(asctime)s:%(name)s:%(message)s'
 form = "%(asctime)s-6d  %(levelname)-8s %(name)s: %(message)s"
-LEVEL = 'INFO'
+LEVEL = 'DEBUG'
 LOG_CONFIG = {'version': 1,
               'disable_existing_loggers': False,
               'formatters': {'error': {'format': form},
