@@ -41,22 +41,22 @@ def main():
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
 
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20\masks\raw_masks'
+    src_mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20\masks\raw_masks'
 
     save_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20\masks'
 
-    #ground_truth_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\thres_100\hist_orig'
+    ground_truth_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\thres_100\hist_orig'
 
     threshold = 150
 
     type_flag = 'orig'
-
-    #img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C\image'
-    #save_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C'
-    #mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\C\label'
+    # paths for getting ground truth
+    #img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D\image'
+    #save_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D'
+    #mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D\label'
 
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
-    get_ground_truth(img_path, mask_path, save_path, threshold)
+    get_ground_truth(img_path, src_mask_path, save_path, threshold)
 
     #general_use(color_classes_path, h_classes_path, img_path, mask_path, threshold, type_flag)
 

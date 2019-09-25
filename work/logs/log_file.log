@@ -13,3 +13,13 @@ Traceback (most recent call last):
   File "D:\Clarifruit\cherry_stem\work\segmentation\clarifruit_segmentation\image.py", line 67, in read_img
     raise ReadImageException(error_message, path)
 work.segmentation.clarifruit_segmentation.exceptions.ReadImageException: ("Can't read mask from", 'D:\\Clarifruit\\cherry_stem\\data\\raw_data\\stem classes\\label\\raw_masks\\A.PNG')
+2019-09-25 17:04:30,399-6d  ERROR    work.auxiliary.image: Failed reading mask: D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D\label\72157-48926.png.jpg
+Traceback (most recent call last):
+  File "D:\Clarifruit\cherry_stem\work\auxiliary\image.py", line 68, in read_img
+    raise ReadImageException(error_message, path)
+work.segmentation.clarifruit_segmentation.exceptions.ReadImageException: ("Can't read mask from", 'D:\\Clarifruit\\cherry_stem\\data\\raw_data\\stem classes\\ground\\D\\label\\72157-48926.png.jpg')
+2019-09-25 17:05:23,194-6d  ERROR    work.auxiliary.image: Failed reading mask: D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D\label\72157-48926.png.jpg
+Traceback (most recent call last):
+  File "D:\Clarifruit\cherry_stem\work\auxiliary\image.py", line 68, in read_img
+    raise ReadImageException(error_message, path)
+work.segmentation.clarifruit_segmentation.exceptions.ReadImageException: ("Can't read mask from", 'D:\\Clarifruit\\cherry_stem\\data\\raw_data\\stem classes\\ground\\D\\label\\72157-48926.png.jpg')

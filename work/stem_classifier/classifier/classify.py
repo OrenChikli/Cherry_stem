@@ -6,6 +6,7 @@ from work.auxiliary import data_functions
 import shutil
 from datetime import datetime
 import logging
+from sklearn.preprocessing import normalize
 
 
 logger = logging.getLogger(__name__)
@@ -44,11 +45,13 @@ class StemHistClassifier:
     def data_iterator(self):
         for item_entry,item_label in self.train_list:
             hist = np.load(item_entry.path)
+            hist =normalize(hist).flatten()
             yield hist, item_label
 
     def test_data_iterator(self):
         for item_entry in os.scandir(self.test_path):
             hist = np.load(item_entry.path)
+            hist =normalize(hist).flatten().reshape(1,-1)
             yield item_entry.name, hist
 
     def train_model(self, model_name, **model_kwargs):
@@ -60,15 +63,17 @@ class StemHistClassifier:
         model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
         logger.debug(" starting model_fit")
         x_train, y_train = zip(*self.data_iterator())
+        x_train = np.array(x_train)
         model.fit(x_train,y_train)
         self.model = model
         logger.debug(" -> train_model")
 
-    def model_predict(self, orig_images_path):
+    def model_predict(self, orig_images_path,img_extention='.png.jpg'):
         logger.debug(" <- model_predict")
         for name, x in self.test_data_iterator():
-            curr_img_path = os.path.join(orig_images_path, name)
-            pred = self.model.predict(x)
+            curr_name = name.split('.')[0]+img_extention
+            curr_img_path = os.path.join(orig_images_path, curr_name)
+            pred = self.model.predict(x)[0]
 
             save_path = data_functions.create_path(self.save_path, pred)
             _ = shutil.copy(curr_img_path, save_path)

@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
+COLOR_CODE = {'0':'blue',
+              '1':'green',
+              '2':'red'}
 
 
 class Image:
@@ -142,6 +145,7 @@ class Image:
         hist_green = cv2.calcHist([img], [1], mask, [256], [0, 256])
         hist_red = cv2.calcHist([img], [2], mask, [256], [0, 256])
 
+
         if display_flag:
             fig, ax = plt.subplots(2, 2, figsize=(16, 10))
             ax_flat = ax.flatten()
@@ -156,8 +160,7 @@ class Image:
             plt.show()
 
         if return_hist:
-            ret_hist = cv2.calcHist([img], [0, 1, 2], mask, [256, 256, 256], [0, 256, 0, 256, 0, 256])
-            ret_hist = cv2.normalize(ret_hist, ret_hist).flatten()
+            ret_hist = np.hstack((hist_blue, hist_green, hist_red))
             individual_hists = {'blue':hist_blue,'green':hist_green,'red':hist_red}
             return ret_hist, individual_hists
 
