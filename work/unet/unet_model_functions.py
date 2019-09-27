@@ -261,14 +261,15 @@ class ClarifruitUnet:
         for img, img_entry,orig_shape in test_gen:
 
             pred_raw = self.model.predict(img, batch_size=1)[0]
-            pred_raw_save_mat = np.array((orig_shape, pred_raw))
+            pred_raw_resized = cv2.resize(pred_raw,orig_shape)
+            #pred_raw_save_mat = np.array((orig_shape, pred_raw))
 
             file_name = img_entry.name.rsplit('.',1)[0]+'.npy'
             npy_file_save_path = os.path.join(save_path,file_name)
-            np.save(npy_file_save_path,pred_raw_save_mat,allow_pickle=True)
+            np.save(npy_file_save_path,pred_raw_resized,allow_pickle=True)
 
-            pred_image = (255 * pred_raw).astype(np.uint8)
-            pred_image = cv2.resize(pred_image, orig_shape)
+            pred_image = (255 * pred_raw_resized).astype(np.uint8)
+            #pred_image = cv2.resize(pred_image, orig_shape)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image)
 
 

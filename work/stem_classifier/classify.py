@@ -16,24 +16,26 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
 
 class StemHistClassifier:
 
-    def __init__(self, train_path, test_path, save_path, created_thres=150):
+    def __init__(self, train_path, test_path, threshold=0.4):
         logger.debug(" <- init")
+        self.test_path = os.path.join(test_path,f"thres_{threshold}")
+        self.histograms_path = os.path.join(self.test_path,"histograms")
         self.train_path = train_path
-        self.created_thres = created_thres
-        self.test_path = test_path
-        self.save_path = save_path
+        self.threshold = threshold
         self.train_list = self.load_train()
         self.model = None
         self.train_time = None
+        self.save_path=None
         logger.debug(" -> init")
 
     def load_train(self):
         logger.debug(" <- load_train")
-        logger.debug(f"loading train data from:{self.train_path}\ncreated from threshold {self.created_thres}:")
+        logger.debug(f"loading train data from:{self.train_path}\ncreated from threshold {self.threshold}:")
         ret_list = []
         for label_folder in os.scandir(self.train_path):
-            hist_folder = os.path.join(label_folder.path, f'thres_{self.created_thres}')
-            hist_folder = os.path.join(hist_folder, 'hist_orig')
+            hist_folder = os.path.join(label_folder.path,"stem_data")
+            hist_folder = os.path.join(hist_folder, f'thres_{self.threshold}')
+            hist_folder = os.path.join(hist_folder, 'histograms')
             for hist_entry in os.scandir(hist_folder):
                 ret_list.append((hist_entry, label_folder.name))
 
@@ -49,7 +51,7 @@ class StemHistClassifier:
             yield hist, item_label
 
     def test_data_iterator(self):
-        for item_entry in os.scandir(self.test_path):
+        for item_entry in os.scandir(self.histograms_path):
             hist = np.load(item_entry.path)
             hist =normalize(hist).flatten().reshape(1,-1)
             yield item_entry.name, hist
@@ -58,7 +60,7 @@ class StemHistClassifier:
         logger.debug(" <- train_model")
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         logger.info(f"model training time {self.train_time}")
-        self.save_path = data_functions.create_path(self.save_path, self.train_time)
+        self.save_path = data_functions.create_path(self.test_path, self.train_time)
         data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", self.save_path)
         model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
         logger.debug(" starting model_fit")

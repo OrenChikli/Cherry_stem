@@ -6,6 +6,7 @@ from tqdm import tqdm
 import shutil
 
 import logging
+from auxiliary.exceptions import *
 
 
 logger = logging.getLogger(__name__)
@@ -19,30 +20,16 @@ OPENCV_METHODS = (
     ("Hellinger", cv2.HISTCMP_BHATTACHARYYA))
 
 
-class PredictionHolder:
-
-    def __init__(self,img_name,img_path,predcition_path,threshold):
-        self.img_name = img_name
-        self.img_path = img_path
-        self.predcition_path = predcition_path
-        self.threshold = threshold
-
-    def get_raw_pred(self):
-        res = np.load(self.predcition_path)[..., np.newaxis]
-        res = 255 * (res > self.threshold).astype(np.uint8)
-        res = cv2.resize(res,self)
-
-
 class StemExtractor:
 
-    def __init__(self, img_path, mask_path, src_path, threshold=125):
+    def __init__(self, img_path, mask_path, src_path, threshold=0.5):
 
         self.img_path = img_path
         self.mask_path = mask_path
         self.threshold = threshold
 
         self.save_path = data_functions.create_path(src_path,"stem_data")
-        self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
+        self.thres_save_path = data_functions.create_path(self.save_path, f"thres_{threshold}")
 
         self.threshold_masks_path = None
 
@@ -65,27 +52,14 @@ class StemExtractor:
         return classes_dict
 
 
-    def raw_mask_loader(self):
-        for file_entry in os.scandir(self.mask_path):
-            file_name,file_type = file_entry.name.rsplit(".",1)
-
-            if file_type != 'npy':
-                continue
-            loaded_pred = np.load(file_entry.path,allow_pickle=True)
-            orig_shape = loaded_pred[0]
-            pred_raw = loaded_pred[1]
-
-            res = 255 * (pred_raw > self.threshold).astype(np.uint8)
-            res = cv2.resize(res,orig_shape)[...,np.newaxis]
-            yield res, file_name
 
 
-    def get_threshold_masks(self,save_type='jpg'):
+
+    def get_threshold_masks(self):
         self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
-        for image,image_name in tqdm(self.raw_mask_loader()):
-            full_img_name=f'{image_name}.{save_type}'
-            img_save_path = os.path.join(self.threshold_masks_path,full_img_name)
-            cv2.imwrite(img_save_path, image)
+        for img in tqdm(self.image_obj_iterator()):
+            img_save_path = os.path.join(self.threshold_masks_path,img.image_name)
+            cv2.imwrite(img_save_path, img.threshold_mask)
 
 
     def get_stems(self,type_flag='orig'):
@@ -103,45 +77,18 @@ class StemExtractor:
                 cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.grayscale_mask)
 
 
-    def get_mean_h(self,type_flag='orig'):
-        if type_flag == 'orig':
-            self.mean_h_path = data_functions.create_path(self.thres_save_path, f'orig_mean_h')
-            for img in tqdm(self.image_obj_iterator()):
-                img.get_mean_hue()
-                cv2.imwrite(os.path.join(self.mean_h_path, img.image_name), img.mask_mean_h)
-
-        if type_flag == 'sharp':
-            self.mean_h_path = data_functions.create_path(self.thres_save_path, f'sharp_mean_h')
-            for img in tqdm(self.image_obj_iterator()):
-                img.get_sharp_mask()
-                img.get_mean_hue()
-                cv2.imwrite(os.path.join(self.mean_h_path, img.image_name), img.mask_mean_h)
-
-    def get_mean_color(self, type_flag='orig'):
-        if type_flag == 'orig':
-            self.mean_color_path = data_functions.create_path(self.thres_save_path, f'orig_mean_color')
-            for img in tqdm(self.image_obj_iterator()):
-                img.get_mean_color()
-                cv2.imwrite(os.path.join(self.mean_color_path, img.image_name), img.mask_mean_color)
-
-        if type_flag == 'sharp':
-            self.mean_color_path = data_functions.create_path(self.thres_save_path, f'sharp_mean_color')
-            for img in tqdm(self.image_obj_iterator()):
-                img.get_sharp_mask()
-                img.get_mean_color()
-                cv2.imwrite(os.path.join(self.mean_color_path, img.image_name), img.mask_mean_color)
-
 
 
     def image_obj_iterator(self):
         for img_entry in os.scandir(self.img_path):
-            mask_path = os.path.join(self.mask_path, img_entry.name)
-            img = Image(img_entry.path, mask_path,threshold=self.threshold)
+            mask_name = img_entry.name.rsplit(".",1)[0]+'.npy'
+            mask_path = os.path.join(self.mask_path, mask_name)
+            img = CustomImage(img_entry.path, mask_path,threshold=self.threshold)
             yield img
 
 
-    def calc_hists(self,mask_type='orig'):
-        dest_path = data_functions.create_path(self.thres_save_path, f'hist_{mask_type}')
+    def calc_hists(self):
+        dest_path = data_functions.create_path(self.thres_save_path, f'histograms')
         for img in tqdm(self.image_obj_iterator()):
             img_raw_name = img.image_name.split('.')[0]
             curr_dest_path = os.path.join(dest_path,f"{img_raw_name}.npy")
