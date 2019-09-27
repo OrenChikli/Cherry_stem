@@ -244,7 +244,6 @@ class ClarifruitUnet:
             img = cv2.resize(img,self.target_size)
             if self.color_mode == "grayscale":
                 img = np.reshape(img, img.shape + (1,))
-            #img = trans.resize(img, self.target_size)
             img = np.reshape(img, (1,) + img.shape)
             yield img, img_entry, orig_shape
 
@@ -262,14 +261,14 @@ class ClarifruitUnet:
         for img, img_entry,orig_shape in test_gen:
 
             pred_raw = self.model.predict(img, batch_size=1)[0]
-            pred = cv2.resize(pred_raw, orig_shape)
+            pred_raw_save_mat = np.array((orig_shape, pred_raw))
 
             file_name = img_entry.name.rsplit('.',1)[0]+'.npy'
             npy_file_save_path = os.path.join(save_path,file_name)
-            np.save(npy_file_save_path,pred)
+            np.save(npy_file_save_path,pred_raw_save_mat,allow_pickle=True)
 
-            pred_image = (255 * pred).astype(np.uint8)
-            #pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
+            pred_image = (255 * pred_raw).astype(np.uint8)
+            pred_image = cv2.resize(pred_image, orig_shape)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image)
 
 

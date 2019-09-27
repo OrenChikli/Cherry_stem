@@ -40,7 +40,7 @@ def main():
     masks_folder='raw_pred'
     mask_path = os.path.join(src_path,masks_folder)
 
-    threshold = 150
+    threshold = 0.5
 
 
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
@@ -58,10 +58,7 @@ def general_use(img_path, mask_path, src_path, threshold):
                                     src_path=src_path,
                                     threshold=threshold)
     logger.info("saving binary_masks")
-    x=stem_exctractor.raw_mask_loader()
-    for i in x:
-        print(i)
-    #stem_exctractor.get_threshold_masks()
+    stem_exctractor.get_threshold_masks()
     # logger.info("getting sharpened masks")
     # stem_exctractor.sharpen_maskes()
     # logger.info("saving sharpened binary masks")

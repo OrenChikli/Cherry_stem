@@ -19,6 +19,20 @@ OPENCV_METHODS = (
     ("Hellinger", cv2.HISTCMP_BHATTACHARYYA))
 
 
+class PredictionHolder:
+
+    def __init__(self,img_name,img_path,predcition_path,threshold):
+        self.img_name = img_name
+        self.img_path = img_path
+        self.predcition_path = predcition_path
+        self.threshold = threshold
+
+    def get_raw_pred(self):
+        res = np.load(self.predcition_path)[..., np.newaxis]
+        res = 255 * (res > self.threshold).astype(np.uint8)
+        res = cv2.resize(res,self)
+
+
 class StemExtractor:
 
     def __init__(self, img_path, mask_path, src_path, threshold=125):
@@ -53,18 +67,25 @@ class StemExtractor:
 
     def raw_mask_loader(self):
         for file_entry in os.scandir(self.mask_path):
-            file_type = file_entry.name.rsplit(".")[-1]
+            file_name,file_type = file_entry.name.rsplit(".",1)
+
             if file_type != 'npy':
                 continue
-            res = np.load(file_entry.path)
+            loaded_pred = np.load(file_entry.path,allow_pickle=True)
+            orig_shape = loaded_pred[0]
+            pred_raw = loaded_pred[1]
 
-            yield res
+            res = 255 * (pred_raw > self.threshold).astype(np.uint8)
+            res = cv2.resize(res,orig_shape)[...,np.newaxis]
+            yield res, file_name
 
 
-    def get_threshold_masks(self):
+    def get_threshold_masks(self,save_type='jpg'):
         self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
-        for img in tqdm(self.image_obj_iterator()):
-            cv2.imwrite(os.path.join(self.threshold_masks_path, img.image_name), img.threshold_mask)
+        for image,image_name in tqdm(self.raw_mask_loader()):
+            full_img_name=f'{image_name}.{save_type}'
+            img_save_path = os.path.join(self.threshold_masks_path,full_img_name)
+            cv2.imwrite(img_save_path, image)
 
 
     def get_stems(self,type_flag='orig'):
