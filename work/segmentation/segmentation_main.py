@@ -1,7 +1,6 @@
 from work.auxiliary.data_functions import *
 
-from work.segmentation.clarifruit_segmentation import segmentation1, seg_filter,seg_finder,seg_info,\
-    seg_finder_with_ground_truth
+from work.segmentation.clarifruit_segmentation import segmentation, seg_finder_with_ground_truth
 
 from datetime import datetime
 from work.auxiliary.display_functions import *
@@ -27,7 +26,7 @@ def segment_multi(orig_path, mask_path, seg_path,settings_dict,img_list=None):
     for img in img_list:
         curr_img_path = os.path.join(orig_path,img)
         curr_mask_path = os.path.join(mask_path,img)
-        curr_segment = segmentation1.Segmentation(img_path=curr_img_path,mask_path=curr_mask_path,
+        curr_segment = segmentation.Segmentation(img_path=curr_img_path,mask_path=curr_mask_path,
                                                   scale=settings_dict['scale'],
                                                   sigma=settings_dict['sigma'],
                                                   min_size=settings_dict['min_size'],
@@ -80,7 +79,7 @@ def new_segmentation():
                      'sigma': 0.1,
                      'min_size': 60}
 
-    sg = segmentation1.Segmentation(img_path,mask_path,**settings_dict)
+    sg = segmentation.Segmentation(img_path,mask_path,**settings_dict)
     sg.apply_segmentation()
     res = put_binary_ontop(sg.img,sg.filtered_segments)
     plt.imshow(res)

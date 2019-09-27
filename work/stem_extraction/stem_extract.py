@@ -199,8 +199,6 @@ class StemExtractor:
             _ = shutil.copy(img_entry.path, curr_dest_path)
 
 
-    def create_ground_truth_via_images(self):
-        pass
 
 
 

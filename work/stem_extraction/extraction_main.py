@@ -56,11 +56,11 @@ def main():
     #mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\stem classes\ground\D\label'
 
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
-    get_ground_truth(img_path, src_mask_path, save_path, threshold)
+    #get_ground_truth(img_path, src_mask_path, save_path, threshold)
 
     #general_use(color_classes_path, h_classes_path, img_path, mask_path, threshold, type_flag)
 
-    #compare_hists(img_path, mask_path, save_path, threshold, ground_truth_path)
+    compare_hists(img_path, src_mask_path, save_path, threshold, ground_truth_path)
 
 
 def general_use(color_classes_path, h_classes_path, img_path, mask_path,save_path, threshold, type_flag):

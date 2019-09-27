@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import os
 import shutil
-from work.segmentation.clarifruit_segmentation.exceptions import ReadImageException
+from work.auxiliary.exceptions import ReadImageException
 
 from scipy.stats import circmean
 import matplotlib.pyplot as plt

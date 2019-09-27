@@ -10,22 +10,6 @@ configure_logger()
 logger = logging.getLogger(__name__)
 
 
-def splitter():
-    raw_src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Source'
-
-    split_dest = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines\Data split'
-
-    x_folder_name = 'image'
-    y_folder_name = 'label'
-
-    train_folder = 'train'
-    test_folder = 'test'
-
-    src_path = data_functions.image_train_test_split(raw_src_path, split_dest, x_folder_name, y_folder_name,
-                                                     test_size=0.3,
-                                                     train_name=train_folder, test_name=test_folder)
-
-
 def get_data_via_with_mask():
     src_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
     data_path = r'D:\Clarifruit\cherry_stem\data\unet_data\no_thick_lines'

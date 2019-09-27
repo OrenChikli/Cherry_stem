@@ -22,14 +22,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-# DATA GENERATORS
-
-
 MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimentions
 
 COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
 OPTIMIZER_DICT = {'Adam':Adam, 'adagrad':adagrad}
+
+
+
+# DATA GENERATORS
+
 
 
 class ClarifruitUnet:
@@ -82,7 +83,6 @@ class ClarifruitUnet:
         self.seed = 1
 
         self.clarifruit_train_val_generators()
-        #self.get_generators()
         self.get_unet_model()
 
         logger.debug(" -> __init__")
@@ -204,21 +204,6 @@ class ClarifruitUnet:
         logger.debug(f" -> clarifruit_train_val_generators")
         return train_generator,val_generator
 
-    def get_generators(self):
-        white_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\white'
-        blank_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\blank'
-        red_black_path = r'D:\Clarifruit\cherry_stem\data\raw_data\class_seperated\red_black'
-
-        paths = [red_black_path,white_path,blank_path]
-        train_generators = []
-        val_generators = []
-        for path in paths:
-            train,val = self.from_path_generators(path)
-            train_generators += train
-            val_generators += val
-
-        self.val_generator = val_generators
-        self.train_generator = train_generators
 
     def clarifruit_train_val_generators(self):
         logger.debug(f" <- clarifruit_train_val_generators")
@@ -284,18 +269,14 @@ class ClarifruitUnet:
         for img, img_entry,orig_shape in test_gen:
 
             pred = self.model.predict(img, batch_size=1)[0]
+            file_name = img_entry.name.split('.',1)[0]+'.npy'
+            npy_file_save_path = os.path.join(save_path,file_name)
+            np.save(npy_file_save_path,pred)
 
             pred_image_raw = (255 * pred).astype(np.uint8)
             pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image_raw)
 
-            #pred_image_thres = (255 * (pred > threshold)).astype(np.uint8)
-            #pred_image_thres = cv2.resize(pred_image_thres, orig_shape)
-            #cv2.imwrite(os.path.join(threshold_path, img_entry.name), pred_image_thres)
-
-            #real_img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
-            #thres_ontop = display_functions.put_binary_ontop(real_img,pred_image_thres)
-            #cv2.imwrite(os.path.join(mask_on_path, img_entry.name), thres_ontop)
 
         logger.debug(" -> prediction")
 
