@@ -1,12 +1,12 @@
 import cv2
 import numpy as np
-# from skimage import img_as_ubyte
+
 from skimage.util import img_as_float
 from skimage.segmentation import mark_boundaries
-from skimage.segmentation import felzenszwalb  # , slic, quickshift, watershed
+from skimage.segmentation import felzenszwalb
 import matplotlib.pyplot as plt
 import os
-from work.auxiliary.data_functions import create_path
+from auxiliary.data_functions import create_path
 from tqdm import tqdm
 import argparse
 

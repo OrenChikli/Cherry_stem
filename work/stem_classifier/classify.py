@@ -2,7 +2,7 @@ import os
 import numpy as np
 import random
 from sklearn.linear_model import LogisticRegression
-from work.auxiliary import data_functions
+from auxiliary import data_functions
 import shutil
 from datetime import datetime
 import logging

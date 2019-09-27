@@ -2,9 +2,10 @@ import logging
 from skimage.util import img_as_float
 
 from skimage.segmentation import felzenszwalb
+import cv2
 
-from work.auxiliary.image import Image
-from work.auxiliary.display_functions import *
+from auxiliary.image import Image
+from auxiliary.display_functions import *
 
 COLOR_DICT = {'gray': cv2.IMREAD_GRAYSCALE,'color': cv2.IMREAD_UNCHANGED}
 

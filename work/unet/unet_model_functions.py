@@ -1,21 +1,14 @@
 from keras.preprocessing.image import ImageDataGenerator
 
-from work.auxiliary import display_functions
 import numpy as np
 
 import skimage.transform as trans
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
-from work.auxiliary.data_functions import *
+from auxiliary.data_functions import *
 from keras.optimizers import *
-from work.unet.clarifruit_unet.unet_model import unet
-from work.auxiliary import display_functions
-from work.segmentation.clarifruit_segmentation import segmentation1
-from work.unet.clarifruit_unet import unet_model
-from work.segmentation.clarifruit_segmentation import *
+from work.unet.unet_model import unet
 #from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
-import json
-from keras.models import model_from_json
 
 
 import logging
@@ -56,7 +49,7 @@ class ClarifruitUnet:
 
         self.data_gen_args = data_gen_args
 
-        self.target_size = target_size
+        self.target_size = tuple(target_size)
         self.color_mode = color_mode
         self.input_size = (*target_size, MODES_DICT[color_mode])
 
@@ -246,10 +239,12 @@ class ClarifruitUnet:
                 orig_shape = img.shape[-2::-1]
             else:
                 orig_shape = img.shape[::-1]
+
+            img = img / 255
+            img = cv2.resize(img,self.target_size)
             if self.color_mode == "grayscale":
                 img = np.reshape(img, img.shape + (1,))
-            img = img / 255
-            img = trans.resize(img, self.target_size)
+            #img = trans.resize(img, self.target_size)
             img = np.reshape(img, (1,) + img.shape)
             yield img, img_entry, orig_shape
 
@@ -260,22 +255,22 @@ class ClarifruitUnet:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
         save_path = create_path(self.dest_path,self.train_time)
-        #threshold_path = create_path(save_path, f'binary_thres_{threshold}')
-        #mask_on_path = create_path(save_path,'mask_ontop')
         save_path = create_path(save_path, 'raw_pred')
 
 
         test_gen = self.test_generator(self.test_path)
         for img, img_entry,orig_shape in test_gen:
 
-            pred = self.model.predict(img, batch_size=1)[0]
-            file_name = img_entry.name.split('.',1)[0]+'.npy'
+            pred_raw = self.model.predict(img, batch_size=1)[0]
+            pred = cv2.resize(pred_raw, orig_shape)
+
+            file_name = img_entry.name.rsplit('.',1)[0]+'.npy'
             npy_file_save_path = os.path.join(save_path,file_name)
             np.save(npy_file_save_path,pred)
 
-            pred_image_raw = (255 * pred).astype(np.uint8)
-            pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
-            cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image_raw)
+            pred_image = (255 * pred).astype(np.uint8)
+            #pred_image_raw = cv2.resize(pred_image_raw, orig_shape)
+            cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image)
 
 
         logger.debug(" -> prediction")
@@ -379,10 +374,7 @@ class ClarifruitUnet:
         if 'callbacks' in save_dict:
             save_dict.pop('callbacks')
         save_json(save_dict, "model_params.json", curr_folder)
-        #model_json = self.model.to_json()
 
-        #with open(os.path.join(curr_folder,"model.json"), "w") as json_file:
-            #json_file.write(model_json)
 
         logger.debug(" -> save_model")
 
@@ -425,9 +417,7 @@ class ClarifruitUnet:
             file_extention = file_name_segments[-1]
             if file_entry.name == 'model_params.json':
                 params_dict = load_json(file_entry.path)
-            #elif file_entry.name == 'model.json':
-                #loaded_model = model_from_json(file_entry.path)
-                # load weights into new model
+
 
 
             elif file_extention == 'hdf5':

@@ -1,5 +1,0 @@
-threshold = 1
-pr_threshold = 0.05
-scale = 100
-sigma = 0.5
-min_size = 50

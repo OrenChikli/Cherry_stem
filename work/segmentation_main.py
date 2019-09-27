@@ -1,36 +1,36 @@
-from work.auxiliary.data_functions import *
+from auxiliary import data_functions
+import os
+import cv2
 
-from work.segmentation.clarifruit_segmentation import segmentation, seg_finder_with_ground_truth
+from work.segmentation import segmentation, seg_finder_with_ground_truth
 
 from datetime import datetime
-from work.auxiliary.display_functions import *
-from work.logger_settings import *
-import logging
 
-
+from logger_settings import *
 configure_logger()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("anotation_main")
+
 
 def segment_multi(orig_path, mask_path, seg_path,settings_dict,img_list=None):
     logger.debug(" <- segment_multi")
     if img_list is None:
         img_list = [img_entry.name for img_entry in os.scandir(orig_path)]
 
-    dir_save_path = create_path(seg_path, 'several')
+    dir_save_path = data_functions.create_path(seg_path, 'several')
 
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
-    dir_save_path = create_path(dir_save_path, current_time)
-    save_json(settings_dict, "segmentation_settings.json", dir_save_path)
+    dir_save_path = data_functions.create_path(dir_save_path, current_time)
+    data_functions.save_json(settings_dict, "segmentation_settings.json", dir_save_path)
     logger.info(f"segmenting to {dir_save_path}")
 
     for img in img_list:
         curr_img_path = os.path.join(orig_path,img)
         curr_mask_path = os.path.join(mask_path,img)
-        curr_segment = segmentation.Segmentation(img_path=curr_img_path,mask_path=curr_mask_path,
-                                                  scale=settings_dict['scale'],
-                                                  sigma=settings_dict['sigma'],
-                                                  min_size=settings_dict['min_size'],
-                                                  pr_threshold=settings_dict['pr_threshold'])
+        curr_segment = segmentation.Segmentation(img_path=curr_img_path, mask_path=curr_mask_path,
+                                                 scale=settings_dict['scale'],
+                                                 sigma=settings_dict['sigma'],
+                                                 min_size=settings_dict['min_size'],
+                                                 pr_threshold=settings_dict['pr_threshold'])
 
         res_mask = curr_segment.return_modified_mask()
 
@@ -57,7 +57,7 @@ def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
 
 
 def use_seg_finder_with_ground_truth(img_path,mask_path):
-    sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path,mask_path)
+    sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path, mask_path)
 
     sf.display()
 
@@ -79,7 +79,7 @@ def new_segmentation():
                      'sigma': 0.1,
                      'min_size': 60}
 
-    sg = segmentation.Segmentation(img_path,mask_path,**settings_dict)
+    sg = segmentation.Segmentation(img_path, mask_path, **settings_dict)
     sg.apply_segmentation()
     res = put_binary_ontop(sg.img,sg.filtered_segments)
     plt.imshow(res)

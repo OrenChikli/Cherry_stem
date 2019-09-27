@@ -1,13 +1,12 @@
-from work.unet.clarifruit_unet import unet_model_functions
-from work.auxiliary import data_functions
+from work.unet import unet_model_functions
+from auxiliary import data_functions
 from keras.callbacks import ReduceLROnPlateau
 
 
-from work.logger_settings import configure_logger
-import logging
-
+from logger_settings import *
 configure_logger()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("unet_main")
+
 
 
 def get_data_via_with_mask():
@@ -31,11 +30,12 @@ def main():
         weights_file_name='unet_cherry_stem.hdf5',
 
         data_gen_args=dict(rescale=1. / 255,
-                           rotation_range=0.5,
+                           rotation_range=180,
+                           brightness_range=[0.2, 1.],
                            width_shift_range=0.25,
                            height_shift_range=0.25,
-                           shear_range=0.05,
-                           zoom_range=0.2,
+                           shear_range=0.2,
+                           zoom_range=[0.5, 1.0],
                            horizontal_flip=True,
                            vertical_flip=True,
                            fill_mode='nearest'),
@@ -47,7 +47,7 @@ def main():
         pretrained_weights=None,
 
         target_size=(256, 256),
-        color_mode='rgb',
+        color_mode='grayscale',
         mask_color_mode='grayscale',
         batch_size=10,
         epochs=2,
@@ -62,14 +62,16 @@ def main():
 
     callbacks = [reduce_lr]
     params_dict['callbacks'] = callbacks
-
+    logger.info("created training instance")
     model = unet_model_functions.ClarifruitUnet(**params_dict)
-    model.train_model(params_dict,True)
-    model.prediction(threshold=0.4)
+    logger.info("train start")
+    model.train_model(params_dict=params_dict,saveflag=True)
+    logger.info("prediction start")
+    model.prediction()
 
 
 def load_from_files():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_23-55-20'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-27_16-15-36'
     params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path)
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
@@ -97,8 +99,8 @@ def load_from_files():
         valdiation_split=0.2,
         validation_steps=3000)
 
-    params_dict.update(train_params)
-
+    #params_dict.update(train_params)
+    logger.info(f"loading model from {src_path}")
     model = unet_model_functions.ClarifruitUnet(**params_dict)
 
     #model.train_model(params_dict,saveflag=True)

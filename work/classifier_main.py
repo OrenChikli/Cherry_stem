@@ -1,8 +1,8 @@
-from work.stem_classifier.classifier import classify
-from work.logger_settings import *
+from work.stem_classifier import classify
 
+from logger_settings import *
 configure_logger()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("classifier_main")
 
 
 def main():

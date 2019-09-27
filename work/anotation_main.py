@@ -3,6 +3,10 @@ import skimage.transform as trans
 import os
 import numpy as np
 
+from logger_settings import *
+configure_logger()
+logger = logging.getLogger("anotation_main")
+
 
 
 def combine():

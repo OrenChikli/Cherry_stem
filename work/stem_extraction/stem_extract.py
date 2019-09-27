@@ -1,16 +1,16 @@
-from work.auxiliary import data_functions
+from auxiliary import data_functions
 import os
 import cv2
 import numpy as np
 from tqdm import tqdm
 import shutil
 
-from work.logger_settings import *
+import logging
 
-configure_logger()
+
 logger = logging.getLogger(__name__)
 
-from work.auxiliary.image import Image
+from auxiliary.custom_image import CustomImage
 
 OPENCV_METHODS = (
     ("Correlation", cv2.HISTCMP_CORREL),
@@ -21,26 +21,20 @@ OPENCV_METHODS = (
 
 class StemExtractor:
 
-    def __init__(self,img_path,mask_path,save_path,h_clasess_path=None,color_classes_path=None,threshold=125):
+    def __init__(self, img_path, mask_path, src_path, threshold=125):
 
         self.img_path = img_path
+        self.mask_path = mask_path
         self.threshold = threshold
-        self.save_path = save_path
-        self.thres_save_path = data_functions.create_path(save_path, f"thres_{threshold}")
-        self.raw_mask_path = mask_path
 
+        self.save_path = data_functions.create_path(src_path,"stem_data")
+        self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
 
         self.threshold_masks_path = None
 
         self.sharp_masks_path = None
         self.cut_image_path = None
-        self.mean_h_path = None
-        self.mean_color_path=None
 
-        if h_clasess_path is not None:
-            self.h_classes_dict = self.get_clases_dict(h_clasess_path)
-        if color_classes_path is not None:
-            self.color_classes_dict =self.get_clases_dict(color_classes_path)
 
         self.groud_truth_hist_dict = None
 
@@ -57,19 +51,21 @@ class StemExtractor:
         return classes_dict
 
 
-    def get_threshold_masks(self,type_flag='orig'):
-        if type_flag=='orig':
-            self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
-        elif type_flag=='sharp':
-            self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'sharp_binary')
+    def raw_mask_loader(self):
+        for file_entry in os.scandir(self.mask_path):
+            file_type = file_entry.name.rsplit(".")[-1]
+            if file_type != 'npy':
+                continue
+            res = np.load(file_entry.path)
+
+            yield res
+
+
+    def get_threshold_masks(self):
+        self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
         for img in tqdm(self.image_obj_iterator()):
             cv2.imwrite(os.path.join(self.threshold_masks_path, img.image_name), img.threshold_mask)
 
-    def sharpen_maskes(self):
-        self.sharp_masks_path = data_functions.create_path(self.save_path, 'sharpened')
-        for img in tqdm(self.image_obj_iterator()):
-            img.get_sharp_mask()
-            cv2.imwrite(os.path.join(self.sharp_masks_path, img.image_name), img.grayscale_mask)
 
     def get_stems(self,type_flag='orig'):
         if type_flag == 'orig':
@@ -118,7 +114,7 @@ class StemExtractor:
 
     def image_obj_iterator(self):
         for img_entry in os.scandir(self.img_path):
-            mask_path = os.path.join(self.raw_mask_path, img_entry.name)
+            mask_path = os.path.join(self.mask_path, img_entry.name)
             img = Image(img_entry.path, mask_path,threshold=self.threshold)
             yield img
 
