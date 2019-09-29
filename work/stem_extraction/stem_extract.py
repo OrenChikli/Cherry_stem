@@ -28,13 +28,12 @@ class StemExtractor:
         self.mask_path = mask_path
         self.threshold = threshold
 
-        self.save_path = data_functions.create_path(src_path,"stem_data")
-        self.thres_save_path = data_functions.create_path(self.save_path, f"thres_{threshold}")
+        self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
 
         self.threshold_masks_path = None
 
-        self.sharp_masks_path = None
         self.cut_image_path = None
+        self.ontop_path=None
 
 
         self.groud_truth_hist_dict = None
@@ -62,20 +61,39 @@ class StemExtractor:
             cv2.imwrite(img_save_path, img.threshold_mask)
 
 
-    def get_stems(self,type_flag='orig'):
-        if type_flag == 'orig':
-            self.cut_image_path = data_functions.create_path(self.thres_save_path, f'orig_stems')
-            for img in tqdm(self.image_obj_iterator()):
-                img.cut_via_mask()
-                cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.image_cut)
+    def get_stems(self):
+        logger.debug(" <- get_stems")
+        self.cut_image_path = data_functions.create_path(self.thres_save_path, f'stems')
+        logger.info(f"creting stems in {self.cut_image_path}")
+        for img in tqdm(self.image_obj_iterator()):
+            img.cut_via_mask()
+            cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.image_cut)
 
-        if type_flag == 'sharp':
-            self.cut_image_path = data_functions.create_path(self.thres_save_path, f'sharp_stems')
-            for img in tqdm(self.image_obj_iterator()):
-                img.get_sharp_mask()
-                img.cut_via_mask()
-                cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.grayscale_mask)
+        logger.debug(" -> get_stems")
 
+    def get_ontop(self):
+        logger.debug(" <- get_notop")
+        self.ontop_path = data_functions.create_path(self.thres_save_path, f'on_top')
+        logger.info(f"creting ontop images in {self.ontop_path}")
+        for img in tqdm(self.image_obj_iterator()):
+            img.get_ontop()
+            cv2.imwrite(os.path.join(self.ontop_path, img.image_name), img.ontop)
+
+        logger.debug(" -> get_notop")
+
+
+    def fillter_via_color(self,lower,upper):
+        logger.debug(" <- fillter_via_color")
+        out_path = data_functions.create_path(self.thres_save_path, f'filtered')
+        logger.info("saving lower and upper values")
+        save_dict = dict(lower=lower,upper=upper)
+        data_functions.save_json(save_dict,"fillter_range.json",out_path)
+        logger.info(f"creting filltered images in {out_path}")
+        for img in tqdm(self.image_obj_iterator()):
+            img.filter_cut_iamge(lower=lower,upper=upper)
+            cv2.imwrite(os.path.join(out_path, img.image_name), img.filtered_cut)
+
+        logger.debug(" -> get_notop")
 
 
 
@@ -132,35 +150,6 @@ class StemExtractor:
         most_common=max(set( final_res), key =  final_res.count)
         return most_common.split('.')[0]
 
-
-    def score_results(self,score_type='heu',mask_type='orig'):
-
-        #res_dict = dict()
-        if score_type=='heu':
-            src_path = self.mean_h_path
-            dest_path = data_functions.create_path(self.thres_save_path,f'mean_h_{mask_type}_scores')
-            curr_classes_dict = self.h_classes_dict
-        elif score_type =='color':
-            src_path = self.mean_color_path
-            dest_path = data_functions.create_path(self.thres_save_path,f'mean_color_{mask_type}_scores')
-            curr_classes_dict = self.color_classes_dict
-        else:
-            message = "wrong_flag_type"
-            logger.info("wrong_flag_type")
-            raise IOError(message)
-
-
-        for img_class,_ in curr_classes_dict.items():
-            data_functions.create_path(dest_path,img_class)
-
-        for img_entry in os.scandir(src_path):
-
-            img_color = cv2.imread(img_entry.path, cv2.IMREAD_COLOR)
-            img_color = img_color[0, 0]
-            res = data_functions.find_closest(img_color, curr_classes_dict)
-            #res_dict[img_entry.name] = res
-            curr_dest_path = os.path.join(dest_path,res)
-            _ = shutil.copy(img_entry.path, curr_dest_path)
 
 
 

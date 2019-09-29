@@ -62,6 +62,32 @@ def create_ground_truth_hists(ground_path,threshold,x_folder='image',y_folder='l
         curr_label_path = os.path.join(curr_class.path,y_folder)
         get_pred_histograms(curr_image_path, curr_label_path, curr_class.path, threshold)
 
+def create_stems(img_path,mask_path,save_path,threshold):
+    logger.info(f"intializing StemExtractor instance with threshold: {threshold}")
+    stem_exctractor = StemExtractor(img_path=img_path,
+                                    mask_path=mask_path,
+                                    src_path=save_path,
+                                    threshold=threshold)
+    logger.info("getting stems")
+    stem_exctractor.get_stems()
+
+def ontop(img_path,mask_path,save_path,threshold):
+    logger.info(f"intializing StemExtractor instance with threshold: {threshold}")
+    stem_exctractor = StemExtractor(img_path=img_path,
+                                    mask_path=mask_path,
+                                    src_path=save_path,
+                                    threshold=threshold)
+    logger.info("getting ontop images")
+    stem_exctractor.get_ontop()
+
+def filtter_images(img_path, mask_path, save_path, threshold,lower,upper):
+    logger.info(f"intializing StemExtractor instance with threshold: {threshold}")
+    stem_exctractor = StemExtractor(img_path=img_path,
+                                    mask_path=mask_path,
+                                    src_path=save_path,
+                                    threshold=threshold)
+    logger.info("getting filltered images")
+    stem_exctractor.fillter_via_color(lower, upper)
 
 
 
@@ -77,8 +103,18 @@ def main():
     mask_path = os.path.join(src_path,masks_folder)
 
     threshold = 0.4
+
+    lower=(0,0,0)
+    upper = (230,255,230)
+
+    #create_stems(img_path,mask_path,src_path,threshold)
+    #ontop(img_path, mask_path, src_path, threshold)
+    filtter_images(img_path, mask_path, src_path, threshold, lower, upper)
+
+
+
     #create_ground_truth(ground_truth_path,mask_path)
-    create_ground_truth_hists(ground_truth_path,threshold)
+    #create_ground_truth_hists(ground_truth_path,threshold)
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
     #get_pred_histograms(img_path, mask_path, src_path, threshold)
 
