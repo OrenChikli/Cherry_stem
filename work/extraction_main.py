@@ -5,7 +5,17 @@ configure_logger()
 logger = logging.getLogger("extraction_main")
 
 
-def get_pred_histograms(img_path, mask_path, save_path, threshold):
+def get_pred_histograms(img_path, mask_path, save_path, threshold,hist_type='bgr'):
+
+    logger.info(f"getting {hist_type} histograms with threshold: {threshold}")
+    stem_exctractor = StemExtractor(img_path=img_path,
+                                    mask_path=mask_path,
+                                    src_path=save_path,
+                                    threshold=threshold)
+    logger.info("saving histograms")
+    stem_exctractor.calc_hists()
+
+def get_pred_histograms1(img_path, mask_path, save_path, threshold):
 
     logger.info(f"getting histograms with threshold: {threshold}")
     stem_exctractor = StemExtractor(img_path=img_path,
@@ -13,7 +23,7 @@ def get_pred_histograms(img_path, mask_path, save_path, threshold):
                                     src_path=save_path,
                                     threshold=threshold)
     logger.info("saving histograms")
-    stem_exctractor.calc_hists()
+    stem_exctractor.calc_hists_hsv()
 
 def compare_hists(img_path,mask_path,save_path,threshold,ground_truth_path,x_folder='image',y_folder='label'):
     logger.info(f"intializing StemExtractor instance with threshold: {threshold}")
@@ -116,11 +126,8 @@ def main():
     #create_ground_truth(ground_truth_path,mask_path)
     #create_ground_truth_hists(ground_truth_path,threshold)
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
-    #get_pred_histograms(img_path, mask_path, src_path, threshold)
+    get_pred_histograms1(img_path, mask_path, src_path, threshold)
 
-    #general_use(img_path, mask_path,src_path, threshold)
-
-    #compare_hists(img_path, mask_path, src_path, threshold, ground_truth_path)
 
 def get_binary_masks(img_path, mask_path, src_path, threshold):
     logger.info(f"intializing StemExtractor instance with threshold: {threshold}")

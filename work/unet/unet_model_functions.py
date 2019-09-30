@@ -2,7 +2,6 @@ from keras.preprocessing.image import ImageDataGenerator
 
 import numpy as np
 
-import skimage.transform as trans
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
 from auxiliary.data_functions import *
@@ -15,24 +14,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimentions
-
+MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
 COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
 OPTIMIZER_DICT = {'Adam':Adam, 'adagrad':adagrad}
 
 
 
-# DATA GENERATORS
-
-
-
 class ClarifruitUnet:
 
-    def __init__(self, train_path, dest_path, weights_file_name,
-                 x_folder_name='image', y_folder_name='label', test_path=None,
+    def __init__(self, train_path, weights_file_name,
+                 x_folder_name='image', y_folder_name='label',
                  data_gen_args=None,callbacks=None,
                  optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,
-                 target_size=(256, 256), color_mode='rgb', mask_color_mode='grayscale',
+                 target_size=(256, 256), color_mode='rgb',
                  batch_size=10, epochs=5, steps_per_epoch=10,
                  valdiation_split=0.2, validation_steps=10,
                  train_time=None):
@@ -40,8 +34,6 @@ class ClarifruitUnet:
         logger.debug(" <- __init__")
 
         self.train_path = train_path
-        self.test_path = test_path
-        self.dest_path = dest_path
         self.x_folder_name = x_folder_name
         self.y_folder_name = y_folder_name
         self.weights_file_name = weights_file_name
@@ -53,7 +45,7 @@ class ClarifruitUnet:
         self.color_mode = color_mode
         self.input_size = (*target_size, MODES_DICT[color_mode])
 
-        self.mask_color_mode = mask_color_mode
+
         self.batch_size = batch_size
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
@@ -168,36 +160,6 @@ class ClarifruitUnet:
 
 
 
-    def from_path_generators(self,path):
-        logger.debug(f" <- clarifruit_train_val_generators")
-        image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
-                                                                               src_path=path,
-                                                                               folder=self.x_folder_name,
-                                                                               aug_dict=self.data_gen_args,
-                                                                               color_mode=self.color_mode,
-                                                                               save_prefix=self.x_folder_name,
-                                                                               save_to_dir=self.save_to_dir,
-                                                                               target_size=self.target_size,
-                                                                               seed=self.seed,
-                                                                               validation_split=self.validation_split)
-
-        mask_train_generator, mask_val_generator = self.train_val_generators(batch_size=self.batch_size,
-                                                                             src_path=path,
-                                                                             folder=self.y_folder_name,
-                                                                             aug_dict=self.data_gen_args,
-                                                                             color_mode=self.mask_color_mode,
-                                                                             save_prefix=self.y_folder_name,
-                                                                             save_to_dir=self.save_to_dir,
-                                                                             target_size=self.target_size,
-                                                                             seed=self.seed,
-                                                                             validation_split=self.validation_split)
-
-        train_generator = zip(image_train_generator, mask_train_generator)
-        val_generator = zip(image_val_generator, mask_val_generator)
-        logger.debug(f" -> clarifruit_train_val_generators")
-        return train_generator,val_generator
-
-
     def clarifruit_train_val_generators(self):
         logger.debug(f" <- clarifruit_train_val_generators")
         image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
@@ -215,7 +177,7 @@ class ClarifruitUnet:
                                                                              src_path=self.train_path,
                                                                              folder=self.y_folder_name,
                                                                              aug_dict=self.data_gen_args,
-                                                                             color_mode=self.mask_color_mode,
+                                                                             color_mode='grayscale',
                                                                              save_prefix=self.y_folder_name,
                                                                              save_to_dir=self.save_to_dir,
                                                                              target_size=self.target_size,
@@ -248,28 +210,38 @@ class ClarifruitUnet:
             yield img, img_entry, orig_shape
 
 
-    def prediction(self):
+    def prediction(self,test_path,dest_path):
+        """
+        a method to get predictions from a trained model of images in the test_path variable, and save the results to the
+        path specified in the dest_path variable
+        :param dest_path: the destination path to save he prediction results
+        :param test_path: the path where the test data resides
+        :return:
+        """
+        logger.info(f"prediction on files from {test_path}")
+
         logger.debug(" <- prediction")
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        save_path = create_path(self.dest_path,self.train_time)
+        save_path = create_path(dest_path,self.train_time)
         save_path = create_path(save_path, 'raw_pred')
+        logger.info(f"saving predictions to {save_path}")
+        #saving the src_path of the current files
+        with open(os.path.join(save_path,"src_path.txt"),'w') as f:
+            f.write(test_path)
 
-
-        test_gen = self.test_generator(self.test_path)
+        test_gen = self.test_generator(test_path)
         for img, img_entry,orig_shape in test_gen:
 
             pred_raw = self.model.predict(img, batch_size=1)[0]
             pred_raw_resized = cv2.resize(pred_raw,orig_shape)
-            #pred_raw_save_mat = np.array((orig_shape, pred_raw))
 
             file_name = img_entry.name.rsplit('.',1)[0]+'.npy'
             npy_file_save_path = os.path.join(save_path,file_name)
             np.save(npy_file_save_path,pred_raw_resized,allow_pickle=True)
 
             pred_image = (255 * pred_raw_resized).astype(np.uint8)
-            #pred_image = cv2.resize(pred_image, orig_shape)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image)
 
 
@@ -301,91 +273,30 @@ class ClarifruitUnet:
             verbose=1)
         logger.debug(" -> fit_unet")
 
-    def set_params(self, **kwargs):
-        logger.debug(" <- set_params")
 
-        if 'train_path' in kwargs:
-            self.train_path = kwargs['train_path']
-
-        if 'test_path' in kwargs:
-            self.test_path = kwargs['test_path']
-
-        if 'dest_path' in kwargs:
-            self.dest_path = kwargs['dest_path']
-
-        if 'x_folder_name' in kwargs:
-            self.x_folder_name = kwargs['x_folder_name']
-
-        if 'y_folder_name' in kwargs:
-            self.y_folder_name = kwargs['y_folder_name']
-
-        if 'data_gen_args' in kwargs:
-            self.data_gen_args = kwargs['data_gen_args']
-
-        if 'target_size' in kwargs:
-            self.target_size = kwargs['target_size']
-            self.input_size = (*self.target_size, MODES_DICT[self.color_mode])
-
-        if 'color_mode' in kwargs:
-            self.color_mode = kwargs['color_mode']
-            self.input_size = (*self.target_size, MODES_DICT[self.color_mode])
-
-        if 'mask_color_mode' in kwargs:
-            self.mask_color_mode = kwargs['mask_color_mode']
-
-        if 'batch_size' in kwargs:
-            self.batch_size = kwargs['batch_size']
-
-        if 'epochs' in kwargs:
-            self.epochs = kwargs['epochs']
-
-        if 'steps_per_epoch' in kwargs:
-            self.steps_per_epoch = kwargs['steps_per_epoch']
-
-        if 'validation_steps' in kwargs:
-            self.validation_steps = kwargs['validation_steps']
-
-        if 'optimizer' in kwargs:
-            self.optimizer = kwargs['optimizer']
-
-        if 'loss' in kwargs:
-            self.loss = kwargs['loss']
-
-        if 'metrics' in kwargs:
-            self.metrics = kwargs['metrics']
-
-        if 'callbacks' in kwargs:
-            self.callbacks = kwargs['callbacks']
-
-        if 'train_time' in kwargs:
-            self.train_time = kwargs['train_time']
-
-        logger.debug(" -> set_params")
-
-
-    def save_model(self, params_dict,checkpoint_flag=False):
+    def save_model(self,dest_path, params_dict=None):
         logger.debug(" <- save_model")
-        if checkpoint_flag:
-            curr_folder = self.set_model_checkpint()
+        if params_dict is not None:
+            curr_folder = self.set_model_checkpint(dest_path=dest_path)
         else:
-            curr_folder = self.get_curr_folder()
+            curr_folder = self.get_curr_folder(dest_path=dest_path)
 
         save_dict = params_dict.copy()
-        if 'callbacks' in save_dict:
+        if 'callbacks' in save_dict:  # callbacks are not hashable, cant save to json
             save_dict.pop('callbacks')
         save_json(save_dict, "model_params.json", curr_folder)
 
 
         logger.debug(" -> save_model")
 
-    def get_curr_folder(self):
+    def get_curr_folder(self,dest_path):
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        curr_folder = create_path(self.dest_path, self.train_time)
+        curr_folder = create_path(dest_path, self.train_time)
         return curr_folder
 
-    def set_model_checkpint(self):
+    def set_model_checkpint(self,dest_path):
         logger.debug(" <- set_model_checkpoint")
-        curr_folder = self.get_curr_folder()
+        curr_folder = self.get_curr_folder(dest_path=dest_path)
         out_model_path = os.path.join(curr_folder, self.weights_file_name)
         model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
                                             verbose=1, save_best_only=True)]
@@ -397,17 +308,17 @@ class ClarifruitUnet:
         return curr_folder
 
 
-    def train_model(self,params_dict=None,saveflag=False):
-        logger.debug(f" <- train_model, save_flag{saveflag}")
-        if saveflag:
-            self.save_model(params_dict,saveflag)
+    def train_model(self,params_dict,dest_path=None):
+        logger.debug(f" <- train_model")
+        if dest_path is not None:
+            self.save_model(dest_path=dest_path,params_dict=params_dict)
         self.fit_unet()
 
         logger.debug(" -> train_model")
 
     @staticmethod
     def load_model(src_path):
-        #loaded_model=None
+
         params_dict = {}
         pretrained_weights = {}
         files = os.scandir(src_path)
@@ -418,12 +329,9 @@ class ClarifruitUnet:
             if file_entry.name == 'model_params.json':
                 params_dict = load_json(file_entry.path)
 
-
-
             elif file_extention == 'hdf5':
                 pretrained_weights = file_entry.path
 
-        #loaded_model.load_weights("model.h5")
         params_dict['pretrained_weights'] = pretrained_weights
         params_dict['train_time'] = os.path.basename(src_path)
 

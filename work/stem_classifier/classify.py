@@ -19,7 +19,7 @@ class StemHistClassifier:
     def __init__(self, train_path, test_path, threshold=0.4):
         logger.debug(" <- init")
         self.test_path = os.path.join(test_path,f"thres_{threshold}")
-        self.histograms_path = os.path.join(self.test_path,"histograms")
+        self.histograms_path = os.path.join(self.test_path,"hsv_histograms")
         self.train_path = train_path
         self.threshold = threshold
         self.train_list = self.load_train()
@@ -47,7 +47,8 @@ class StemHistClassifier:
     def data_iterator(self):
         for item_entry,item_label in self.train_list:
             hist = np.load(item_entry.path)
-            hist =normalize(hist).flatten()
+            #hist =normalize(hist).flatten()
+            hist = normalize(hist[0])
             yield hist, item_label
 
     def test_data_iterator(self):
