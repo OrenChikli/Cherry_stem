@@ -387,7 +387,7 @@ class ClarifruitUnet:
         logger.debug(" <- set_model_checkpoint")
         curr_folder = self.get_curr_folder()
         out_model_path = os.path.join(curr_folder, self.weights_file_name)
-        model_checkpoint = [ModelCheckpoint(out_model_path, monitor='val_loss',
+        model_checkpoint = [ModelCheckpoint(out_model_path, monitor='loss',
                                             verbose=1, save_best_only=True)]
         if self.callbacks is None:
             self.callbacks = model_checkpoint

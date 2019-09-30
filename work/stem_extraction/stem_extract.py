@@ -113,10 +113,11 @@ class StemExtractor:
             fig_big_hist, _ = img.get_hist_via_mask(return_hist=True, display_flag=False)
             np.save(curr_dest_path,fig_big_hist)
 
-    def load_ground_truth(self,groud_truth_path):
+    def load_ground_truth(self,groud_truth_path,y_folder):
         self.groud_truth_hist_dict=dict()
         for item_entry in os.scandir(groud_truth_path):
-            self.groud_truth_hist_dict[item_entry.name]=np.load(item_entry.path)
+            curr_path = os.path.join(item_entry.path,y_folder)
+            self.groud_truth_hist_dict[item_entry.name]=np.load(curr_path)
 
     def compare_hists(self,mask_type='orig'):
         dest_path = data_functions.create_path(self.thres_save_path, f'hist_{mask_type}_scores')

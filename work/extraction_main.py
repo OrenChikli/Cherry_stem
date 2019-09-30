@@ -12,17 +12,17 @@ def get_pred_histograms(img_path, mask_path, save_path, threshold):
                                     mask_path=mask_path,
                                     src_path=save_path,
                                     threshold=threshold)
-    logger.info("saving ground truth histograms")
+    logger.info("saving histograms")
     stem_exctractor.calc_hists()
 
-def compare_hists(img_path,mask_path,save_path,threshold,ground_truth_path):
+def compare_hists(img_path,mask_path,save_path,threshold,ground_truth_path,x_folder='image',y_folder='label'):
     logger.info(f"intializing StemExtractor instance with threshold: {threshold}")
     stem_exctractor = StemExtractor(img_path=img_path,
                                     mask_path=mask_path,
                                     src_path=save_path,
                                     threshold=threshold)
     logger.info("loading groung truth histograms")
-    stem_exctractor.load_ground_truth(ground_truth_path)
+    stem_exctractor.load_ground_truth(ground_truth_path,y_folder)
 
     logger.info("comparing ground truth histogrames with predictions")
     stem_exctractor.compare_hists()
@@ -98,7 +98,7 @@ def main():
 
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-27_16-15-36'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
     masks_folder='raw_pred'
     mask_path = os.path.join(src_path,masks_folder)
 
@@ -109,7 +109,7 @@ def main():
 
     #create_stems(img_path,mask_path,src_path,threshold)
     #ontop(img_path, mask_path, src_path, threshold)
-    filtter_images(img_path, mask_path, src_path, threshold, lower, upper)
+    #filtter_images(img_path, mask_path, src_path, threshold, lower, upper)
 
 
 
@@ -120,7 +120,7 @@ def main():
 
     #general_use(img_path, mask_path,src_path, threshold)
 
-    #compare_hists(img_path, src_mask_path, save_path, threshold, ground_truth_path)
+    #compare_hists(img_path, mask_path, src_path, threshold, ground_truth_path)
 
 def get_binary_masks(img_path, mask_path, src_path, threshold):
     logger.info(f"intializing StemExtractor instance with threshold: {threshold}")

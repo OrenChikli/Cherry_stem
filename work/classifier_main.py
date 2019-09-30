@@ -12,7 +12,7 @@ def main():
 
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
-    test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-27_16-15-36'
+    test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
 
     threshold = 0.4
 
