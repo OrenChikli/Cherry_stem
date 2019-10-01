@@ -8,8 +8,6 @@ from auxiliary.data_functions import *
 from keras.optimizers import *
 from work.unet.unet_model import unet
 #from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
-
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -161,6 +159,10 @@ class ClarifruitUnet:
 
 
     def clarifruit_train_val_generators(self):
+        """
+        a method to create train and validation data generators for the current instance
+        :return:
+        """
         logger.debug(f" <- clarifruit_train_val_generators")
         image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
                                                                                src_path=self.train_path,
@@ -191,6 +193,15 @@ class ClarifruitUnet:
 
 
     def test_generator(self, test_path):
+        """
+        create a generator which yield appropriate images be be used with the model's predict
+        method, i.e reshapes the images and loads them in the appropriate color mode
+        :param test_path:
+        :return: img- an image in an apropriate dimentions for the unet model predict method
+                 img_entry- the result of the os.scandir method, and object with the source image name and path
+                 orig_shape- the original shape of the source image, to be used for reshaping the prediction back to
+                             the source image size
+        """
         logger.debug(" <-test_generator")
 
         img_list = os.scandir(test_path)
@@ -210,6 +221,12 @@ class ClarifruitUnet:
             yield img, img_entry, orig_shape
 
     def prediction_generator(self,test_path):
+        """
+        a method to yield predictions from the test path
+        :param test_path: a path containing the test images
+        :return: img_entry- the result of the os.scandir method, and object with the source image name and path
+                 pred_raw_resised- a mask image, the prediction for the image
+        """
         logger.info(f" generating prediction on files from {test_path}")
 
         logger.debug(" <- prediction_generator")
@@ -263,6 +280,10 @@ class ClarifruitUnet:
 
 
     def get_unet_model(self):
+        """
+        load a unet model for the current instance
+        :return:
+        """
         logger.debug(" <- get_unet_model")
         self.model = unet(optimizer=self.optimizer,
                           loss=self.loss,
@@ -273,6 +294,7 @@ class ClarifruitUnet:
 
 
     def fit_unet(self):
+        """ fit a unet model for the current instance"""
         logger.debug(" <- fit_unet")
         self.clarifruit_train_val_generators()
         self.model.fit_generator(
@@ -306,6 +328,12 @@ class ClarifruitUnet:
         return curr_folder
 
     def set_model_checkpint(self,dest_path):
+        """
+        set the model checkpoint keras callbacks method for the current training session,
+        where the model weights will be saved in folder assigned for the current session
+        :param dest_path: the destination folder where the specific session will be saved to
+        :return: the save folder for the current training session
+        """
         logger.debug(" <- set_model_checkpoint")
         curr_folder = self.get_curr_folder(dest_path=dest_path)
         out_model_path = os.path.join(curr_folder, self.weights_file_name)
@@ -320,6 +348,12 @@ class ClarifruitUnet:
 
 
     def train_model(self,params_dict,dest_path=None):
+        """
+        train the unet model for current instance and save the results if possible
+        :param params_dict: the parameters used to define the current instance
+        :param dest_path: optional destination path to save the model
+        :return:
+        """
         logger.debug(f" <- train_model")
         if dest_path is not None:
             self.save_model(dest_path=dest_path,params_dict=params_dict)
@@ -329,6 +363,11 @@ class ClarifruitUnet:
 
     @staticmethod
     def load_model(src_path):
+        """
+        load a pretrained model located in the src_path
+        :param src_path: the path containing the pretrained model
+        :return: the parameters of the model to be used later on
+        """
 
         params_dict = {}
         pretrained_weights = {}
