@@ -218,7 +218,7 @@ class ClarifruitUnet:
 
             pred_raw = self.model.predict(img, batch_size=1)[0]
             pred_raw_resized = cv2.resize(pred_raw,orig_shape)
-            yield img_entry.name,pred_raw_resized
+            yield img_entry,pred_raw_resized
 
 
     def prediction(self,test_path,dest_path):

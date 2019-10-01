@@ -25,35 +25,20 @@ HIST_TYPE = {'rgb': lambda x: x.get_hist_via_mask,
 
 class StemExtractor:
 
-    def __init__(self, img_path, mask_path, src_path, threshold=0.5):
+    def __init__(self, img_path, mask_path, src_path, threshold=0.5,use_thres_flag=True):
 
         self.img_path = img_path
         self.mask_path = mask_path
         self.threshold = threshold
-
-        self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
+        if use_thres_flag:
+            self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
+        else:
+            self.thres_save_path = src_path
 
         self.threshold_masks_path = None
 
         self.cut_image_path = None
         self.ontop_path=None
-
-
-        self.groud_truth_hist_dict = None
-
-
-
-    @staticmethod
-    def get_clases_dict(classes_path):
-        classes_dict = {}
-        for img_entry in os.scandir(classes_path):
-            img_color = cv2.imread(img_entry.path, cv2.IMREAD_COLOR)
-            img_color = img_color[0, 0]
-            class_name = img_entry.name.split('.')[0]
-            classes_dict[class_name] = img_color
-        return classes_dict
-
-
 
 
 
@@ -64,7 +49,7 @@ class StemExtractor:
         :return:
         """
         self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
-        for img in tqdm(self.image_obj_iterator()):
+        for img in self.image_obj_iterator():
             img_save_path = os.path.join(self.threshold_masks_path,img.image_name)
             cv2.imwrite(img_save_path, img.threshold_mask)
 
@@ -79,8 +64,8 @@ class StemExtractor:
         self.cut_image_path = data_functions.create_path(self.thres_save_path, f'stems')
         logger.info(f"creting stems in {self.cut_image_path}")
         for img in tqdm(self.image_obj_iterator()):
-            img.cut_via_mask()
-            cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), img.image_cut)
+            image_cut=img.cut_via_mask()
+            cv2.imwrite(os.path.join(self.cut_image_path, img.image_name), image_cut)
 
         logger.debug(" -> get_stems")
 
@@ -126,10 +111,12 @@ class StemExtractor:
         dest_path = data_functions.create_path(self.thres_save_path, f'{hist_type}_histograms')
 
         for img in tqdm(self.image_obj_iterator()):
-            img_raw_name = img.image_name.split('.')[0]
+            img_raw_name = img.image_name.rsplit('.',1)[0]
             curr_dest_path = os.path.join(dest_path,f"{img_raw_name}.npy")
             fig_big_hist= img.get_hist_via_mask(hist_type=hist_type)
             np.save(curr_dest_path,fig_big_hist)
+
+
 
 
 

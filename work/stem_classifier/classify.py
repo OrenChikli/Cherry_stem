@@ -16,11 +16,12 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
 
 class StemHistClassifier:
 
-    def __init__(self, train_path, threshold=0.4):
+    def __init__(self, train_path, threshold=0.4,hist_type='bgr'):
         logger.debug(" <- init")
 
         self.train_path = train_path
         self.threshold = threshold
+        self.hist_type=hist_type
         self.train_list = self.load_train()
         self.model = None
         self.train_time = None
@@ -32,9 +33,8 @@ class StemHistClassifier:
         logger.debug(f"loading train data from:{self.train_path}\ncreated from threshold {self.threshold}:")
         ret_list = []
         for label_folder in os.scandir(self.train_path):
-            hist_folder = os.path.join(label_folder.path,"stem_data")
-            hist_folder = os.path.join(hist_folder, f'thres_{self.threshold}')
-            hist_folder = os.path.join(hist_folder, 'histograms')
+            hist_folder = os.path.join(label_folder.path, f'thres_{self.threshold}')
+            hist_folder = os.path.join(hist_folder, f'{self.hist_type}_histograms')
             for hist_entry in os.scandir(hist_folder):
                 ret_list.append((hist_entry, label_folder.name))
 
@@ -56,11 +56,11 @@ class StemHistClassifier:
             hist =normalize(hist).flatten().reshape(1,-1)
             yield item_entry.name, hist
 
-    def train_model(self, model_name, **model_kwargs):
+    def train_model(self,save_path, model_name, **model_kwargs):
         logger.debug(" <- train_model")
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         logger.info(f"model training time {self.train_time}")
-        self.save_path = data_functions.create_path(self.test_path, self.train_time)
+        self.save_path = data_functions.create_path(save_path, self.train_time)
         data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", self.save_path)
         model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
         logger.debug(" starting model_fit")
