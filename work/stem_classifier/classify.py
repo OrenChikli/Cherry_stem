@@ -16,11 +16,10 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
 
 class StemHistClassifier:
 
-    def __init__(self, train_path, threshold=0.4,hist_type='bgr'):
+    def __init__(self, train_path,hist_type='bgr'):
         logger.debug(" <- init")
 
         self.train_path = train_path
-        self.threshold = threshold
         self.hist_type=hist_type
         self.train_list = self.load_train()
         self.model = None
@@ -30,11 +29,11 @@ class StemHistClassifier:
 
     def load_train(self):
         logger.debug(" <- load_train")
-        logger.debug(f"loading train data from:{self.train_path}\ncreated from threshold {self.threshold}:")
+        logger.debug(f"loading train data from:{self.train_path}")
         ret_list = []
+
         for label_folder in os.scandir(self.train_path):
-            hist_folder = os.path.join(label_folder.path, f'thres_{self.threshold}')
-            hist_folder = os.path.join(hist_folder, f'{self.hist_type}_histograms')
+            hist_folder = os.path.join(label_folder.path, f'{self.hist_type}_histograms')
             for hist_entry in os.scandir(hist_folder):
                 ret_list.append((hist_entry, label_folder.name))
 
@@ -43,42 +42,56 @@ class StemHistClassifier:
 
         return ret_list
 
+    def return_hist(self,hist):
+        if self.hist_type == 'bgr':
+            hist = np.squeeze(hist, axis=2)
+            hist = normalize(hist).flatten()
+        else:
+            hist = normalize(hist[0])
+            hist = np.squeeze(hist, axis=1)
+        return hist
+
+
     def data_iterator(self):
         for item_entry,item_label in self.train_list:
             hist = np.load(item_entry.path)
-            #hist =normalize(hist).flatten()
-            hist = normalize(hist[0])
+            hist = self.return_hist(hist)
             yield hist, item_label
 
-    def test_data_iterator(self):
-        for item_entry in os.scandir(self.histograms_path):
+
+    def test_data_iterator(self,test_path):
+        for item_entry in os.scandir(test_path):
             hist = np.load(item_entry.path)
-            hist =normalize(hist).flatten().reshape(1,-1)
+            hist = self.return_hist(hist).reshape(1,-1)
             yield item_entry.name, hist
 
     def train_model(self,save_path, model_name, **model_kwargs):
         logger.debug(" <- train_model")
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         logger.info(f"model training time {self.train_time}")
-        self.save_path = data_functions.create_path(save_path, self.train_time)
-        data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", self.save_path)
+
         model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
+
         logger.debug(" starting model_fit")
         x_train, y_train = zip(*self.data_iterator())
         x_train = np.array(x_train)
         model.fit(x_train,y_train)
         self.model = model
+
+        model_kwargs['hist_type']=self.hist_type
+        save_path = data_functions.create_path(save_path, self.train_time)
+        data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
+
         logger.debug(" -> train_model")
 
-    def model_predict(self, orig_images_path,img_extention='.png.jpg'):
-        self.test_path = os.path.join(test_path,f"thres_{threshold}")
-        self.histograms_path = os.path.join(self.test_path,"hsv_histograms")
+    def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
         logger.debug(" <- model_predict")
-        for name, x in self.test_data_iterator():
-            curr_name = name.split('.')[0]+img_extention
+        save_path = data_functions.create_path(save_path, self.train_time)
+        for name, x in self.test_data_iterator(test_path):
+            curr_name = name.rsplit('.',1)[0]+img_extention
             curr_img_path = os.path.join(orig_images_path, curr_name)
             pred = self.model.predict(x)[0]
 
-            save_path = data_functions.create_path(self.save_path, pred)
-            _ = shutil.copy(curr_img_path, save_path)
+            curr_save_path = data_functions.create_path(save_path, pred)
+            _ = shutil.copy(curr_img_path, curr_save_path)
         logger.debug(" -> model_predict")

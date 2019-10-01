@@ -119,14 +119,14 @@ def main():
 
 
     threshold = 0.4
-    hist_type='hsv'
+    hist_type='bgr'
 
     lower=(0,0,0)
     upper = (230,255,230)
 
     # create train data
-    create_ground_truth(ground_path, mask_path, src_path,
-                        train_folder=train_folder)
+    # create_ground_truth(ground_path, mask_path, src_path,
+    #                     train_folder=train_folder)
     create_ground_truth_hists(ground_path=ground_path,threshold= threshold,src_path= src_path,
                               train_folder=train_folder,hist_type=hist_type)
 
@@ -137,7 +137,7 @@ def main():
     #ontop(img_path, mask_path, src_path, threshold)
     #filtter_images(img_path, mask_path, src_path, threshold, lower, upper)
     #
-    get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
+    #get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
 
 
 
