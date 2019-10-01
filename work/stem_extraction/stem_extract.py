@@ -58,6 +58,11 @@ class StemExtractor:
 
 
     def get_threshold_masks(self):
+        """
+        return a thresholder version of the input grayscale mask where the mask is positive for points that are greater
+        than the given threshold
+        :return:
+        """
         self.threshold_masks_path = data_functions.create_path(self.thres_save_path, f'binary')
         for img in tqdm(self.image_obj_iterator()):
             img_save_path = os.path.join(self.threshold_masks_path,img.image_name)
@@ -65,6 +70,11 @@ class StemExtractor:
 
 
     def get_stems(self):
+        """
+        extract the "stems" from the image - return the areas in the image that are activated in the thresholded mask
+        eg if pixel (156,46) is turned on in the mask image, it will show in the result
+        :return:
+        """
         logger.debug(" <- get_stems")
         self.cut_image_path = data_functions.create_path(self.thres_save_path, f'stems')
         logger.info(f"creting stems in {self.cut_image_path}")
@@ -74,7 +84,11 @@ class StemExtractor:
 
         logger.debug(" -> get_stems")
 
-    def get_ontop(self):
+    def get_ontop_images(self):
+        """
+        return the overlay of the thresholded mask on top of the source image
+        :return:
+        """
         logger.debug(" <- get_notop")
         self.ontop_path = data_functions.create_path(self.thres_save_path, f'on_top')
         logger.info(f"creting ontop images in {self.ontop_path}")
@@ -108,23 +122,17 @@ class StemExtractor:
             yield img
 
 
-    def calc_hists(self):
+    def calc_hists(self,hist_type='brg'):
         dest_path = data_functions.create_path(self.thres_save_path, f'histograms')
 
         for img in tqdm(self.image_obj_iterator()):
             img_raw_name = img.image_name.split('.')[0]
             curr_dest_path = os.path.join(dest_path,f"{img_raw_name}.npy")
-            fig_big_hist, _ = img.get_hist_via_mask(return_hist=True, display_flag=False)
+            fig_big_hist= img.get_hist_via_mask(hist_type=hist_type)
             np.save(curr_dest_path,fig_big_hist)
 
-    def calc_hists_hsv(self):
-        dest_path = data_functions.create_path(self.thres_save_path, f'hsv_histograms')
 
-        for img in tqdm(self.image_obj_iterator()):
-            img_raw_name = img.image_name.split('.')[0]
-            curr_dest_path = os.path.join(dest_path, f"{img_raw_name}.npy")
-            fig_big_hist= img.get_hsv_hist()
-            np.save(curr_dest_path, fig_big_hist)
+
 
 
 

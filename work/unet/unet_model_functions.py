@@ -209,6 +209,17 @@ class ClarifruitUnet:
             img = np.reshape(img, (1,) + img.shape)
             yield img, img_entry, orig_shape
 
+    def prediction_generator(self,test_path):
+        logger.info(f" generating prediction on files from {test_path}")
+
+        logger.debug(" <- prediction_generator")
+        test_gen = self.test_generator(test_path)
+        for img, img_entry,orig_shape in test_gen:
+
+            pred_raw = self.model.predict(img, batch_size=1)[0]
+            pred_raw_resized = cv2.resize(pred_raw,orig_shape)
+            yield img_entry.name,pred_raw_resized
+
 
     def prediction(self,test_path,dest_path):
         """
@@ -246,6 +257,7 @@ class ClarifruitUnet:
 
 
         logger.debug(" -> prediction")
+        return save_path
 
 
 

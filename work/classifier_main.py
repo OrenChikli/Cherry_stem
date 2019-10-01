@@ -8,14 +8,9 @@ logger = logging.getLogger("classifier_main")
 
 def main():
     train_path= r'D:\Clarifruit\cherry_stem\data\classification_data\normal_classification\ground'
-
-
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-
     test_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
-
     threshold = 0.4
-
 
     classifier = classify.StemHistClassifier(train_path=train_path,
                                              test_path=test_path,

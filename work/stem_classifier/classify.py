@@ -16,10 +16,9 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
 
 class StemHistClassifier:
 
-    def __init__(self, train_path, test_path, threshold=0.4):
+    def __init__(self, train_path, threshold=0.4):
         logger.debug(" <- init")
-        self.test_path = os.path.join(test_path,f"thres_{threshold}")
-        self.histograms_path = os.path.join(self.test_path,"hsv_histograms")
+
         self.train_path = train_path
         self.threshold = threshold
         self.train_list = self.load_train()
@@ -72,6 +71,8 @@ class StemHistClassifier:
         logger.debug(" -> train_model")
 
     def model_predict(self, orig_images_path,img_extention='.png.jpg'):
+        self.test_path = os.path.join(test_path,f"thres_{threshold}")
+        self.histograms_path = os.path.join(self.test_path,"hsv_histograms")
         logger.debug(" <- model_predict")
         for name, x in self.test_data_iterator():
             curr_name = name.split('.')[0]+img_extention
