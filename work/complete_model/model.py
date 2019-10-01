@@ -18,6 +18,7 @@ class TrainedModel:
         self.load_models()
 
     def load_models(self):
+
         params_dict = ClarifruitUnet.load_model(self.unet_model_path)
         self.unet_model = ClarifruitUnet(**params_dict)
         for item_entry in os.scandir(self.classifier_path):

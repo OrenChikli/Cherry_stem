@@ -25,15 +25,15 @@ HIST_TYPE = {'rgb': lambda x: x.get_hist_via_mask,
 
 class StemExtractor:
 
-    def __init__(self, img_path, mask_path, src_path, threshold=0.5,use_thres_flag=True):
+    def __init__(self, img_path, mask_path, save_path, threshold=0.5, use_thres_flag=True):
 
         self.img_path = img_path
         self.mask_path = mask_path
         self.threshold = threshold
         if use_thres_flag:
-            self.thres_save_path = data_functions.create_path(src_path, f"thres_{threshold}")
+            self.thres_save_path = data_functions.create_path(save_path, f"thres_{threshold}")
         else:
-            self.thres_save_path = src_path
+            self.thres_save_path = save_path
 
         self.threshold_masks_path = None
 

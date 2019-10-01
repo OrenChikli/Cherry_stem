@@ -1,5 +1,5 @@
 from logger_settings import configure_logger
-from auxiliary.custom_image import CustomImage
+
 from auxiliary import data_functions
 from work.complete_model.model import TrainedModel
 import logging
