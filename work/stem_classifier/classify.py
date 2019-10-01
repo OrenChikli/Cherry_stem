@@ -16,12 +16,14 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
 
 class StemHistClassifier:
 
-    def __init__(self, train_path,hist_type='bgr'):
+    def __init__(self, train_path,hist_type='bgr',threshold='0.4'):
         logger.debug(" <- init")
 
         self.train_path = train_path
         self.hist_type=hist_type
-        self.train_list = self.load_train()
+        self.threshold=threshold
+
+        self.train_list = self.load_train() if train_path is not None else None
         self.model = None
         self.train_time = None
         self.save_path=None
@@ -41,9 +43,9 @@ class StemHistClassifier:
         logger.debug(" -> load_train")
 
         return ret_list
-
-    def return_hist(self,hist):
-        if self.hist_type == 'bgr':
+    @staticmethod
+    def return_hist(hist,hist_type):
+        if hist_type == 'bgr':
             hist = np.squeeze(hist, axis=2)
             hist = normalize(hist).flatten()
         else:
@@ -55,15 +57,17 @@ class StemHistClassifier:
     def data_iterator(self):
         for item_entry,item_label in self.train_list:
             hist = np.load(item_entry.path)
-            hist = self.return_hist(hist)
+            hist = self.return_hist(hist,self.hist_type)
             yield hist, item_label
 
 
     def test_data_iterator(self,test_path):
         for item_entry in os.scandir(test_path):
             hist = np.load(item_entry.path)
-            hist = self.return_hist(hist).reshape(1,-1)
+            hist = self.return_hist(hist,self.hist_type).reshape(1,-1)
             yield item_entry.name, hist
+
+
 
     def train_model(self,save_path, model_name, **model_kwargs):
         logger.debug(" <- train_model")
@@ -78,11 +82,19 @@ class StemHistClassifier:
         model.fit(x_train,y_train)
         self.model = model
 
-        model_kwargs['hist_type']=self.hist_type
-        save_path = data_functions.create_path(save_path, self.train_time)
-        data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
-
+        self.save_model(model, model_kwargs, model_name, save_path)
         logger.debug(" -> train_model")
+
+    def save_model(self, model, model_kwargs, model_name, save_path):
+
+        save_path = data_functions.create_path(save_path, self.train_time)
+        save_path = data_functions.create_path(save_path, 'saved_model')
+
+        extractions_params = dict(threshold=self.threshold,hist_type=self.hist_type)
+        data_functions.save_json(extractions_params,"extraction_params.json",save_path)
+
+        data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
+        data_functions.save_pickle(model, "trained_model.pickle", save_path)
 
     def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
         logger.debug(" <- model_predict")

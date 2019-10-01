@@ -31,6 +31,7 @@ def main():
                         'max_iter': 1000}
 
     classifier.train_model(save_path,model_name, **model_parameters)
+
     classifier.model_predict(test_path,save_path,img_path)
 
 

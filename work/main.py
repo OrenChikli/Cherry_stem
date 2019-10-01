@@ -1,24 +1,30 @@
 from logger_settings import configure_logger
 from auxiliary.custom_image import CustomImage
+from auxiliary import data_functions
+from work.complete_model.model import TrainedModel
 import logging
-from work.unet_main import load_from_files
+import shutil
+
+
 configure_logger()
 logger = logging.getLogger('full_model')
 
+def save_results(res,save_path):
+    for img_entry,pred in res:
+        curr_save_path = data_functions.create_path(save_path, pred)
+        _ = shutil.copy(img_entry.path, curr_save_path)
+
 
 def main():
-    train_path=r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
-    dest_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training'
-    test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    src_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
-    hist_type = 'bgr'
-    threshold=0.4
-    model = load_from_files(src_path)
-    for img_entry,pred in model.prediction_generator(test_path):
-        curr_image = CustomImage(img_path=img_entry.path,threshold=threshold,mask=pred)
-        hist= curr_image.get_hist_via_mask(hist_type=hist_type)
-        print("g")
 
+    test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
+
+    unet_model_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
+    classifier_path = unet_model_path+r'\thres_0.4\classification_preds\2019-10-01_19-52-55\saved_model'
+    save_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46\thres_0.4\classification_preds\New folder'
+    model = TrainedModel(unet_model_path=unet_model_path,classifier_path=classifier_path)
+    res = model.predict(test_path)
+    save_results(res,save_path)
 
 
 if __name__ == '__main__':

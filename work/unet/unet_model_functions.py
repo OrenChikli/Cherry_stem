@@ -67,7 +67,7 @@ class ClarifruitUnet:
         self.validation_split = valdiation_split
         self.seed = 1
 
-        self.clarifruit_train_val_generators()
+
         self.get_unet_model()
 
         logger.debug(" -> __init__")
@@ -274,7 +274,7 @@ class ClarifruitUnet:
 
     def fit_unet(self):
         logger.debug(" <- fit_unet")
-
+        self.clarifruit_train_val_generators()
         self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=self.steps_per_epoch,
@@ -297,7 +297,6 @@ class ClarifruitUnet:
         if 'callbacks' in save_dict:  # callbacks are not hashable, cant save to json
             save_dict.pop('callbacks')
         save_json(save_dict, "model_params.json", curr_folder)
-
 
         logger.debug(" -> save_model")
 
