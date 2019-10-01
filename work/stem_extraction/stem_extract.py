@@ -123,7 +123,7 @@ class StemExtractor:
 
 
     def calc_hists(self,hist_type='brg'):
-        dest_path = data_functions.create_path(self.thres_save_path, f'histograms')
+        dest_path = data_functions.create_path(self.thres_save_path, f'{hist_type}_histograms')
 
         for img in tqdm(self.image_obj_iterator()):
             img_raw_name = img.image_name.split('.')[0]

@@ -61,40 +61,42 @@ def get_pred_histograms(img_path, mask_path, save_path, threshold,hist_type='bgr
 
 
 
-
-def create_ground_truth(ground_path,src_mask_path,x_folder='image',y_folder='label'):
+def create_ground_truth(img_path, mask_path,dest_path,train_folder='classifier_train_data', raw_preds_folder='raw_pred'):
     """
     getting respective masks of images in diffrent classes.
     a method to get the predictions from src_mask_path, into the y_folder in the ground_path, where the x_folder has
     the source images, selected by the user
-    :param ground_path: a path containig the ground truth, has structure of x_folder with src images, y_folder with labels
+    :param img_path: a path containig the ground truth, has structure of x_folder with src images, y_folder with labels
     :param src_mask_path: the image where all the avaliabel predictions reside
     :param x_folder: the name of the subfolder in ground truth which has the src images
     :param y_folder: the name of the subfolder in the ground truth path which will house the labels
     :return: None
     """
-    for curr_class in os.scandir(ground_path):
+    curr_dest_path = data_functions.create_path(dest_path,train_folder)
+    curr_dest_path = data_functions.create_path(curr_dest_path,raw_preds_folder)
+    for curr_class in os.scandir(img_path):
         logger.info(f"getting masks for path {curr_class.path}")
-        curr_image_path = os.path.join(curr_class.path,x_folder)
-        curr_label_path = os.path.join(curr_class.path,y_folder)
-        data_functions.get_masks_via_img(curr_image_path,src_mask_path,curr_label_path)
+        curr_dest = data_functions.create_path(curr_dest_path,curr_class.name)
+        data_functions.get_masks_via_img(curr_class.path,mask_path,curr_dest)
 
 
-def create_ground_truth_hists(ground_path,threshold,x_folder='image',y_folder='label'):
-    """
 
-    :param ground_path:
-    :param threshold:
-    :param x_folder:
-    :param y_folder:
-    :return:
-    """
-    logger.info(f"creating histogrames via threshold: {threshold}")
-    for curr_class in os.scandir(ground_path):
-        logger.info(f"getting histograms for path {curr_class.path}")
-        curr_image_path = os.path.join(curr_class.path,x_folder)
-        curr_label_path = os.path.join(curr_class.path,y_folder)
-        get_pred_histograms(curr_image_path, curr_label_path, curr_class.path, threshold)
+
+
+def create_ground_truth_hists(ground_path,threshold,src_path,
+                              train_folder='classifier_train_data', raw_preds_folder='raw_preds',
+                              out_folder='extraction_results',hist_type='bgr'):
+
+    dest_path = os.path.join(src_path,train_folder)
+    raw_pred_path = os.path.join(dest_path, raw_preds_folder)
+    dest_path = data_functions.create_path(dest_path, out_folder)
+    for curr_class in os.scandir(raw_pred_path):
+        curr_raw_pred_path = os.path.join(raw_pred_path,curr_class.name)
+        logger.info(f"getting masks for path {curr_raw_pred_path}")
+        curr_dest = data_functions.create_path(dest_path, curr_class.name)
+        logger.info(f"saving {hist_type} histograms at {curr_dest}")
+        curr_ground_path =os.path.join(ground_path,curr_class.name)
+        get_pred_histograms(curr_ground_path, curr_raw_pred_path,curr_dest, threshold,hist_type)
 
 
 
@@ -102,9 +104,12 @@ def create_ground_truth_hists(ground_path,threshold,x_folder='image',y_folder='l
 
 def main():
     src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
-    masks_folder='raw_pred'
-    mask_path = os.path.join(src_path,masks_folder)
+
+    train_folder = 'classifier_train_data'
+    raw_preds_folder = 'raw_pred'
+    mask_path = os.path.join(src_path,raw_preds_folder)
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
+    ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\normal_classification'
 
 
     threshold = 0.4
@@ -112,6 +117,15 @@ def main():
 
     lower=(0,0,0)
     upper = (230,255,230)
+
+    # create train data
+    # create_ground_truth(ground_path, mask_path, src_path,
+    #                     train_folder=train_folder,raw_preds_folder=raw_preds_folder)
+    # create_ground_truth_hists(ground_path=ground_path,threshold= threshold,src_path= src_path,
+    #                           train_folder=train_folder, raw_preds_folder=raw_preds_folder,
+    #                           hist_type=hist_type)
+
+    #experiment with current data
 
     #get_binary_masks(img_path, mask_path, src_path, threshold)
     #create_stems(img_path,mask_path,src_path,threshold)
@@ -123,7 +137,7 @@ def main():
     #create_ground_truth(ground_truth_path,mask_path)
     #create_ground_truth_hists(ground_truth_path,threshold)
     #data_functions.get_masks_via_img(img_path,src_mask_path,mask_path)
-    get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
+#    get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
 
 
 
