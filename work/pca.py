@@ -13,22 +13,23 @@ logger=logging.getLogger(__name__)
 
 def load_npy_data(src_path):
     df = None
+    name_list=[]
     for i,file_entry in enumerate(os.scandir(src_path)):
         if file_entry.name.endswith('.npy'):
             file = normalize(np.load(file_entry.path)).flatten()
             name = file_entry.name.rsplit('.', 1)[0]
-            file_as_list = list(file)
-            row = [name] + file_as_list
+            name_list.append(name)
             if df is None:
-                df = pd.DataFrame(row)
+                df = pd.DataFrame(file)
             else:
-                df[i]=row
+                df[i]=file
 
     df = df.T
     df.columns = df.columns.astype(str)
-    df.rename(columns={df.columns[0]: "file_name"})# doesnt work!!! # TODO fix df name
+    df.insert(0,"file_name",name_list)
 
     return df
+
 
 """def load_npy_data(src_path):
     df = None
@@ -55,11 +56,11 @@ def main():
     data_frame= load_npy_data(src_path)
     print(data_frame.head())
 
-def performe_pca(data_frame,n_comp=20):
+def performe_pca(df, n_comp=20):
 
     logger.info('Running PCA ...')
     pca = IncrementalPCA(n_components=n_comp)
-    X_pca = pca.fit_transform(data_frame)
+    X_pca = pca.fit_transform(df)
     logger.info('Explained variance: %.4f' % pca.explained_variance_ratio_.sum())
 
     logger.info('Individual variance contributions:')
