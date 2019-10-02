@@ -159,10 +159,10 @@ def main():
     raw_preds_folder = 'raw_pred'
     mask_path = os.path.join(src_path,raw_preds_folder)
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\New folder'
+    ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\via_mask'
 
     threshold = 0.4
-    hist_type='hsv'
+    hist_type='bgr'
 
     lower=(0,0,0)
     upper = (230,255,230)

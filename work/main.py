@@ -15,6 +15,7 @@ def save_results(res,save_path):
         _ = shutil.copy(img_entry.path, curr_save_path)
 
 
+
 def main():
 
     test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
