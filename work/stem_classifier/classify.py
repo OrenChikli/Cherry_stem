@@ -57,14 +57,14 @@ class StemHistClassifier:
     def data_iterator(self):
         for item_entry,item_label in self.train_list:
             hist = np.load(item_entry.path)
-            hist = self.return_hist(hist,self.hist_type)
+            hist = normalize(hist).flatten()
             yield hist, item_label
 
 
     def test_data_iterator(self,test_path):
         for item_entry in os.scandir(test_path):
             hist = np.load(item_entry.path)
-            hist = self.return_hist(hist,self.hist_type).reshape(1,-1)
+            hist = normalize(hist).flatten().reshape(1,-1)
             yield item_entry.name, hist
 
 
@@ -107,3 +107,11 @@ class StemHistClassifier:
             curr_save_path = data_functions.create_path(save_path, pred)
             _ = shutil.copy(curr_img_path, curr_save_path)
         logger.debug(" -> model_predict")
+
+def get_pred_via_list(src_list,save_path, orig_images_path,img_extention='.jpg'):
+    save_path = data_functions.create_path(save_path, "from_list")
+    for name,pred in src_list:
+        curr_name = name.rsplit('.',1)[0]+img_extention
+        curr_img_path = os.path.join(orig_images_path, curr_name)
+        curr_save_path = data_functions.create_path(save_path, str(pred))
+        _ = shutil.copy(curr_img_path, curr_save_path)

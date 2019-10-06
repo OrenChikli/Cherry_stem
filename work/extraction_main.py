@@ -61,7 +61,7 @@ def ontop(img_path,mask_path,save_path,threshold):
     logger.info("getting ontop images")
     stem_exctractor.get_ontop_images()
 
-def filtter_images(img_path, mask_path, save_path, threshold,lower,upper):
+def filtter_images(img_path, mask_path, save_path, threshold,save_flag=False):
     """
     a method to try and color filter the extracted stems using a lowwer and upper color
     threshold, will result in an image where only color in between lower and upper are shown
@@ -80,7 +80,7 @@ def filtter_images(img_path, mask_path, save_path, threshold,lower,upper):
                                     save_path=save_path,
                                     threshold=threshold)
     logger.info("getting filltered images")
-    stem_exctractor.fillter_via_color(lower, upper)
+    stem_exctractor.fillter_via_color(save_flag=save_flag)
 
 def get_pred_histograms(img_path, mask_path, save_path, threshold,hist_type='bgr',use_thres_flag=True):
     """
@@ -162,25 +162,24 @@ def main():
     ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\via_mask'
 
     threshold = 0.4
-    hist_type='bgr'
+    hist_type='hsv'
 
-    lower=(0,0,0)
-    upper = (230,255,230)
+    save_flag=True
 
     #create train data
-    create_ground_truth(ground_path, mask_path, src_path,
-                        train_folder=train_folder)
-    create_ground_truth_hists(ground_path=ground_path,threshold= threshold,src_path= src_path,
-                              train_folder=train_folder,hist_type=hist_type)
+    # create_ground_truth(ground_path, mask_path, src_path,
+    #                     train_folder=train_folder)
+    # create_ground_truth_hists(ground_path=ground_path,threshold= threshold,src_path= src_path,
+    #                           train_folder=train_folder,hist_type=hist_type)
 
     #experiment with current data
 
     #get_binary_masks(img_path, mask_path, src_path, threshold)
     #create_stems(img_path,mask_path,src_path,threshold)
     #ontop(img_path, mask_path, src_path, threshold)
-    #filtter_images(img_path, mask_path, src_path, threshold, lower, upper)
+    filtter_images(img_path, mask_path, src_path, threshold, save_flag)
     #
-    get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
+    #get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
 
 
 
