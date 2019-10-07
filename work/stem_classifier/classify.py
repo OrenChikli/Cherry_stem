@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime
 import logging
 from sklearn.preprocessing import normalize
-
+from sklearn.metrics import classification_report
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +53,13 @@ class StemHistClassifier:
             hist = np.squeeze(hist, axis=1)
         return hist
 
-
-    def data_iterator(self):
-        for item_entry,item_label in self.train_list:
+    @staticmethod
+    def from_list_data_generator(src_list):
+        for item_entry,item_label in src_list:
             hist = np.load(item_entry.path)
             hist = normalize(hist).flatten()
-            yield hist, item_label
+            name = item_entry.name.rsplit('.',1)[0]
+            yield hist, item_label,name
 
 
     def test_data_iterator(self,test_path):
@@ -77,7 +78,7 @@ class StemHistClassifier:
         model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
 
         logger.debug(" starting model_fit")
-        x_train, y_train = zip(*self.data_iterator())
+        x_train, y_train,_ = zip(*self.from_list_data_generator(self.train_list))
         x_train = np.array(x_train)
         model.fit(x_train,y_train)
         self.model = model
@@ -100,13 +101,23 @@ class StemHistClassifier:
         logger.debug(" <- model_predict")
         save_path = data_functions.create_path(save_path, self.train_time)
 
-        for name, x in self.test_data_iterator(test_path):
-            curr_name = name.rsplit('.',1)[0]+img_extention
-            curr_img_path = os.path.join(orig_images_path, curr_name)
-            pred = self.model.predict(x)[0]
-
-            curr_save_path = data_functions.create_path(save_path, pred)
+        test_list = self.load_data(test_path)
+        y_list =[]
+        pred_list= []
+        for x_test, y_test,x_name in self.from_list_data_generator(test_list):
+            y_list.append(y_test)
+            x_test = np.array(x_test).reshape(1,-1)
+            y_pred = self.model.predict(x_test)[0]
+            pred_list.append(y_pred)
+            img_name = x_name+img_extention
+            curr_img_path = os.path.join(orig_images_path, img_name)
+            curr_save_path = data_functions.create_path(save_path, y_pred)
             _ = shutil.copy(curr_img_path, curr_save_path)
+
+        report = classification_report(y_list,pred_list)
+        with open(os.path.join(save_path,"classification_report.txt"),'w') as f:
+            f.write(report)
+        print(report)
         logger.debug(" -> model_predict")
 
 def get_pred_via_list(src_list,save_path, orig_images_path,img_extention='.jpg'):

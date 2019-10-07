@@ -17,11 +17,13 @@ def main():
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
     train_folder=r'train'
+    test_folder = 'test'
     train_path = os.path.join(src_path,train_folder)
+    test_path = os.path.join(src_path, test_folder)
 
     hist_type = 'hsv'
-    test_folder = f'{hist_type}_histograms'
-    test_path = os.path.join(src_path,test_folder)
+    #test_folder = f'{hist_type}_histograms'
+    #test_path = os.path.join(src_path,test_folder)
 
     save_folder ='classification_preds'
     save_path = data_functions.create_path(src_path,save_folder)
