@@ -6,6 +6,10 @@ from logger_settings import *
 configure_logger()
 logger = logging.getLogger("classifier_main")
 
+def get_test_train():
+    src_path=r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\All'
+    dest_path =r'D:\Clarifruit\cherry_stem\data\classification_data\from_all'
+    data_functions.get_train_test_split(src_path,dest_path,train_name='train',test_name='test',test_size=0.33)
 
 def main():
 
@@ -37,5 +41,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    get_test_train()
+    #main()
 
