@@ -16,7 +16,7 @@ def main():
     src_path= r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46\thres_0.4'
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
 
-    train_folder=r'classifier_train_data'
+    train_folder=r'train'
     train_path = os.path.join(src_path,train_folder)
 
     hist_type = 'hsv'
@@ -41,6 +41,6 @@ def main():
 
 
 if __name__ == '__main__':
-    get_test_train()
-    #main()
+    #get_test_train()
+    main()
 

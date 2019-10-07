@@ -155,11 +155,14 @@ def create_ground_truth_hists(ground_path,threshold,src_path,
 def main():
     src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
 
-    train_folder = 'classifier_train_data'
+    train_folder = 'train'
+    test_folder ='test'
     raw_preds_folder = 'raw_pred'
     mask_path = os.path.join(src_path,raw_preds_folder)
     img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\via_mask'
+    ground_path =r'D:\Clarifruit\cherry_stem\data\classification_data\from_all'
+    ground_train_path = os.path.join(ground_path,train_folder)
+    ground_test_path = os.path.join(ground_path,test_folder)
 
     threshold = 0.4
     hist_type='hsv'
@@ -167,19 +170,26 @@ def main():
     save_flag=True
 
     #create train data
-    # create_ground_truth(ground_path, mask_path, src_path,
+    # create_ground_truth(ground_train_path, mask_path, src_path,
     #                     train_folder=train_folder)
-    # create_ground_truth_hists(ground_path=ground_path,threshold= threshold,src_path= src_path,
+    # create_ground_truth_hists(ground_path=ground_train_path,threshold= threshold,src_path= src_path,
     #                           train_folder=train_folder,hist_type=hist_type)
+    #
+    # #create test data
+    # create_ground_truth(ground_test_path, mask_path, src_path,
+    #                     train_folder=test_folder)
+    # create_ground_truth_hists(ground_path=ground_test_path,threshold= threshold,src_path= src_path,
+    #                           train_folder=test_folder,hist_type=hist_type)
+    #
 
     #experiment with current data
 
     #get_binary_masks(img_path, mask_path, src_path, threshold)
     #create_stems(img_path,mask_path,src_path,threshold)
     #ontop(img_path, mask_path, src_path, threshold)
-    filtter_images(img_path, mask_path, src_path, threshold, save_flag)
+    #filtter_images(img_path, mask_path, src_path, threshold, save_flag)
     #
-    #get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
+    get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
 
 
 

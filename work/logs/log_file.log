@@ -23,3 +23,10 @@ Traceback (most recent call last):
   File "D:\Clarifruit\cherry_stem\work\auxiliary\image.py", line 68, in read_img
     raise ReadImageException(error_message, path)
 work.segmentation.clarifruit_segmentation.exceptions.ReadImageException: ("Can't read mask from", 'D:\\Clarifruit\\cherry_stem\\data\\raw_data\\stem classes\\ground\\D\\label\\72157-48926.png.jpg')
+2019-10-07 18:52:32,962-6d  ERROR    auxiliary.custom_image: Failed reading mask from: D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46\test\A\38360-00777.png.npy
+Traceback (most recent call last):
+  File "D:\Clarifruit\Clarifruit_functions\auxiliary\custom_image.py", line 80, in read_raw_pred
+    pred = np.load(self.mask_path, allow_pickle=True)
+  File "D:\Clarifruit\cherry_stem\cherry_venv\lib\site-packages\numpy\lib\npyio.py", line 422, in load
+    fid = open(os_fspath(file), "rb")
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\Clarifruit\\cherry_stem\\data\\unet_data\\training\\2019-09-30_07-19-46\\test\\A\\38360-00777.png.npy'

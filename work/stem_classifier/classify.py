@@ -19,30 +19,30 @@ class StemHistClassifier:
     def __init__(self, train_path,hist_type='bgr',threshold='0.4'):
         logger.debug(" <- init")
 
-        self.train_path = train_path
         self.hist_type=hist_type
         self.threshold=threshold
 
-        self.train_list = self.load_train() if train_path is not None else None
+        self.train_list = self.load_data(train_path) if train_path is not None else None
         self.model = None
         self.train_time = None
         self.save_path=None
         logger.debug(" -> init")
 
-    def load_train(self):
-        logger.debug(" <- load_train")
-        logger.debug(f"loading train data from:{self.train_path}")
+    def load_data(self,path):
+        logger.debug(" <- load_data")
+        logger.debug(f"loading train data from:{path}")
         ret_list = []
 
-        for label_folder in os.scandir(self.train_path):
+        for label_folder in os.scandir(path):
             hist_folder = os.path.join(label_folder.path, f'{self.hist_type}_histograms')
             for hist_entry in os.scandir(hist_folder):
                 ret_list.append((hist_entry, label_folder.name))
 
         random.shuffle(ret_list)
-        logger.debug(" -> load_train")
+        logger.debug(" -> load_data")
 
         return ret_list
+
     @staticmethod
     def return_hist(hist,hist_type):
         if hist_type == 'bgr':
@@ -99,6 +99,7 @@ class StemHistClassifier:
     def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
         logger.debug(" <- model_predict")
         save_path = data_functions.create_path(save_path, self.train_time)
+
         for name, x in self.test_data_iterator(test_path):
             curr_name = name.rsplit('.',1)[0]+img_extention
             curr_img_path = os.path.join(orig_images_path, curr_name)
