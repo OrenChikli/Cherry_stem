@@ -28,7 +28,9 @@ def main():
     save_path = data_functions.create_path(src_path,save_folder)
 
     classifier = classify.StemHistClassifier(train_path=train_path,
-                                             hist_type=hist_type)
+                                             hist_type=hist_type,
+                                             label_col='label',
+                                             drop_cols='file_name')
 
     model_name = 'LogisticRegression'
     model_parameters = {'solver': 'lbfgs',
@@ -36,11 +38,30 @@ def main():
                         'class_weight' : 'balanced',
                         'max_iter': 5000}
 
-    model_name = 'RandomForestClassifier'
-    #model_parameters ={'n_estimators':1000}
 
-    model_name ='Xgboost'
-    model_parameters = {}
+    model_name ='XGBClassifier'
+    model_parameters = {'colsample_bytree': 0.5,
+                        'eta': 0.03,
+                        'eval_metric': 'mlogloss',
+                        'max_depth': 7,
+                        'nthread': 2,
+                        'num_class': 4,
+                        'num_round': 1000,
+                        'objective': 'multi:softmax',
+                        'silent': 1,
+                        'subsample': 0.4,
+                        'n_estimators': 1000}
+
+    model_parameters = {'colsample_bytree': 0.5,
+                        'eta': 0.03,
+                        'max_depth': 7,
+                        'nthread': 2,
+                        'num_round': 1000,
+                        'objective': 'binary:logistic',
+                        'silent': 1,
+                        'subsample': 0.4,
+                        'n_estimators': 1000}
+
 
     #classifier.train_model(save_path, model_name)
     classifier.train_model(save_path,model_name, **model_parameters)

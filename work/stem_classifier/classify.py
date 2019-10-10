@@ -8,44 +8,72 @@ import shutil
 from datetime import datetime
 import logging
 from sklearn.preprocessing import normalize
+
 from sklearn.metrics import classification_report
-import xgboost as xgb
+from xgboost import XGBClassifier
+import pandas as pd
+from sklearn.utils import shuffle
 
 logger = logging.getLogger(__name__)
 
 SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression,
                        'RandomForestClassifier':RandomForestClassifier,
-                       'Xgboost':xgb}
+                       'XGBClassifier':XGBClassifier}
 
 
 class StemHistClassifier:
 
-    def __init__(self, train_path,hist_type='bgr',threshold='0.4'):
+    def __init__(self, train_path,label_col,drop_cols=None,hist_type='bgr',threshold='0.4'):
         logger.debug(" <- init")
 
-        self.hist_type=hist_type
-        self.threshold=threshold
 
-        self.train_list = self.load_data(train_path) if train_path is not None else None
+        self.threshold=threshold
+        self.hist_type = hist_type
+        self.train_df = self.load_data(train_path,hist_type)
+        self.label_col=label_col
+        self.drop_cols=drop_cols
+
         self.model = None
         self.train_time = None
         self.save_path=None
         logger.debug(" -> init")
 
-    def load_data(self,path):
+    @staticmethod
+    def load_npy_data(src_path):
+        df = None
+        name_list = []
+        for i, file_entry in enumerate(os.scandir(src_path)):
+            if file_entry.name.endswith('.npy'):
+                file = normalize(np.load(file_entry.path)).flatten()
+                name = file_entry.name.rsplit('.', 1)[0]
+                name_list.append(name)
+                if df is None:
+                    df = pd.DataFrame(file)
+                else:
+                    df[i] = file
+
+        df = df.T
+        df.columns = df.columns.astype(str)
+        df.insert(0, "file_name", name_list)
+
+        return df
+    @staticmethod
+    def load_data(path,hist_type):
         logger.debug(" <- load_data")
         logger.debug(f"loading train data from:{path}")
-        ret_list = []
+        ret_df = pd.DataFrame()
 
         for label_folder in os.scandir(path):
-            hist_folder = os.path.join(label_folder.path, f'{self.hist_type}_histograms')
-            for hist_entry in os.scandir(hist_folder):
-                ret_list.append((hist_entry, label_folder.name))
+            hist_folder = os.path.join(label_folder.path, f'{hist_type}_histograms')
+            curr_df = StemHistClassifier.load_npy_data(hist_folder)
+            curr_df['label'] =label_folder.name
+            ret_df = pd.concat((ret_df,curr_df))
 
-        random.shuffle(ret_list)
+        ret_df = shuffle(ret_df)
+
         logger.debug(" -> load_data")
 
-        return ret_list
+        return ret_df
 
     @staticmethod
     def return_hist(hist,hist_type):
@@ -78,25 +106,13 @@ class StemHistClassifier:
 
     def train_model(self,save_path, model_name, **model_kwargs):
         logger.debug(" <- train_model")
+        self.model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
+        x_train = self.train_df.drop([self.drop_cols,self.label_col],axis=1)
+        y_train = self.train_df[self.label_col]
+        logger.debug(" starting model_fit")
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         logger.info(f"model training time {self.train_time}")
-
-
-
-        logger.debug(" starting model_fit")
-        if model_name =='Xgboost':
-            self.model = SKLEARN_CLASSIFIERS[model_name]
-
-            X_train,y_train,name= zip(*self.from_list_data_generator(self.train_list))
-            train_data = xgb.DMatrix(X_train, label=y_train)
-            param = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic'}
-            num_round = 2
-            self.model.train= xgb.train(param, train_data, num_round)
-        else:
-            self.model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
-            x_train, y_train,_ = zip(*self.from_list_data_generator(self.train_list))
-            x_train = np.array(x_train)
-            self.model.fit(x_train,y_train)
+        self.model.fit(x_train,y_train)
 
         self.save_model(model_kwargs, model_name, save_path)
         logger.debug(" -> train_model")
@@ -112,33 +128,24 @@ class StemHistClassifier:
         data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
         data_functions.save_pickle(self.model, "trained_model.pickle", save_path)
 
-    def use_xgb(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
-        data,_ = zip(*self.from_list_data_generator(self.train_list))
-        dtrain = xgb.DMatrix(data)
-        # specify parameters via map
-        param = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic'}
-        num_round = 2
-        self.model = xgb.train(param, dtrain, num_round)
-        self.save_model(model, model_kwargs, model_name, save_path)
+
 
     def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
         logger.debug(" <- model_predict")
         save_path = data_functions.create_path(save_path, self.train_time)
 
-        test_list = self.load_data(test_path)
-        y_list =[]
-        pred_list= []
-        for x_test, y_test,x_name in self.from_list_data_generator(test_list):
-            y_list.append(y_test)
-            x_test = np.array(x_test).reshape(1,-1)
-            y_pred = self.model.predict(x_test)[0]
-            pred_list.append(y_pred)
+        test_df = self.load_data(test_path,self.hist_type)
+        x_test = test_df.drop([self.drop_cols, self.label_col], axis=1)
+        y_test = test_df[self.label_col]
+        y_pred = self.model.predict(x_test)
+        for i in range(len(y_pred)):
+            x_name = test_df.iloc[i]['file_name']
             img_name = x_name+img_extention
             curr_img_path = os.path.join(orig_images_path, img_name)
-            curr_save_path = data_functions.create_path(save_path, y_pred)
+            curr_save_path = data_functions.create_path(save_path, y_pred[i])
             _ = shutil.copy(curr_img_path, curr_save_path)
 
-        report = classification_report(y_list,pred_list)
+        report = classification_report(y_test,y_pred)
         with open(os.path.join(save_path,"classification_report.txt"),'w') as f:
             f.write(report)
         print(report)
@@ -151,3 +158,4 @@ def get_pred_via_list(src_list,save_path, orig_images_path,img_extention='.jpg')
         curr_img_path = os.path.join(orig_images_path, curr_name)
         curr_save_path = data_functions.create_path(save_path, str(pred))
         _ = shutil.copy(curr_img_path, curr_save_path)
+

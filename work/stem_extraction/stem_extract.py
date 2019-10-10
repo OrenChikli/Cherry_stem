@@ -7,6 +7,9 @@ import shutil
 
 import logging
 from auxiliary.exceptions import *
+from sklearn.preprocessing import normalize
+from sklearn.utils import shuffle
+import pandas as pd
 
 PR_DICT ={0.9:'A',0.6:'B',0.3:'C',0:'D'}
 
@@ -155,7 +158,44 @@ class StemExtractor:
             np.save(curr_dest_path,fig_big_hist)
 
 
+def load_npy_data(src_path):
+    df = None
+    name_list = []
+    for i, file_entry in enumerate(os.scandir(src_path)):
+        if file_entry.name.endswith('.npy'):
+            file = normalize(np.load(file_entry.path)).flatten()
+            name = file_entry.name.rsplit('.', 1)[0]
+            name_list.append(name)
+            if df is None:
+                df = pd.DataFrame(file)
+            else:
+                df[i] = file
 
+    df = df.T
+    df.columns = df.columns.astype(str)
+    df.insert(0, "file_name", name_list)
+
+    return df
+
+def load_data(path,hist_type):
+    logger.debug(" <- load_data")
+    logger.debug(f"loading train data from:{path}")
+    ret_df = pd.DataFrame()
+
+    for label_folder in os.scandir(path):
+        hist_folder = os.path.join(label_folder.path, f'{hist_type}_histograms')
+        curr_df = load_npy_data(hist_folder)
+        curr_df['label'] =label_folder.name
+
+        ret_df = pd.concat((ret_df,curr_df))
+
+    ret_df['label'] = ret_df['label'].astype('category')
+    ret_df = shuffle(ret_df)
+    ret_df.reset_index(inplace=True,drop=True)
+
+    logger.debug(" -> load_data")
+
+    return ret_df
 
 
 
