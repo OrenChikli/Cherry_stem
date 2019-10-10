@@ -148,12 +148,16 @@ def create_ground_truth_hists(ground_path,threshold,src_path,
                             hist_type,
                             use_thres_flag=False)
 
+def get_test_train():
+    src_path=r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\All'
+    dest_path =r'D:\Clarifruit\cherry_stem\data\classification_data\from_all'
+    data_functions.get_train_test_split(src_path,dest_path,train_name='train',test_name='test',test_size=0.33)
 
 
 
 
 def main():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-07_20-12-39'
 
     train_folder = 'train'
     test_folder ='test'
@@ -165,22 +169,22 @@ def main():
     ground_test_path = os.path.join(ground_path,test_folder)
 
     threshold = 0.4
-    hist_type='hsv'
+    hist_type='bgr'
 
     save_flag=True
 
     #create train data
-    # create_ground_truth(ground_train_path, mask_path, src_path,
-    #                     train_folder=train_folder)
-    # create_ground_truth_hists(ground_path=ground_train_path,threshold= threshold,src_path= src_path,
-    #                           train_folder=train_folder,hist_type=hist_type)
-    #
-    # #create test data
-    # create_ground_truth(ground_test_path, mask_path, src_path,
-    #                     train_folder=test_folder)
-    # create_ground_truth_hists(ground_path=ground_test_path,threshold= threshold,src_path= src_path,
-    #                           train_folder=test_folder,hist_type=hist_type)
-    #
+    create_ground_truth(ground_train_path, mask_path, src_path,
+                        train_folder=train_folder)
+    create_ground_truth_hists(ground_path=ground_train_path,threshold= threshold,src_path= src_path,
+                              train_folder=train_folder,hist_type=hist_type)
+
+    #create test data
+    create_ground_truth(ground_test_path, mask_path, src_path,
+                        train_folder=test_folder)
+    create_ground_truth_hists(ground_path=ground_test_path,threshold= threshold,src_path= src_path,
+                              train_folder=test_folder,hist_type=hist_type)
+
 
     #experiment with current data
 
@@ -188,7 +192,6 @@ def main():
     #create_stems(img_path,mask_path,src_path,threshold)
     #ontop(img_path, mask_path, src_path, threshold)
     #filtter_images(img_path, mask_path, src_path, threshold, save_flag)
-    #
     get_pred_histograms(img_path, mask_path, src_path, threshold,hist_type)
 
 

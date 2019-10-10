@@ -2,16 +2,20 @@ import os
 import numpy as np
 import random
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from auxiliary import data_functions
 import shutil
 from datetime import datetime
 import logging
 from sklearn.preprocessing import normalize
 from sklearn.metrics import classification_report
+import xgboost as xgb
 
 logger = logging.getLogger(__name__)
 
-SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression}
+SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression,
+                       'RandomForestClassifier':RandomForestClassifier,
+                       'Xgboost':xgb}
 
 
 class StemHistClassifier:
@@ -62,7 +66,9 @@ class StemHistClassifier:
             yield hist, item_label,name
 
 
-    def test_data_iterator(self,test_path):
+
+    @staticmethod
+    def test_data_iterator(test_path):
         for item_entry in os.scandir(test_path):
             hist = np.load(item_entry.path)
             hist = normalize(hist).flatten().reshape(1,-1)
@@ -75,18 +81,27 @@ class StemHistClassifier:
         self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         logger.info(f"model training time {self.train_time}")
 
-        model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
+
 
         logger.debug(" starting model_fit")
-        x_train, y_train,_ = zip(*self.from_list_data_generator(self.train_list))
-        x_train = np.array(x_train)
-        model.fit(x_train,y_train)
-        self.model = model
+        if model_name =='Xgboost':
+            self.model = SKLEARN_CLASSIFIERS[model_name]
 
-        self.save_model(model, model_kwargs, model_name, save_path)
+            X_train,y_train,name= zip(*self.from_list_data_generator(self.train_list))
+            train_data = xgb.DMatrix(X_train, label=y_train)
+            param = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic'}
+            num_round = 2
+            self.model.train= xgb.train(param, train_data, num_round)
+        else:
+            self.model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
+            x_train, y_train,_ = zip(*self.from_list_data_generator(self.train_list))
+            x_train = np.array(x_train)
+            self.model.fit(x_train,y_train)
+
+        self.save_model(model_kwargs, model_name, save_path)
         logger.debug(" -> train_model")
 
-    def save_model(self, model, model_kwargs, model_name, save_path):
+    def save_model(self, model_kwargs, model_name, save_path):
 
         save_path = data_functions.create_path(save_path, self.train_time)
         save_path = data_functions.create_path(save_path, 'saved_model')
@@ -95,7 +110,16 @@ class StemHistClassifier:
         data_functions.save_json(extractions_params,"extraction_params.json",save_path)
 
         data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
-        data_functions.save_pickle(model, "trained_model.pickle", save_path)
+        data_functions.save_pickle(self.model, "trained_model.pickle", save_path)
+
+    def use_xgb(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
+        data,_ = zip(*self.from_list_data_generator(self.train_list))
+        dtrain = xgb.DMatrix(data)
+        # specify parameters via map
+        param = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic'}
+        num_round = 2
+        self.model = xgb.train(param, dtrain, num_round)
+        self.save_model(model, model_kwargs, model_name, save_path)
 
     def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
         logger.debug(" <- model_predict")
