@@ -2,12 +2,54 @@ from work.stem_classifier import classify
 from auxiliary import data_functions
 import os
 import xgboost as xgb
+from work.stem_classifier.model_functions import *
 
 from logger_settings import *
 configure_logger()
 logger = logging.getLogger("classifier_main")
 
 
+def func():
+    train_path=r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\set1\train'
+    dest_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-07_20-12-39'
+    test_path=r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\set1\test'
+
+    params_dict = dict(
+
+        train_path=train_path,
+
+        data_gen_args=dict(rescale=1. / 255,
+                           rotation_range=180,
+                           width_shift_range=0.25,
+                           height_shift_range=0.25,
+                           shear_range=0.2,
+                           zoom_range=[0.5, 1.0],
+                           horizontal_flip=True,
+                           vertical_flip=True,
+                           fill_mode='nearest'),
+
+        optimizer='Adam',
+        optimizer_params=dict(lr=1e-4),
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+        pretrained_weights=None,
+
+        target_size=(256, 256),
+        color_mode='rgb',
+        batch_size=10,
+        epochs=10,
+        steps_per_epoch=3000,
+        valdiation_split=0.2,
+        validation_steps=300)
+
+
+    logger.info("created training instance")
+    model = ClarifruitClassifier(**params_dict)
+    logger.info("train start")
+    model.train_model(dest_path=dest_path,params_dict=params_dict)
+    logger.info("finished training")
+
+    model.prediction(test_path,dest_path)
 
 
 def main():
@@ -72,5 +114,6 @@ def main():
 
 if __name__ == '__main__':
     #get_test_train()
-    main()
+    #main()
+    func()
 

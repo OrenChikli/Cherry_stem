@@ -65,8 +65,8 @@ class ClarifruitUnet:
         self.validation_split = valdiation_split
         self.seed = 1
 
-
         self.get_unet_model()
+
 
         logger.debug(" -> __init__")
 
@@ -293,6 +293,9 @@ class ClarifruitUnet:
         logger.debug(" -> get_unet_model")
 
 
+
+
+
     def fit_unet(self):
         """ fit a unet model for the current instance"""
         logger.debug(" <- fit_unet")
@@ -306,6 +309,7 @@ class ClarifruitUnet:
             callbacks=self.callbacks,
             verbose=1)
         logger.debug(" -> fit_unet")
+
 
 
     def save_model(self,dest_path, params_dict=None):
