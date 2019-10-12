@@ -158,7 +158,8 @@ class ClarifruitUnet:
     #     return train_gen, val_gen
 
     @staticmethod
-    def train_val_generators(batch_size, src_path, folder, aug_dict, save_prefix,
+    def train_val_generators(batch_size, src_path, folder,  save_prefix,
+                             aug_dict = None,
                              color_mode="grayscale",
                              save_to_dir=None,
                              target_size=(256, 256),
@@ -180,7 +181,11 @@ class ClarifruitUnet:
         :return: a flow_from_dictionary keras datagenerator
         """
         logger.debug(f" <- train_val_generators src:\n{src_path}")
-        datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
+        if aug_dict is not None:
+            datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
+
+        else:
+            datagen = ImageDataGenerator(validation_split=validation_split)
 
         train_gen = datagen.flow_from_directory(
             src_path,
@@ -208,16 +213,17 @@ class ClarifruitUnet:
         logger.debug(f" -> train_val_generators src:\n{src_path}")
         return train_gen, val_gen
 
-    def clarifruit_train_val_generators(self):
+    def clarifruit_train_val_generators(self,aug_flag=True):
         """
         a method to create train and validation data generators for the current instance
         :return:
         """
         logger.debug(f" <- clarifruit_train_val_generators")
+        aug_dict = self.data_gen_args if aug_flag else None
         image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
                                                                                src_path=self.train_path,
                                                                                folder=self.x_folder_name,
-                                                                               aug_dict=self.data_gen_args,
+                                                                               aug_dict=aug_dict,
                                                                                color_mode=self.color_mode,
                                                                                save_prefix=self.x_folder_name,
                                                                                save_to_dir=self.save_to_dir,
@@ -228,7 +234,7 @@ class ClarifruitUnet:
         mask_train_generator, mask_val_generator = self.train_val_generators(batch_size=self.batch_size,
                                                                              src_path=self.train_path,
                                                                              folder=self.y_folder_name,
-                                                                             aug_dict=self.data_gen_args,
+                                                                             aug_dict=aug_dict,
                                                                              color_mode='grayscale',
                                                                              save_prefix=self.y_folder_name,
                                                                              save_to_dir=self.save_to_dir,
@@ -236,9 +242,11 @@ class ClarifruitUnet:
                                                                              seed=self.seed,
                                                                              validation_split=self.validation_split)
 
-        self.train_generator = zip(image_train_generator, mask_train_generator)
-        self.val_generator = zip(image_val_generator, mask_val_generator)
+        train_generator = zip(image_train_generator, mask_train_generator)
+        val_generator = zip(image_val_generator, mask_val_generator)
         logger.debug(f" -> clarifruit_train_val_generators")
+        return train_generator,val_generator
+
 
     def test_generator(self, test_path):
         """
@@ -361,6 +369,7 @@ class ClarifruitUnet:
 
         logger.debug(" -> save_model")
 
+
     def set_model_checkpint(self, dest_path):
         """
         set the model checkpoint keras callbacks method for the current training session,
@@ -386,7 +395,9 @@ class ClarifruitUnet:
         model_checkpoint = ModelCheckpoint(out_model_path, monitor='loss',
                                            verbose=1, save_best_only=True)
 
-        v_data = [next(self.val_generator) for i in range(5)]
+        _,val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
+
+        v_data = next(val_gen_no_aug)
         image_history = ImageHistory(tensor_board_dir=keras_logs_path,
                                      data=v_data,
                                      last_step=84,
@@ -411,7 +422,7 @@ class ClarifruitUnet:
         if dest_path is not None:
             self.save_model_params(dest_path=dest_path, params_dict=params_dict)
 
-        self.clarifruit_train_val_generators()
+        self.train_generator,self.val_generator = self.clarifruit_train_val_generators()
         self.set_model_checkpint(dest_path=dest_path)
         self.fit_unet()
 

@@ -4,7 +4,7 @@ import io
 import numpy as np
 import tensorflow as tf
 from keras.callbacks import Callback
-from tensorflow.compat.v1 import Summary
+from tensorflow.compat.v1 import Summary,summary
 from auxiliary.custom_image import CustomImage
 
 class ImageHistory(Callback):
@@ -17,22 +17,30 @@ class ImageHistory(Callback):
 
     def get_data(self,data):
         data_list = []
-        for item in data:
-            image_data = item[0]
-            label_data = item[1]
 
-            image = self.to_image(image_data[0])
-            ground_truth = self.to_image(label_data[0])
-            data_list.append((image_data,image,ground_truth))
-        self.data =data_list
+        for i in range(5):
+            image_data = data[0][i]
+            label_data = data[1][i]
 
-    def make_image(self, npyfile):
+            raw_image = image_data.astype(np.uint8)
+            raw_mask = label_data.astype(np.uint8)
+
+            proto_image = self.make_image(raw_image)
+            proto_ground_truth = self.make_image(raw_mask)
+
+            data_list.append((image_data,proto_image,proto_ground_truth))
+
+        self.data = data_list
+
+    def make_image(self, tensor):
         """
         Convert an numpy representation image to Image protobuf.
         taken and updated from https://github.com/lanpa/tensorboard-pytorch/
         """
-        height, width, channel = npyfile.shape
-        image = Image.frombytes('L', (width, height), npyfile.tobytes())
+        height, width, channel = tensor.shape
+        if channel == 1:
+            tensor = np.squeeze(tensor,axis=2)
+        image = Image.fromarray(tensor)
         output = io.BytesIO()
         image.save(output, format='PNG')
         image_string = output.getvalue()
@@ -40,27 +48,22 @@ class ImageHistory(Callback):
         return Summary.Image(height=height, width=width, colorspace=channel,
                                           encoded_image_string=image_string)
 
-    # def saveToTensorBoard(self, image,tag, epoch):
-    #
-    #     image = self.make_image(image)
-    #     summary = tf.compat.v1.Summary(value=[tf.compat.v1.Summary.Value(tag=tag, image=image)])
-    #     writer = tf.compat.v1.summary.FileWriter(self.tensor_board_dir)
-    #     writer.add_summary(summary, epoch)
-    #     writer.close()
+
 
     def to_image(self,data):
-        image = (((data - data.min()) * 255) / (data.max() - data.min())).astype(np.uint8)
-        return self.make_image(image)
+        img = (255 * data).astype(np.uint8)
+        return self.make_image(img)
 
-    def saveToTensorBoard(self, image,ground_truth,pred, epoch):
-        image_summary = Summary.Value(tag='image', image=image)
-        ground_truth_summary = Summary.Value(tag='image', image=ground_truth)
-        pred_summary = Summary.Value(tag='image', image=pred)
+    def saveToTensorBoard(self,i, image,ground_truth,pred, epoch):
 
-        summary = Summary(value=[image_summary,ground_truth_summary,pred_summary])
-        writer = summary.FileWriter(self.tensor_board_dir)
-        writer.add_summary(summary, epoch)
-        writer.close()
+        image_summary = Summary.Value(tag=f'plot_{i}/image', image=image)
+        ground_truth_summary = Summary.Value(tag=f'plot_{i}/ground_truth', image=ground_truth)
+        pred_summary = Summary.Value(tag=f'plot_{i}/pred', image=pred)
+
+        summary_value = Summary(value=[image_summary,ground_truth_summary,pred_summary])
+        with summary.FileWriter(self.tensor_board_dir) as writer:
+            writer.add_summary(summary_value, epoch)
+
 
     def on_batch_end(self, batch, logs=None):
         if logs is None:
@@ -68,14 +71,14 @@ class ImageHistory(Callback):
         if batch % self.draw_interval == 0:
             epoch = self.last_step * self.draw_interval
             self.last_step += 1
-            for image_data,image,ground_truth in self.data:
+            for i,(image_data,proto_image,proto_ground_truth) in enumerate(self.data):
 
-                y_pred = self.model.predict(image_data)
+                y_pred = self.model.predict(image_data[np.newaxis,:])
                 pred= self.to_image(y_pred[0])
 
-                self.saveToTensorBoard(image=image,
-                                       ground_truth=ground_truth,
+                self.saveToTensorBoard(image=proto_image,
+                                       ground_truth=proto_ground_truth,
                                        pred=pred,
-                                       epoch=epoch)
+                                       epoch=epoch,
+                                       i=i)
 
-                break

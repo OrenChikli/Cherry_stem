@@ -75,12 +75,12 @@ def main():
         pretrained_weights=None,
 
         target_size=(256, 256),
-        color_mode='rgb',
+        color_mode='grayscale',
         batch_size=10,
-        epochs=5,
-        steps_per_epoch=10,
+        epochs=3,
+        steps_per_epoch=4000,
         valdiation_split=0.2,
-        validation_steps=10)
+        validation_steps=200)
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
                                   patience=2, min_lr=0.000001,
@@ -98,11 +98,11 @@ def main():
     params_dict['callbacks'] = callbacks
 
 
-    # model = train_model(train_path=train_path,
-    #                     params_dict=params_dict,
-    #                     dest_path=dest_path)
+    model = train_model(train_path=train_path,
+                        params_dict=params_dict,
+                        dest_path=dest_path)
 
-    model, params_dict = load_from_files(src_path)
+    #model, params_dict = load_from_files(src_path)
     model.train_model(dest_path=dest_path, params_dict=params_dict)
     #model.prediction(test_path,dest_path)
 
