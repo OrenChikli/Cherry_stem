@@ -30,7 +30,7 @@ def train_model(train_path,params_dict,dest_path=None):
 
 
 
-def load_from_files(src_path,params_dict=None):
+def load_from_files(src_path,updat_dict=None):
     """
     a method that can load a trained instance of ClarifruitUnet from a path in src_path variable
     the model parameters can be modified for further training as shown within
@@ -38,7 +38,8 @@ def load_from_files(src_path,params_dict=None):
     :return: the ClarifruitUnet instance
     """
     params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path)
-
+    if updat_dict is not None:
+        params_dict.update(updat_dict)
     logger.info(f"loading model from {src_path}")
     model = unet_model_functions.ClarifruitUnet(**params_dict)
     return model,params_dict
@@ -48,7 +49,7 @@ def main():
     train_path=r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
     dest_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training'
     test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    src_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-12_15-23-31'
+    src_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-12_21-26-13'
 
     params_dict = dict(
 
@@ -98,11 +99,15 @@ def main():
     params_dict['callbacks'] = callbacks
 
 
-    model = train_model(train_path=train_path,
-                        params_dict=params_dict,
-                        dest_path=dest_path)
+    # model = train_model(train_path=train_path,
+    #                     params_dict=params_dict,
+    #                     dest_path=dest_path)
 
-    #model, params_dict = load_from_files(src_path)
+
+    update_dict = dict(epochs=2,
+                      steps_per_epoch=10,
+                      validation_steps=10)
+    model, params_dict = load_from_files(src_path, update_dict)
     model.train_model(dest_path=dest_path, params_dict=params_dict)
     #model.prediction(test_path,dest_path)
 

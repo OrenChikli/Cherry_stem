@@ -2,10 +2,14 @@ import keras
 from PIL import Image
 import io
 import numpy as np
-import tensorflow as tf
 from keras.callbacks import Callback
 from tensorflow.compat.v1 import Summary,summary
 from auxiliary.custom_image import CustomImage
+from logger_settings import *
+
+configure_logger()
+logger = logging.getLogger("unet_callbacks")
+
 
 class ImageHistory(Callback):
     def __init__(self, tensor_board_dir, data, last_step=0, draw_interval=100):
@@ -13,7 +17,8 @@ class ImageHistory(Callback):
         super().__init__()
         self.last_step = last_step
         self.draw_interval = draw_interval
-        self.writer = tf.summary.FileWriter(tensor_board_dir)
+
+        self.writer = summary.FileWriter(tensor_board_dir)
 
         self.get_data(data)
 
@@ -61,27 +66,51 @@ class ImageHistory(Callback):
         img = (255 * data).astype(np.uint8)
         return self.make_image(img)
 
-    def saveToTensorBoard(self,image,tag, epoch=None):
+    def saveToTensorBoard(self, image, tag, batch=None):
 
         image_summary = Summary.Value(tag=tag, image=image)
         summary_value = Summary(value=[image_summary])
 
-        self.writer.add_summary(summary_value, global_step=epoch)
+        self.writer.add_summary(summary_value, global_step=batch)
 
 
     def on_batch_end(self, batch, logs=None):
+
         if logs is None:
             logs = {}
+
         if batch % self.draw_interval == 0:
-            epoch = self.last_step * self.draw_interval
-            self.last_step += 1
+            logger.info("updating tensorboard images,step:" + str(self.last_step))
+            #self.writer.add_text('Text', 'text logged at step:' + str(self.last_step), self.last_step)
+
+            #epoch = self.last_step * self.draw_interval
+
             y_pred = self.model.predict(self.data)
             for i in range(5):
+                img = self.data[i].astype(np.uint8)
                 raw_pred = y_pred[i]
-                binary
-                proto_pred= self.to_image(curr_pred)
+                custom_img = CustomImage(img=img,mask=raw_pred,threshold=0.5)
+                custom_img.get_ontop()
+
+                proto_ontop= self.make_image(custom_img.ontop)
+                tag = f'plot_{i}/ontop'
+                self.saveToTensorBoard(image=proto_ontop,
+                                       tag=tag,
+                                       batch=self.last_step)
+
+                proto_pred= self.to_image(raw_pred)
                 tag = f'plot_{i}/pred'
                 self.saveToTensorBoard(image=proto_pred,
                                        tag=tag,
-                                       epoch=epoch)
+                                       batch=self.last_step)
+        self.last_step += 1
+    def on_train_end(self, logs=None):
+        """Called at the end of training.
 
+        Subclasses should override for any actions to run.
+
+        # Arguments
+            logs: dict, currently no data is passed to this argument for this method
+                but that may change in the future.
+        """
+        self.writer.close()

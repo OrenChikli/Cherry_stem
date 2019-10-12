@@ -347,7 +347,7 @@ class ClarifruitUnet:
         """ fit a unet model for the current instance"""
         logger.debug(" <- fit_unet")
 
-        self.model.fit_generator(
+        histoty =self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=self.steps_per_epoch,
             validation_data=self.val_generator,
@@ -355,6 +355,7 @@ class ClarifruitUnet:
             epochs=self.epochs,
             callbacks=self.callbacks,
             verbose=1)
+        self.steps+= int(self.epochs * self.steps_per_epoch)
         logger.debug(" -> fit_unet")
 
     def save_model_params(self, dest_path, params_dict):
@@ -387,28 +388,32 @@ class ClarifruitUnet:
         curr_folder = create_path(dest_path, self.train_time)
 
         keras_logs_path = create_path(curr_folder, 'keras_logs')
+
+        update_freq= max(int(0.1 * self.steps_per_epoch),10)
+
         tensorboard_callback = TensorBoard(log_dir=keras_logs_path,
                                            histogram_freq=0,
                                            write_graph=True,
                                            write_images=True,
-                                           update_freq=100)
-
-        out_model_path = os.path.join(curr_folder, self.weights_file_name)
+                                           update_freq='batch')
+        file_name = self.weights_file_name.split('.')[0]
+        file_name += '.{epoch:02d}-{val_loss:.2f}.hdf5'
+        out_model_path = os.path.join(curr_folder, file_name)
         model_checkpoint = ModelCheckpoint(out_model_path, monitor='loss',
                                            verbose=1, save_best_only=True)
 
         _,val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
 
         v_data = next(val_gen_no_aug)
-        #TODO: modify steps
-        draw_interval = 100
-        last_step = self.steps/ draw_interval
+
+        last_step = self.steps/ update_freq
+
         image_history = ImageHistory(tensor_board_dir=keras_logs_path,
                                      data=v_data,
                                      last_step=last_step,
-                                     draw_interval=draw_interval)
+                                     draw_interval=update_freq)
 
-        callbacks = [tensorboard_callback, image_history, model_checkpoint]
+        callbacks = [image_history, model_checkpoint]
         if self.callbacks is None:
             self.callbacks = callbacks
         else:

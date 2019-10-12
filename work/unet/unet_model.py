@@ -19,7 +19,9 @@ def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy
     :param input_size: the dimensions of the input images, defualt is (256,256,1) images
     :return:
     """
-    logger.info(f"<- unet model with input_size={input_size} andpretraind_weights={pretrained_weights} ")
+    logger.info(f"<- unet model with input_size={input_size}")
+    if pretrained_weights is not None:
+        logger.info(f" model loaded from pretraind_weights={pretrained_weights}")
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
