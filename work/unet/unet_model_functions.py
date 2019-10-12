@@ -26,7 +26,8 @@ class ClarifruitUnet:
                  target_size=(256, 256), color_mode='rgb',
                  batch_size=10, epochs=5, steps_per_epoch=10,
                  valdiation_split=0.2, validation_steps=10,
-                 train_time=None):
+                 train_time=None,
+                 steps=0):
 
         logger.debug(" <- __init__")
 
@@ -61,6 +62,7 @@ class ClarifruitUnet:
         self.save_to_dir = None
         self.validation_split = valdiation_split
         self.seed = 1
+        self.steps=steps
 
         self.get_unet_model()
 
@@ -398,10 +400,13 @@ class ClarifruitUnet:
         _,val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
 
         v_data = next(val_gen_no_aug)
+        #TODO: modify steps
+        draw_interval = 100
+        last_step = self.steps/ draw_interval
         image_history = ImageHistory(tensor_board_dir=keras_logs_path,
                                      data=v_data,
-                                     last_step=84,
-                                     draw_interval=100)
+                                     last_step=last_step,
+                                     draw_interval=draw_interval)
 
         callbacks = [tensorboard_callback, image_history, model_checkpoint]
         if self.callbacks is None:

@@ -9,14 +9,16 @@ from auxiliary.custom_image import CustomImage
 
 class ImageHistory(Callback):
     def __init__(self, tensor_board_dir, data, last_step=0, draw_interval=100):
-        self.get_data(data)
 
+        super().__init__()
         self.last_step = last_step
         self.draw_interval = draw_interval
-        self.tensor_board_dir = tensor_board_dir
+        self.writer = tf.summary.FileWriter(tensor_board_dir)
+
+        self.get_data(data)
 
     def get_data(self,data):
-        data_list = []
+        self.data = data[0]
 
         for i in range(5):
             image_data = data[0][i]
@@ -26,11 +28,16 @@ class ImageHistory(Callback):
             raw_mask = label_data.astype(np.uint8)
 
             proto_image = self.make_image(raw_image)
+            image_tag = f'plot_{i}/image'
+            self.saveToTensorBoard(image=proto_image,
+                                   tag=image_tag)
+
             proto_ground_truth = self.make_image(raw_mask)
+            image_tag = f'plot_{i}/ground_truth'
+            self.saveToTensorBoard(image=proto_ground_truth,
+                                   tag=image_tag)
 
-            data_list.append((image_data,proto_image,proto_ground_truth))
 
-        self.data = data_list
 
     def make_image(self, tensor):
         """
@@ -54,15 +61,12 @@ class ImageHistory(Callback):
         img = (255 * data).astype(np.uint8)
         return self.make_image(img)
 
-    def saveToTensorBoard(self,i, image,ground_truth,pred, epoch):
+    def saveToTensorBoard(self,image,tag, epoch=None):
 
-        image_summary = Summary.Value(tag=f'plot_{i}/image', image=image)
-        ground_truth_summary = Summary.Value(tag=f'plot_{i}/ground_truth', image=ground_truth)
-        pred_summary = Summary.Value(tag=f'plot_{i}/pred', image=pred)
+        image_summary = Summary.Value(tag=tag, image=image)
+        summary_value = Summary(value=[image_summary])
 
-        summary_value = Summary(value=[image_summary,ground_truth_summary,pred_summary])
-        with summary.FileWriter(self.tensor_board_dir) as writer:
-            writer.add_summary(summary_value, epoch)
+        self.writer.add_summary(summary_value, global_step=epoch)
 
 
     def on_batch_end(self, batch, logs=None):
@@ -71,14 +75,13 @@ class ImageHistory(Callback):
         if batch % self.draw_interval == 0:
             epoch = self.last_step * self.draw_interval
             self.last_step += 1
-            for i,(image_data,proto_image,proto_ground_truth) in enumerate(self.data):
-
-                y_pred = self.model.predict(image_data[np.newaxis,:])
-                pred= self.to_image(y_pred[0])
-
-                self.saveToTensorBoard(image=proto_image,
-                                       ground_truth=proto_ground_truth,
-                                       pred=pred,
-                                       epoch=epoch,
-                                       i=i)
+            y_pred = self.model.predict(self.data)
+            for i in range(5):
+                raw_pred = y_pred[i]
+                binary
+                proto_pred= self.to_image(curr_pred)
+                tag = f'plot_{i}/pred'
+                self.saveToTensorBoard(image=proto_pred,
+                                       tag=tag,
+                                       epoch=epoch)
 
