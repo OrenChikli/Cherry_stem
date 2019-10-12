@@ -228,7 +228,7 @@ class ClarifruitClassifier:
         for img, img_entry, orig_shape,label in test_gen:
             pred_vec= self.model.predict(img, batch_size=1)
             pred_int=np.argmax(pred_vec)
-            pred = pred_dict[pred_int]
+            pred = int(pred_dict[pred_int])
             preds.append(pred)
             curr_save_path = create_path(save_path,pred)
             _ = shutil.copy(img_entry.path,curr_save_path)

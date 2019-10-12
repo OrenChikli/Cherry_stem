@@ -96,7 +96,8 @@ def filter_images(img_path, mask_path, save_path, threshold, hist_type='bgr', us
     logger.info(f"getting filterred images for threshold {threshold}")
     logger.info(f"saving results at {save_path}")
 
-    stem_exctractor.fillter_via_color(save_flag=True)
+    stem_exctractor.fillter_via_color()
+
 
 
 def get_pred_histograms(img_path, mask_path, save_path, threshold, hist_type='bgr', use_thres_flag=True):
@@ -184,7 +185,7 @@ def get_test_train():
 
 
 def main():
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-07_20-12-39'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-11_18-09-39'
 
     train_folder = 'train'
     test_folder = 'test'
@@ -196,8 +197,8 @@ def main():
     ground_test_path = os.path.join(ground_path, test_folder)
 
     threshold = 0.4
-    hist_type = 'bgr'
-    object_type='filter_images'
+    hist_type = 'hsv'
+    object_type='ontop'
 
     save_flag = True
 
@@ -205,28 +206,28 @@ def main():
     # create_raw_ground_truth(ground_train_path, mask_path, src_path,
     #                     train_folder=train_folder)
 
-    create_ground_truth_objects(ground_path=ground_train_path,
-                                threshold=threshold,
-                                src_path=src_path,
-                                train_folder=train_folder,
-                                hist_type=hist_type,
-                                obj_type=object_type)
+    # create_ground_truth_objects(ground_path=ground_train_path,
+    #                             threshold=threshold,
+    #                             src_path=src_path,
+    #                             train_folder=train_folder,
+    #                             hist_type=hist_type,
+    #                             obj_type=object_type)
 
     # #create test data
     # create_raw_ground_truth(ground_test_path, mask_path, src_path,
     #                     train_folder=test_folder)
 
-    create_ground_truth_objects(ground_path=ground_test_path,
-                                threshold=threshold,
-                                src_path=src_path,
-                                train_folder=test_folder,
-                                hist_type=hist_type,
-                                obj_type=object_type)
+    # create_ground_truth_objects(ground_path=ground_test_path,
+    #                             threshold=threshold,
+    #                             src_path=src_path,
+    #                             train_folder=test_folder,
+    #                             hist_type=hist_type,
+    #                             obj_type=object_type)
     # experiment with current data
 
     # get_binary_masks(img_path, mask_path, src_path, threshold)
     # create_stems(img_path,mask_path,src_path,threshold)
-    # ontop(img_path, mask_path, src_path, threshold)
+    ontop(img_path, mask_path, src_path, threshold)
     # filtter_images(img_path, mask_path, src_path, threshold, save_flag)
     #get_pred_histograms(img_path, mask_path, src_path, threshold, hist_type)
 

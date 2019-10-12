@@ -322,6 +322,7 @@ class ClarifruitUnet:
         save_dict = params_dict.copy()
         if 'callbacks' in save_dict:  # callbacks are not hashable, cant save to json
             save_dict.pop('callbacks')
+        save_dict['metrics']=['Recall']
         save_json(save_dict, "model_params.json", curr_folder)
 
         logger.debug(" -> save_model")

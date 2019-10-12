@@ -114,6 +114,6 @@ def main():
 
 if __name__ == '__main__':
     #get_test_train()
-    #main()
-    func()
+    main()
+    #func()
 

@@ -122,12 +122,28 @@ class StemExtractor:
         elif 0.3 > pr >=0.1: label = 'B'
         return label
 
-    def fillter_via_color(self,save_flag=False):
+    # def fillter_via_color(self,save_flag=False):
+    #     logger.debug(" <- fillter_via_color")
+    #     out_path = data_functions.create_path(self.thres_save_path, f'filtered')
+    #     logger.info(f"creting filltered images in {out_path}")
+    #     for img in tqdm(self.image_obj_iterator()):
+    #         pr_green,pr_brown = img.filter_cut_iamge()
+    #         raw_name = img.image_name.rsplit('.',1)[0]
+    #         pred = self.get_label(pr_green,pr_brown,img.image_name)
+    #         curr_save_path = data_functions.create_path(out_path, pred)
+    #         _ = shutil.copy(img.img_path, curr_save_path)
+    #         if save_flag:
+    #             cv2.imwrite(os.path.join(out_path, f'{raw_name}_green.jpg'), img.green_part)
+    #             cv2.imwrite(os.path.join(out_path, f'{raw_name}_brown.jpg'), img.brown_part)
+    #             cv2.imwrite(os.path.join(out_path, img.image_name), img.threshold_mask)
+    #     logger.debug(" -> get_notop")
+
+    def fillter_via_color_green_brown(self, save_flag=False):
         logger.debug(" <- fillter_via_color")
         out_path = data_functions.create_path(self.thres_save_path, f'filtered')
         logger.info(f"creting filltered images in {out_path}")
         for img in tqdm(self.image_obj_iterator()):
-            pr_green,pr_brown = img.filter_cut_iamge()
+            pr_green,pr_brown = img.filter_cut_image_green_brown()
             raw_name = img.image_name.rsplit('.',1)[0]
             pred = self.get_label(pr_green,pr_brown,img.image_name)
             curr_save_path = data_functions.create_path(out_path, pred)
@@ -137,6 +153,15 @@ class StemExtractor:
                 cv2.imwrite(os.path.join(out_path, f'{raw_name}_brown.jpg'), img.brown_part)
                 cv2.imwrite(os.path.join(out_path, img.image_name), img.threshold_mask)
         logger.debug(" -> get_notop")
+
+    def fillter_via_color(self):
+        logger.debug(" <- fillter_via_color")
+        out_path = data_functions.create_path(self.thres_save_path, f'filtered')
+        logger.info(f"creting filltered images in {out_path}")
+        for img in tqdm(self.image_obj_iterator()):
+            res= img.filter_cut_image()
+            cv2.imwrite(os.path.join(out_path, img.image_name), res)
+
 
 
 
@@ -155,6 +180,7 @@ class StemExtractor:
             img_raw_name = img.image_name.rsplit('.',1)[0]
             curr_dest_path = os.path.join(dest_path,f"{img_raw_name}.npy")
             fig_big_hist= img.get_hist_via_mask(hist_type=hist_type)
+            #fig_big_hist = img.get_hist_via_mask_cut(hist_type=hist_type)
             np.save(curr_dest_path,fig_big_hist)
 
 
