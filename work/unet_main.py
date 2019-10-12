@@ -38,42 +38,17 @@ def load_from_files(src_path,params_dict=None):
     :return: the ClarifruitUnet instance
     """
     params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path)
-    reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                  patience=2, min_lr=0.000001,
-                                  cooldown=1, verbose=1)
 
-    train_params = dict(
-
-        data_gen_args=dict(rescale=1. / 255,
-                           rotation_range=180,
-                           brightness_range=[0.2, 1.],
-                           width_shift_range=0.25,
-                           height_shift_range=0.25,
-                           shear_range=0.2,
-                           zoom_range=[0.5, 1.0],
-                           horizontal_flip=True,
-                           vertical_flip=True,
-                           fill_mode='nearest'),
-
-        callbacks=[reduce_lr],
-
-        batch_size=10,
-        epochs=10,
-        steps_per_epoch=3000,
-        valdiation_split=0.2,
-        validation_steps=3000)
-
-    # params_dict.update(train_params)  # uncomment to modify the model parameters
     logger.info(f"loading model from {src_path}")
     model = unet_model_functions.ClarifruitUnet(**params_dict)
-    return model
+    return model,params_dict
 
 
 def main():
     train_path=r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
     dest_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training'
     test_path=r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    src_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46'
+    src_path=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-12_15-23-31'
 
     params_dict = dict(
 
@@ -103,9 +78,9 @@ def main():
         color_mode='rgb',
         batch_size=10,
         epochs=5,
-        steps_per_epoch=500,
+        steps_per_epoch=10,
         valdiation_split=0.2,
-        validation_steps=50)
+        validation_steps=10)
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2,
                                   patience=2, min_lr=0.000001,
@@ -120,15 +95,16 @@ def main():
                                   restore_best_weights=False)
 
     callbacks = [reduce_lr,early_stoping]
-    #params_dict['callbacks'] = callbacks
+    params_dict['callbacks'] = callbacks
 
 
-    model = train_model(train_path=train_path,
-                        params_dict=params_dict,
-                        dest_path=dest_path)
+    # model = train_model(train_path=train_path,
+    #                     params_dict=params_dict,
+    #                     dest_path=dest_path)
 
-    #model = load_from_files(src_path)
-    model.prediction(test_path,dest_path)
+    model, params_dict = load_from_files(src_path)
+    model.train_model(dest_path=dest_path, params_dict=params_dict)
+    #model.prediction(test_path,dest_path)
 
 
 if __name__ == '__main__':
