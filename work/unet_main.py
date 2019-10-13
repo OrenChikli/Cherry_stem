@@ -49,7 +49,7 @@ def main():
     dest_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training'
     test_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
     #test_path =r'D:\Clarifruit\unet\data\membrane\test'
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-13_12-07-58'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-13_14-57-43'
 
     params_dict = dict(
 
@@ -58,8 +58,7 @@ def main():
         y_folder_name='label',
         weights_file_name='unet_cherry_stem.hdf5',
 
-        data_gen_args=dict(rescale=1. / 255,
-                           rotation_range=180,
+        data_gen_args=dict(rotation_range=180,
                            brightness_range=[0.2, 1.],
                            shear_range=10,
                            zoom_range=0.5,
@@ -97,22 +96,22 @@ def main():
     # callbacks = [reduce_lr, early_stoping]
     # params_dict['callbacks'] = callbacks
 
-    model = train_model(train_path=train_path,
-                        params_dict=params_dict,
-                        dest_path=dest_path)
+    # model = train_model(train_path=train_path,
+    #                     params_dict=params_dict,
+    #                     dest_path=dest_path)
 
     update_dict = dict(
         seed=10,
-        #update_freq=0.1,
+        update_freq=20,
 
         batch_size=10,
-        epochs=3,
-        steps_per_epoch=100,
+        epochs=5,
+        steps_per_epoch=20,
         valdiation_split=0.2,
-        validation_steps=50)
+        validation_steps=10)
 
-    #model, params_dict = load_from_files(src_path,update_dict)
-    #model.train_model(dest_path=dest_path, params_dict=params_dict)
+    model, params_dict = load_from_files(src_path,update_dict)
+    model.train_model(dest_path=dest_path, params_dict=params_dict)
     model.prediction(test_path, dest_path)
 
 

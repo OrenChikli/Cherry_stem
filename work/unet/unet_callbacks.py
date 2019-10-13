@@ -23,7 +23,8 @@ class ImageHistory(TensorBoard):
                  embeddings_metadata=None,
                  embeddings_data=None,
                  update_freq='epoch',
-                 data=None):
+                 data=None,
+                 threshold=0.5):
 
         super().__init__(log_dir,
                          histogram_freq,
@@ -37,6 +38,7 @@ class ImageHistory(TensorBoard):
                          embeddings_data,
                          update_freq)
         self.data = data
+        self.threshold = threshold
 
 
     def set_model(self, model):
@@ -51,8 +53,8 @@ class ImageHistory(TensorBoard):
             image_data = data[0][5]
             label_data = data[1][5]
             data_list.append(image_data[np.newaxis,:])
-            raw_image = image_data.astype(np.uint8)
-            raw_mask = label_data.astype(np.uint8)
+            raw_image = (255 * image_data).astype(np.uint8)
+            raw_mask = (255 * label_data).astype(np.uint8)
 
             proto_image = self.make_image(raw_image)
             image_tag = f'plot_{i}/image'
@@ -65,7 +67,7 @@ class ImageHistory(TensorBoard):
                                    tag=image_tag)
 
         self.data = np.concatenate(data_list,axis=0)
-        #self.data = data_list
+
 
     def make_image(self, tensor):
         """
@@ -74,20 +76,17 @@ class ImageHistory(TensorBoard):
         """
         height, width, channel = tensor.shape
         if channel == 1:
-            #image = Image.frombytes('L', (width, height), tensor.tobytes())
             image = Image.fromarray(tensor[:,:,0])
         else:
             image = Image.fromarray(tensor)
         output = io.BytesIO()
-        image.save(output, format='PNG')
+        image.save(output, format='JPEG')
         image_string = output.getvalue()
         output.close()
         return Summary.Image(height=height, width=width, colorspace=channel,
                              encoded_image_string=image_string)
 
-    def to_image(self, data):
-        img = (255 * data).astype(np.uint8)
-        return self.make_image(img)
+
 
     def saveToTensorBoard(self, image, tag, batch=None):
 
@@ -106,17 +105,16 @@ class ImageHistory(TensorBoard):
                 self.samples_seen_at_last_write = self.samples_seen
                 if self.data is not None:
                     batch_size = self.data.shape[0]
-                    #logger.info("updating tensorboard images,step:" + str(self.samples_seen))
                     y_pred = self.model.predict(self.data,batch_size=batch_size)
                     for i in range(batch_size):
-                        #raw_pred = self.model.predict(self.data[i])[0]
-                        img = self.data[i].astype(np.uint8)
+                        img = (255 * self.data[i]).astype(np.uint8)
                         raw_pred = y_pred[i]
-                        custom_img = CustomImage(img=img, mask=raw_pred, threshold=0.5)
+
+                        custom_img = CustomImage(img=img, mask=raw_pred, threshold=self.threshold)
                         custom_img.get_ontop()
                         proto_ontop = self.make_image(custom_img.ontop)
 
-                        tag = f'plot_{i}/ontop'
+                        tag = f'plot_{i}/ontop_threshold{self.threshold}'
                         self.saveToTensorBoard(image=proto_ontop,
                                                tag=tag,
                                                batch=self.samples_seen)

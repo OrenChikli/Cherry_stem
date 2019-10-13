@@ -71,7 +71,7 @@ def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy
 
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-    if pretrained_weights:
+    if pretrained_weights is not None:
         model.load_weights(pretrained_weights)
 
     return model

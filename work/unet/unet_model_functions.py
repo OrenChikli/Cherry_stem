@@ -28,7 +28,7 @@ class ClarifruitUnet:
                  valdiation_split=0.2, validation_steps=10,
                  train_time=None,
                  seed=1,
-                 update_freq=0.1):
+                 update_freq=100):
 
         logger.debug(" <- __init__")
 
@@ -110,59 +110,11 @@ class ClarifruitUnet:
         logger.debug(f"-> custom_generator, src:\n{src_path}")
         return gen
 
-    # @staticmethod
-    # def train_val_generators(batch_size, src_path, folder, aug_dict, save_prefix,
-    #                          color_mode="grayscale",
-    #                          save_to_dir=None,
-    #                          target_size=(256, 256),
-    #                          validation_split=0.2,
-    #                          seed=1):
-    #     """
-    #
-    #     Create a datagen generator with  train validation split
-    #     :param batch_size: the batch size of each step
-    #     :param src_path: the path to the data
-    #     :param folder: the name of the folder in the data_path
-    #     :param aug_dict: a dictionary with the data augmentation parameters of the images
-    #     :param save_prefix: if output images are saved, this is the prefix in the file names
-    #     :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
-    #     :param save_to_dir: path to save output images, if None nothing is saved, default is None
-    #     :param target_size: pixel size of output images,default is (256,256)
-    #     :param validation_split: size of the validation data set, default is 0.2
-    #     :param seed: random seed used in image generation, default is 1
-    #     :return: a flow_from_dictionary keras datagenerator
-    #     """
-    #     logger.debug(f" <- train_val_generators src:\n{src_path}")
-    #     datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
-    #
-    #     train_gen = ClarifruitUnet.custom_generator(src_path=src_path,
-    #                                                 aug_dict=aug_dict,
-    #                                                 folder=folder,
-    #                                                 color_mode=color_mode,
-    #                                                 target_size=target_size,
-    #                                                 batch_size=batch_size,
-    #                                                 save_to_dir=save_to_dir,
-    #                                                 save_prefix=save_prefix,
-    #                                                 seed=seed,
-    #                                                 subset='training')
-    #
-    #     val_gen = ClarifruitUnet.custom_generator(src_path=src_path,
-    #                                                 aug_dict=aug_dict,
-    #                                                 folder=folder,
-    #                                                 color_mode=color_mode,
-    #                                                 target_size=target_size,
-    #                                                 batch_size=batch_size,
-    #                                                 save_to_dir=save_to_dir,
-    #                                                 save_prefix=save_prefix,
-    #                                                 seed=seed,
-    #                                                 subset='validation')
-    #
-    #     logger.debug(f" -> train_val_generators src:\n{src_path}")
-    #     return train_gen, val_gen
+
 
     @staticmethod
     def train_val_generators(batch_size, src_path, folder, save_prefix,
-                             aug_dict=None,
+                             input_aug_dict=None,
                              color_mode="grayscale",
                              save_to_dir=None,
                              target_size=(256, 256),
@@ -174,7 +126,7 @@ class ClarifruitUnet:
         :param batch_size: the batch size of each step
         :param src_path: the path to the data
         :param folder: the name of the folder in the data_path
-        :param aug_dict: a dictionary with the data augmentation parameters of the images
+        :param input_aug_dict: a dictionary with the data augmentation parameters of the images
         :param save_prefix: if output images are saved, this is the prefix in the file names
         :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
         :param save_to_dir: path to save output images, if None nothing is saved, default is None
@@ -184,11 +136,12 @@ class ClarifruitUnet:
         :return: a flow_from_dictionary keras datagenerator
         """
         logger.debug(f" <- train_val_generators src:\n{src_path}")
-        if aug_dict is not None:
-            datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
 
-        else:
-            datagen = ImageDataGenerator(validation_split=validation_split)
+        aug_dict = {'rescale': 1. / 255}  # always rescale the images to the model
+        if input_aug_dict is not None:
+            aug_dict.update(input_aug_dict)
+
+        datagen = ImageDataGenerator(**aug_dict,validation_split=validation_split)
 
         train_gen = datagen.flow_from_directory(
             src_path,
@@ -223,10 +176,11 @@ class ClarifruitUnet:
         """
         logger.debug(f" <- clarifruit_train_val_generators")
         aug_dict = self.data_gen_args if aug_flag else None
+
         image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
                                                                                src_path=self.train_path,
                                                                                folder=self.x_folder_name,
-                                                                               aug_dict=aug_dict,
+                                                                               input_aug_dict=aug_dict,
                                                                                color_mode=self.color_mode,
                                                                                save_prefix=self.x_folder_name,
                                                                                save_to_dir=self.save_to_dir,
@@ -237,7 +191,7 @@ class ClarifruitUnet:
         mask_train_generator, mask_val_generator = self.train_val_generators(batch_size=self.batch_size,
                                                                              src_path=self.train_path,
                                                                              folder=self.y_folder_name,
-                                                                             aug_dict=aug_dict,
+                                                                             input_aug_dict=aug_dict,
                                                                              color_mode='grayscale',
                                                                              save_prefix=self.y_folder_name,
                                                                              save_to_dir=self.save_to_dir,
@@ -386,17 +340,18 @@ class ClarifruitUnet:
 
         keras_logs_path = create_path(curr_folder, 'keras_logs')
 
-        #update_freq = max(int(self.update_freq * self.steps_per_epoch * self.batch_size), 10)
-        update_freq=100
-        file_name = self.weights_file_name.split('.')[0]
-        file_name += '.{epoch:02d}-{val_loss:.2f}.hdf5'
-        out_model_path = os.path.join(curr_folder, file_name)
+
+        update_freq=self.update_freq
+        # file_name = self.weights_file_name.split('.')[0]
+        # file_name += '.{epoch:02d}-{val_loss:.2f}.hdf5'
+        out_model_path = os.path.join(curr_folder, self.weights_file_name)
         model_checkpoint = ModelCheckpoint(out_model_path, monitor='loss',
                                            verbose=1, save_best_only=True)
 
+        # get some non augmented images for tensorboard visualizations
         _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
-
-        v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200==0.0]
+        #TODO modify hardcoded values
+        v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200 == 0.0]
 
 
         image_history = ImageHistory(log_dir=keras_logs_path,
