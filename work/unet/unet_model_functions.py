@@ -1,15 +1,17 @@
 from keras.preprocessing.image import ImageDataGenerator
 
+import tensorboard
 import numpy as np
 from datetime import datetime
 from keras.callbacks import ModelCheckpoint
 from auxiliary.data_functions import *
 from keras.optimizers import *
 from work.unet.unet_model import unet
-from work.unet.unet_callbacks import CustomTensorboardCallback,CustomModelCheckpoint
+from work.unet.unet_callbacks import CustomTensorboardCallback, CustomModelCheckpoint
 # from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import logging
 from tensorflow.python.keras import backend as K
+
 logger = logging.getLogger(__name__)
 
 MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
@@ -19,7 +21,7 @@ OPTIMIZER_DICT = {'Adam': Adam, 'adagrad': adagrad}
 
 class ClarifruitUnet:
 
-    def __init__(self, train_path,save_path, weights_file_name,
+    def __init__(self, train_path, save_path, weights_file_name,
                  x_folder_name='image', y_folder_name='label',
                  data_gen_args=None, callbacks=None,
                  optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,
@@ -29,7 +31,7 @@ class ClarifruitUnet:
                  train_time=None,
                  seed=1,
                  tensorboard_update_freq=100,
-                 weights_update_freq = 1000,
+                 weights_update_freq=1000,
                  ontop_display_threshold=0.5):
 
         logger.debug(" <- __init__")
@@ -105,7 +107,7 @@ class ClarifruitUnet:
         if input_aug_dict is not None:
             aug_dict.update(input_aug_dict)
 
-        datagen = ImageDataGenerator(**aug_dict,validation_split=validation_split)
+        datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
 
         train_gen = datagen.flow_from_directory(
             src_path,
@@ -305,30 +307,31 @@ class ClarifruitUnet:
         keras_logs_path = create_path(curr_folder, self.keras_logs_folder)
 
         file_name = self.weights_file_name.split('.')[0]
-        epoch_file_name=file_name+'.{epoch:02d}-{val_loss:.2f}.hdf5'
+        epoch_file_name = file_name + '.{epoch:02d}-{val_loss:.2f}.hdf5'
         epoch_out_model_path = os.path.join(curr_folder, epoch_file_name)
 
         steps_file_name = file_name + '.{steps:02d}-{loss:.2f}.hdf5'
         steps_out_model_path = os.path.join(curr_folder, steps_file_name)
 
-        #out_model_path = os.path.join(curr_folder, self.weights_file_name)
+        # out_model_path = os.path.join(curr_folder, self.weights_file_name)
         epoch_model_checkpoint = ModelCheckpoint(epoch_out_model_path,
-                                           monitor='val_loss',
-                                           verbose=1,
-                                           save_best_only=True)
+                                                 monitor='val_loss',
+                                                 verbose=1,
+                                                 save_best_only=False,
+                                                 save_weights_only=True)
 
         steps_model_checkpoint = CustomModelCheckpoint(steps_out_model_path,
-                                                 monitor='loss',
-                                                 verbose=1,
-                                                 save_best_only=True,
-                                                 update_freq=self.weights_update_freq,
-                                                 batch_size=self.batch_size)
+                                                       monitor='loss',
+                                                       verbose=1,
+                                                       save_best_only=False,
+                                                       update_freq=self.weights_update_freq,
+                                                       batch_size=self.batch_size,
+                                                       save_weights_only=True)
 
         # get some non augmented images for tensorboard visualizations
         _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
-        #TODO modify hardcoded values
+        # TODO modify hardcoded values
         v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200 == 0.0]
-
 
         image_history = CustomTensorboardCallback(log_dir=keras_logs_path,
                                                   batch_size=self.batch_size,
@@ -338,7 +341,7 @@ class ClarifruitUnet:
                                                   data=v_data,
                                                   threshold=self.ontop_display_threshold)
 
-        callbacks = [image_history,steps_model_checkpoint,epoch_model_checkpoint]
+        callbacks = [image_history, steps_model_checkpoint, epoch_model_checkpoint]
         if self.callbacks is None:
             self.callbacks = callbacks
         else:
@@ -362,10 +365,8 @@ class ClarifruitUnet:
 
         return keras_logs_path
 
-
-
     @staticmethod
-    def load_model(src_path,weights_name=None):
+    def load_model(src_path, weights_name=None):
         """
         load a pretrained model located in the src_path
         :param src_path: the path containing the pretrained model
