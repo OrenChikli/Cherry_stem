@@ -9,7 +9,7 @@ from work.unet.unet_model import unet
 from work.unet.unet_callbacks import ImageHistory
 # from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import logging
-
+from tensorflow.python.keras import backend as K
 logger = logging.getLogger(__name__)
 
 MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
@@ -27,10 +27,12 @@ class ClarifruitUnet:
                  batch_size=10, epochs=5, steps_per_epoch=10,
                  valdiation_split=0.2, validation_steps=10,
                  train_time=None,
-                 steps=0):
+                 seed=1,
+                 update_freq=0.1):
 
         logger.debug(" <- __init__")
 
+        K.clear_session()
         self.train_path = train_path
         self.x_folder_name = x_folder_name
         self.y_folder_name = y_folder_name
@@ -61,9 +63,8 @@ class ClarifruitUnet:
 
         self.save_to_dir = None
         self.validation_split = valdiation_split
-        self.seed = 1
-        self.steps=steps
-
+        self.seed = seed
+        self.update_freq = update_freq
         self.get_unet_model()
 
         logger.debug(" -> __init__")
@@ -160,8 +161,8 @@ class ClarifruitUnet:
     #     return train_gen, val_gen
 
     @staticmethod
-    def train_val_generators(batch_size, src_path, folder,  save_prefix,
-                             aug_dict = None,
+    def train_val_generators(batch_size, src_path, folder, save_prefix,
+                             aug_dict=None,
                              color_mode="grayscale",
                              save_to_dir=None,
                              target_size=(256, 256),
@@ -215,7 +216,7 @@ class ClarifruitUnet:
         logger.debug(f" -> train_val_generators src:\n{src_path}")
         return train_gen, val_gen
 
-    def clarifruit_train_val_generators(self,aug_flag=True):
+    def clarifruit_train_val_generators(self, aug_flag=True):
         """
         a method to create train and validation data generators for the current instance
         :return:
@@ -247,8 +248,7 @@ class ClarifruitUnet:
         train_generator = zip(image_train_generator, mask_train_generator)
         val_generator = zip(image_val_generator, mask_val_generator)
         logger.debug(f" -> clarifruit_train_val_generators")
-        return train_generator,val_generator
-
+        return train_generator, val_generator
 
     def test_generator(self, test_path):
         """
@@ -346,8 +346,7 @@ class ClarifruitUnet:
     def fit_unet(self):
         """ fit a unet model for the current instance"""
         logger.debug(" <- fit_unet")
-
-        histoty =self.model.fit_generator(
+        self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=self.steps_per_epoch,
             validation_data=self.val_generator,
@@ -355,7 +354,6 @@ class ClarifruitUnet:
             epochs=self.epochs,
             callbacks=self.callbacks,
             verbose=1)
-        self.steps+= int(self.epochs * self.steps_per_epoch)
         logger.debug(" -> fit_unet")
 
     def save_model_params(self, dest_path, params_dict):
@@ -371,7 +369,6 @@ class ClarifruitUnet:
         save_json(save_dict, "model_params.json", curr_folder)
 
         logger.debug(" -> save_model")
-
 
     def set_model_checkpint(self, dest_path):
         """
@@ -389,31 +386,27 @@ class ClarifruitUnet:
 
         keras_logs_path = create_path(curr_folder, 'keras_logs')
 
-        update_freq= max(int(0.1 * self.steps_per_epoch),10)
-
-        tensorboard_callback = TensorBoard(log_dir=keras_logs_path,
-                                           histogram_freq=0,
-                                           write_graph=True,
-                                           write_images=True,
-                                           update_freq='batch')
+        #update_freq = max(int(self.update_freq * self.steps_per_epoch * self.batch_size), 10)
+        update_freq=100
         file_name = self.weights_file_name.split('.')[0]
         file_name += '.{epoch:02d}-{val_loss:.2f}.hdf5'
         out_model_path = os.path.join(curr_folder, file_name)
         model_checkpoint = ModelCheckpoint(out_model_path, monitor='loss',
                                            verbose=1, save_best_only=True)
 
-        _,val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
+        _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
 
-        v_data = next(val_gen_no_aug)
+        v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200==0.0]
 
-        last_step = self.steps/ update_freq
 
-        image_history = ImageHistory(tensor_board_dir=keras_logs_path,
-                                     data=v_data,
-                                     last_step=last_step,
-                                     draw_interval=update_freq)
+        image_history = ImageHistory(log_dir=keras_logs_path,
+                                     batch_size=self.batch_size,
+                                     histogram_freq=0,
+                                     write_graph=True,
+                                     update_freq=update_freq,
+                                     data=v_data)
 
-        callbacks = [image_history, model_checkpoint]
+        callbacks = [image_history,model_checkpoint]
         if self.callbacks is None:
             self.callbacks = callbacks
         else:
@@ -432,9 +425,10 @@ class ClarifruitUnet:
         if dest_path is not None:
             self.save_model_params(dest_path=dest_path, params_dict=params_dict)
 
-        self.train_generator,self.val_generator = self.clarifruit_train_val_generators()
+        self.train_generator, self.val_generator = self.clarifruit_train_val_generators()
         self.set_model_checkpint(dest_path=dest_path)
         self.fit_unet()
+
 
         logger.debug(" -> train_model")
 
