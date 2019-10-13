@@ -2,11 +2,11 @@ from keras.preprocessing.image import ImageDataGenerator
 
 import numpy as np
 from datetime import datetime
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint
 from auxiliary.data_functions import *
 from keras.optimizers import *
 from work.unet.unet_model import unet
-from work.unet.unet_callbacks import ImageHistory
+from work.unet.unet_callbacks import CustomTensorboardCallback,CustomModelCheckpoint
 # from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import logging
 from tensorflow.python.keras import backend as K
@@ -19,7 +19,7 @@ OPTIMIZER_DICT = {'Adam': Adam, 'adagrad': adagrad}
 
 class ClarifruitUnet:
 
-    def __init__(self, train_path, weights_file_name,
+    def __init__(self, train_path,save_path, weights_file_name,
                  x_folder_name='image', y_folder_name='label',
                  data_gen_args=None, callbacks=None,
                  optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,
@@ -28,7 +28,9 @@ class ClarifruitUnet:
                  valdiation_split=0.2, validation_steps=10,
                  train_time=None,
                  seed=1,
-                 update_freq=100):
+                 tensorboard_update_freq=100,
+                 weights_update_freq = 1000,
+                 ontop_display_threshold=0.5):
 
         logger.debug(" <- __init__")
 
@@ -64,53 +66,15 @@ class ClarifruitUnet:
         self.save_to_dir = None
         self.validation_split = valdiation_split
         self.seed = seed
-        self.update_freq = update_freq
+        self.tensorboard_update_freq = tensorboard_update_freq
+        self.weights_update_freq = weights_update_freq
+        self.ontop_display_threshold = ontop_display_threshold
+        self.save_path = save_path
+        self.keras_logs_folder = 'keras_logs'
+
         self.get_unet_model()
 
         logger.debug(" -> __init__")
-
-    @staticmethod
-    def custom_generator(batch_size, src_path, folder, aug_dict, save_prefix,
-                         color_mode="grayscale",
-                         save_to_dir=None,
-                         target_size=(256, 256),
-                         seed=1,
-                         validation_split=0.0,
-                         subset=None
-                         ):
-        """
-        Create a datagen generator
-        :param batch_size: the batch size of each step
-        :param src_path: the path to the data
-        :param folder: the name of the folder in the data_path
-        :param aug_dict: a dictionary with the data augmentation parameters of the images
-        :param save_prefix: if output images are saved, this is the prefix in the file names
-        :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
-        :param save_to_dir: path to save output images, if None nothing is saved, default is None
-        :param target_size: pixel size of output images,default is (256,256)
-        :param seed: random seed used in image generation, default is 1
-        :return: a flow_from_dictionary keras datagenerator
-        """
-        logger.debug(f" <- custom_generator, src:\n{src_path}")
-
-        datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
-
-        gen = datagen.flow_from_directory(
-            src_path,
-            classes=[folder],
-            class_mode=None,
-            color_mode=color_mode,
-            target_size=target_size,
-            batch_size=batch_size,
-            save_to_dir=save_to_dir,
-            save_prefix=save_prefix,
-            seed=seed,
-            subset=subset)
-
-        logger.debug(f"-> custom_generator, src:\n{src_path}")
-        return gen
-
-
 
     @staticmethod
     def train_val_generators(batch_size, src_path, folder, save_prefix,
@@ -310,12 +274,12 @@ class ClarifruitUnet:
             verbose=1)
         logger.debug(" -> fit_unet")
 
-    def save_model_params(self, dest_path, params_dict):
+    def save_model_params(self, params_dict):
         logger.debug(" <- save_model")
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        curr_folder = create_path(dest_path, self.train_time)
+        curr_folder = create_path(self.save_path, self.train_time)
 
         save_dict = params_dict.copy()
         if 'callbacks' in save_dict:  # callbacks are not hashable, cant save to json
@@ -324,7 +288,7 @@ class ClarifruitUnet:
 
         logger.debug(" -> save_model")
 
-    def set_model_checkpint(self, dest_path):
+    def set_model_checkpint(self):
         """
         set the model checkpoint keras callbacks method for the current training session,
         where the model weights will be saved in folder assigned for the current session
@@ -336,17 +300,29 @@ class ClarifruitUnet:
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        curr_folder = create_path(dest_path, self.train_time)
+        curr_folder = create_path(self.save_path, self.train_time)
 
-        keras_logs_path = create_path(curr_folder, 'keras_logs')
+        keras_logs_path = create_path(curr_folder, self.keras_logs_folder)
 
+        file_name = self.weights_file_name.split('.')[0]
+        epoch_file_name=file_name+'.{epoch:02d}-{val_loss:.2f}.hdf5'
+        epoch_out_model_path = os.path.join(curr_folder, epoch_file_name)
 
-        update_freq=self.update_freq
-        # file_name = self.weights_file_name.split('.')[0]
-        # file_name += '.{epoch:02d}-{val_loss:.2f}.hdf5'
-        out_model_path = os.path.join(curr_folder, self.weights_file_name)
-        model_checkpoint = ModelCheckpoint(out_model_path, monitor='loss',
-                                           verbose=1, save_best_only=True)
+        steps_file_name = file_name + '.{steps:02d}-{loss:.2f}.hdf5'
+        steps_out_model_path = os.path.join(curr_folder, steps_file_name)
+
+        #out_model_path = os.path.join(curr_folder, self.weights_file_name)
+        epoch_model_checkpoint = ModelCheckpoint(epoch_out_model_path,
+                                           monitor='val_loss',
+                                           verbose=1,
+                                           save_best_only=True)
+
+        steps_model_checkpoint = CustomModelCheckpoint(steps_out_model_path,
+                                                 monitor='loss',
+                                                 verbose=1,
+                                                 save_best_only=True,
+                                                 update_freq=self.weights_update_freq,
+                                                 batch_size=self.batch_size)
 
         # get some non augmented images for tensorboard visualizations
         _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
@@ -354,58 +330,60 @@ class ClarifruitUnet:
         v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200 == 0.0]
 
 
-        image_history = ImageHistory(log_dir=keras_logs_path,
-                                     batch_size=self.batch_size,
-                                     histogram_freq=0,
-                                     write_graph=True,
-                                     update_freq=update_freq,
-                                     data=v_data)
+        image_history = CustomTensorboardCallback(log_dir=keras_logs_path,
+                                                  batch_size=self.batch_size,
+                                                  histogram_freq=0,
+                                                  write_graph=True,
+                                                  update_freq=self.tensorboard_update_freq,
+                                                  data=v_data,
+                                                  threshold=self.ontop_display_threshold)
 
-        callbacks = [image_history,model_checkpoint]
+        callbacks = [image_history,steps_model_checkpoint,epoch_model_checkpoint]
         if self.callbacks is None:
             self.callbacks = callbacks
         else:
             self.callbacks = callbacks + self.callbacks
         logger.debug(" -> set_model_checkpoint")
-        return curr_folder
+        return keras_logs_path
 
-    def train_model(self, params_dict, dest_path=None):
+    def set_model_for_train(self, params_dict):
         """
         train the unet model for current instance and save the results if possible
         :param params_dict: the parameters used to define the current instance
         :param dest_path: optional destination path to save the model
         :return:
         """
-        logger.debug(f" <- train_model")
-        if dest_path is not None:
-            self.save_model_params(dest_path=dest_path, params_dict=params_dict)
+        logger.debug(" <- set_model_for_train")
+        self.save_model_params(params_dict=params_dict)
 
         self.train_generator, self.val_generator = self.clarifruit_train_val_generators()
-        self.set_model_checkpint(dest_path=dest_path)
-        self.fit_unet()
+        keras_logs_path = self.set_model_checkpint()
+        logger.debug(" -> set_model_for_train")
+
+        return keras_logs_path
 
 
-        logger.debug(" -> train_model")
 
     @staticmethod
-    def load_model(src_path):
+    def load_model(src_path,weights_name=None):
         """
         load a pretrained model located in the src_path
         :param src_path: the path containing the pretrained model
         :return: the parameters of the model to be used later on
         """
 
-        params_dict = {}
-        pretrained_weights = {}
+        params_dict = None
+        pretrained_weights = None
         files = os.scandir(src_path)
         for file_entry in files:
             file_name_segments = file_entry.name.rsplit('.', 1)
-            file_name = file_name_segments[0]
             file_extention = file_name_segments[-1]
             if file_entry.name == 'model_params.json':
                 params_dict = load_json(file_entry.path)
+            elif file_entry.name == weights_name:
+                pretrained_weights = file_entry.path
 
-            elif file_extention == 'hdf5':
+            elif pretrained_weights is not None and file_extention == 'hdf5':
                 pretrained_weights = file_entry.path
 
         params_dict['pretrained_weights'] = pretrained_weights

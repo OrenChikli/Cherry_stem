@@ -9,25 +9,6 @@ configure_logger()
 logger = logging.getLogger("unet_main")
 
 
-def train_model(train_path, params_dict, dest_path=None):
-    """
-    a method to train a model of unet on data from train_path. if dest path is provided, save the model to dest_path.
-    withing the method one can specify various trainig variables and callbacks.
-    :param train_path: location of training data, must have 2 sub folders, 1 for the "X" data, default is "image"
-    and another for the masks or labels, default is "label
-    :param dest_path: optional, path to which the trined model can be saved to
-    :return: an instance of a trained model
-    """
-    logger.info(f"setting parameters to train on data from {train_path}")
-
-    logger.info("created training instance")
-    model = unet_model_functions.ClarifruitUnet(**params_dict)
-    logger.info("train start")
-    model.train_model(dest_path=dest_path, params_dict=params_dict)
-    logger.info("finished training")
-    return model
-
-
 def load_from_files(src_path, updat_dict=None):
     """
     a method that can load a trained instance of ClarifruitUnet from a path in src_path variable
@@ -66,6 +47,7 @@ def main():
                            vertical_flip=True,
                            fill_mode='nearest'),
         seed=15,
+        ontop_display_threshold=0.4,
 
         optimizer='Adam',
         optimizer_params=dict(lr=1e-5),
@@ -102,7 +84,8 @@ def main():
 
     update_dict = dict(
         seed=10,
-        update_freq=20,
+        update_freq=100,
+        ontop_display_threshold=0.4,
 
         batch_size=10,
         epochs=5,
@@ -111,7 +94,7 @@ def main():
         validation_steps=10)
 
     model, params_dict = load_from_files(src_path,update_dict)
-    model.train_model(dest_path=dest_path, params_dict=params_dict)
+    model.set_model_for_train(params_dict=params_dict)
     model.prediction(test_path, dest_path)
 
 
