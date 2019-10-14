@@ -28,7 +28,8 @@ class CustomTensorboardCallback(TensorBoard):
                  embeddings_data=None,
                  update_freq='epoch',
                  data=None,
-                 threshold=0.5):
+                 threshold=0.5,
+                 samples_seen=0):
 
         logger.debug(" <- CustomTensorboardCallback init")
         super().__init__(log_dir,
@@ -44,6 +45,7 @@ class CustomTensorboardCallback(TensorBoard):
                          update_freq)
         self.data = data
         self.threshold = threshold
+        self.samples_seen = samples_seen
 
         logger.debug(" -> CustomTensorboardCallback init")
 
@@ -152,7 +154,7 @@ class CustomModelCheckpoint(Callback):
 
     def __init__(self, filepath, monitor='loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
-                 update_freq=1000,batch_size=32):
+                 update_freq=1000,batch_size=10,samples_seen=0):
 
         super(CustomModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -163,7 +165,7 @@ class CustomModelCheckpoint(Callback):
 
         self.batch_size = batch_size
         self.update_freq = update_freq
-        self.samples_seen = 0
+        self.samples_seen = samples_seen
         self.samples_seen_at_last_write = 0
 
 
@@ -198,7 +200,7 @@ class CustomModelCheckpoint(Callback):
                             if self.verbose > 0:
                                 print('\nstep %05d: %s improved from %0.5f to %0.5f,'
                                       ' saving model to %s'
-                                      % (self.samples_seen_at_last_write, self.monitor, self.best,
+                                      % (self.samples_seen, self.monitor, self.best,
                                          current, filepath))
                             self.best = current
                             if self.save_weights_only:
@@ -208,10 +210,10 @@ class CustomModelCheckpoint(Callback):
                         else:
                             if self.verbose > 0:
                                 print('\nsteps %05d: %s did not improve from %0.5f' %
-                                      (self.samples_seen_at_last_write, self.monitor, self.best))
+                                      (self.samples_seen, self.monitor, self.best))
                 else:
                     if self.verbose > 0:
-                        print('\nstep %05d: saving model to %s' % (self.samples_seen_at_last_write, filepath))
+                        print('\nstep %05d: saving model to %s' % (self.samples_seen, filepath))
                     if self.save_weights_only:
                         self.model.save_weights(filepath, overwrite=True)
                     else:

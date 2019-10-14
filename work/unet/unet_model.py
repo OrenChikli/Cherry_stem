@@ -3,6 +3,7 @@ from keras.layers import *
 from keras.optimizers import *
 #from keras import backend as keras
 import logging
+import object_detection.model_main
 import tensorflow.compat.v1.logging as tf_logging # to stop tensorflow from displaying depracetion messages
 tf_logging.set_verbosity(tf_logging.ERROR)
 
@@ -20,8 +21,7 @@ def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy
     :return:
     """
     logger.info(f"<- unet model with input_size={input_size}")
-    if pretrained_weights is not None:
-        logger.info(f" model loaded from pretraind_weights={pretrained_weights}")
+
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
@@ -73,5 +73,6 @@ def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy
 
     if pretrained_weights is not None:
         model.load_weights(pretrained_weights)
+        logger.info(f" model loaded from pretraind_weights={pretrained_weights}")
 
     return model
