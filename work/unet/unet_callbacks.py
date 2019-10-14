@@ -7,11 +7,13 @@ from tensorflow.compat.v1 import Summary
 import warnings
 from auxiliary.custom_image import CustomImage
 from logger_settings import *
+import os
+import re
 
 configure_logger()
 logger = logging.getLogger("unet_callbacks")
 
-
+PARAMS_UPDATE_FORMAT = '.steps_{steps:02d}.json'
 
 
 class CustomTensorboardCallback(TensorBoard):
@@ -154,7 +156,7 @@ class CustomModelCheckpoint(Callback):
 
     def __init__(self, filepath, monitor='loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
-                 update_freq=1000,batch_size=10,samples_seen=0):
+                 update_freq=1000,batch_size=10,samples_seen=0,model_params_path=None):
 
         super(CustomModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -167,6 +169,7 @@ class CustomModelCheckpoint(Callback):
         self.update_freq = update_freq
         self.samples_seen = samples_seen
         self.samples_seen_at_last_write = 0
+        self.model_params_path = model_params_path
 
 
         if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
@@ -175,6 +178,18 @@ class CustomModelCheckpoint(Callback):
         else:
             self.monitor_op = np.less
             self.best = np.Inf
+
+
+    def modify_params_file(self):
+        dirname, basename = os.path.split(self.model_params_path)
+        # basename = os.path.basename(self.model_params_path)
+        # dirname = os.path.dirname(self.model_params_path)
+        new_file_name=re.sub(r"(steps_)(\d+)(\.)",
+                             f"\g<1>{self.samples_seen}\g<3>",
+                             basename)
+        new_model_params_path = os.path.join(dirname,new_file_name)
+        os.rename(self.model_params_path,new_model_params_path)
+        self.model_params_path = new_model_params_path
 
     def on_batch_end(self, batch, logs=None):
         """
@@ -188,6 +203,9 @@ class CustomModelCheckpoint(Callback):
             self.samples_seen += logs['size']
             samples_seen_since = self.samples_seen - self.samples_seen_at_last_write
             if samples_seen_since >= self.update_freq:
+
+                self.modify_params_file()
+
                 self.samples_seen_at_last_write = self.samples_seen
                 filepath = self.filepath.format(steps=self.samples_seen, **logs)
                 if self.save_best_only:

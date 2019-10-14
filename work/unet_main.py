@@ -25,12 +25,12 @@ def load_from_files(src_path, updat_dict=None):
 
 def main():
     train_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes'
-    #train_path = r'D:\Clarifruit\unet\data\membrane\train'
+    # train_path = r'D:\Clarifruit\unet\data\membrane\train'
     dest_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training'
     test_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
-    #test_path =r'D:\Clarifruit\unet\data\membrane\test'
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-14_17-22-12'
-    weights_name = 'unet_cherry_stem.steps_506-loss_0.12.hdf5'
+    # test_path =r'D:\Clarifruit\unet\data\membrane\test'
+    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-14_21-40-24'
+    steps=506
 
     params_dict = dict(
 
@@ -73,22 +73,23 @@ def main():
                                   patience=1, min_lr=0.000001,
                                   cooldown=1, verbose=1)
 
-
     # callbacks = [reduce_lr, early_stoping]
     # params_dict['callbacks'] = callbacks
 
-    # model = train_model(train_path=train_path,
-    #                     params_dict=params_dict,
-    #                     dest_path=dest_path)
+    update_dict = dict(epochs=2,
+                       steps_per_epoch=50,
+                       validation_split=0.2,
+                       validation_steps=50,
 
+                       tensorboard_update_freq=1000,
+                       weights_update_freq=100,
+                       ontop_display_threshold=0.4)
 
-    # load model
-    # params_dict = unet_model_functions.ClarifruitUnet.load_model(src_path, weights_name)
-    # params_dict.update(params_dict1)
-    #model = unet_model_functions.ClarifruitUnet(**params_dict)
-    model =unet_model_functions.ClarifruitUnet.load_model(src_path,weights_name)
-    keras_logs_path = model.set_model_for_train()
+    model = unet_model_functions.ClarifruitUnet.load_model(src_path,steps)
+    model.update_model(**update_dict)
+    model.set_model_for_train()
     model.fit_unet()
+
 
 if __name__ == '__main__':
     main()
