@@ -1,16 +1,17 @@
-from keras.models import *
 from keras.layers import *
+from keras.models import *
 from keras.optimizers import *
-#from keras import backend as keras
+
+Adam
 import logging
-import object_detection.model_main
 import tensorflow.compat.v1.logging as tf_logging # to stop tensorflow from displaying depracetion messages
 tf_logging.set_verbosity(tf_logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
-def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy'),
-         pretrained_weights=None, input_size=(256, 256, 1)):
+
+def unet(optimizer, loss='binary_crossentropy', metrics=('accuracy'),
+         input_size=(256, 256, 1)):
     """
     an impelemntation of the unet model, taken from https://github.com/zhixuhao/unet
     :param optimizer:keras optimizer to use in the model
@@ -70,9 +71,5 @@ def unet(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy
     model = Model(inputs=inputs, outputs=conv10)
 
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-
-    if pretrained_weights is not None:
-        model.load_weights(pretrained_weights)
-        logger.info(f" model loaded from pretraind_weights={pretrained_weights}")
 
     return model

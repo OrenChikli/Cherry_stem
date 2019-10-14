@@ -1,21 +1,27 @@
-from keras.preprocessing.image import ImageDataGenerator
-
-import numpy as np
-from datetime import datetime
 import glob
-from auxiliary.data_functions import *
-from keras.optimizers import get as get_optimizer
-from keras.models import load_model
-
-from work.unet.unet_model import unet
-from work.unet.unet_callbacks import CustomTensorboardCallback, CustomModelCheckpoint
 # from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import logging
-from tensorflow.python.keras import backend as K
 import re
+from datetime import datetime
+
+import numpy as np
+from auxiliary.data_functions import *
+from keras.models import load_model
+from keras.optimizers import get as get_optimizer
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.python.keras import backend as K
+
+from work.unet.unet_callbacks import CustomTensorboardCallback, CustomModelCheckpoint
+from work.unet.unet_model import unet
+
+SESS_REGEX = r"(train_sess_)(\d+)(\.)"
+
+STEPS_REGEX = r"(steps_)(\d+)(\.)"
+
+HDF5_STEPS_REGEX = r"(steps_)(\d+)(\-)"
 
 PARAMS_FILENAME = "model_params"
-PARAMS_UPDATE_FORMAT = '.train_sess_{sess:02d}_steps_{steps:02d}.json'
+PARAMS_UPDATE_FORMAT = '.train_sess_{sess:02d}.steps_{steps:02d}.'
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +29,12 @@ MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
 COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
 
 
-# OPTIMIZER_DICT = {'Adam': Adam, 'adagrad': adagrad}
-
-
 class ClarifruitUnet:
 
     def __init__(self, train_path, save_path, weights_file_name,
                  x_folder_name='image', y_folder_name='label',
                  data_gen_args=None, callbacks=None,
-                 optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,
+                 optimizer=None, optimizer_params=None, loss=None, metrics=None, model_checkpoint=None,
                  target_size=(256, 256), color_mode='rgb',
                  batch_size=10, epochs=5, steps_per_epoch=10,
                  validation_split=0.2, validation_steps=10,
@@ -59,7 +62,6 @@ class ClarifruitUnet:
         self.steps_per_epoch = steps_per_epoch
         self.validation_steps = validation_steps
 
-        # self.optimizer = OPTIMIZER_DICT[optimizer](**optimizer_params)
         self.optimizer = optimizer
         self.optimizer_params = optimizer_params
         self.loss = loss
@@ -67,25 +69,26 @@ class ClarifruitUnet:
 
         self.train_generator = None
         self.val_generator = None
-        self.model_checkpoint = None
+        self.validation_split = validation_split
+        self.seed = seed
+
         self.callbacks = callbacks
         self.train_time = train_time
 
         self.save_to_dir = None
-        self.validation_split = validation_split
-        self.seed = seed
+
         self.tensorboard_update_freq = tensorboard_update_freq
         self.weights_update_freq = weights_update_freq
         self.ontop_display_threshold = ontop_display_threshold
         self.save_path = save_path
         self.keras_logs_folder = 'keras_logs'
-        self.pretrained_weights = pretrained_weights
+
         self.samples_seen = 0
         self.session_number = 1
         self.params_filepath = None
 
-        if pretrained_weights is not None:
-            self.model = load_model(pretrained_weights)
+        if model_checkpoint is not None:
+            self.model = load_model(model_checkpoint)
         else:
             self.model = None
             self.get_unet_model()
@@ -280,8 +283,7 @@ class ClarifruitUnet:
         self.model = unet(optimizer=optimizer,
                           loss=self.loss,
                           metrics=self.metrics,
-                          input_size=self.input_size,
-                          pretrained_weights=self.pretrained_weights)
+                          input_size=self.input_size)
         logger.debug(" -> get_unet_model")
 
     def fit_unet(self):
@@ -308,11 +310,11 @@ class ClarifruitUnet:
         params_dict = self.get_model_params()
         if self.params_filepath is not None:
             file_params = load_json(self.params_filepath)
-            if file_params != params_dict: # cheking if the parametes for this session are diffrent
+            if file_params != params_dict:  # cheking if the parametes for this session are diffrent
                 self.session_number += 1
 
-        curr_file_name = (PARAMS_FILENAME + PARAMS_UPDATE_FORMAT).format(sess=self.session_number,
-                                                                         steps=self.samples_seen)
+        curr_file_name = (PARAMS_FILENAME + PARAMS_UPDATE_FORMAT + 'json').format(sess=self.session_number,
+                                                                                  steps=self.samples_seen)
         save_json(params_dict, curr_file_name, curr_folder)
         self.params_filepath = os.path.join(curr_folder, curr_file_name)
 
@@ -324,7 +326,6 @@ class ClarifruitUnet:
                           'model',
                           'train_generator',
                           'val_generator',
-                          'model_checkpoint',
                           'callbacks',
                           'save_to_dir',
                           'keras_logs_folder',
@@ -353,18 +354,10 @@ class ClarifruitUnet:
 
         keras_logs_path = create_path(curr_folder, self.keras_logs_folder)
 
-        file_name = self.weights_file_name.split('.')[0]
-        # epoch_file_name = file_name + '.{epoch:02d}-{val_loss:.2f}.hdf5'
-        # epoch_out_model_path = os.path.join(curr_folder, epoch_file_name)
+        file_name = self.weights_file_name
 
-        steps_file_name = file_name + '.steps_{steps:02d}-%s_{loss:.2f}.hdf5' % monitor
+        steps_file_name = file_name + PARAMS_UPDATE_FORMAT + '%s_{loss:.2f}.hdf5' % monitor
         steps_out_model_path = os.path.join(curr_folder, steps_file_name)
-
-        # epoch_model_checkpoint = ModelCheckpoint(epoch_out_model_path,
-        #                                          monitor='val_loss',
-        #                                          verbose=1,
-        #                                          save_best_only=False,
-        #                                          save_weights_only=False)
 
         steps_model_checkpoint = CustomModelCheckpoint(steps_out_model_path,
                                                        monitor='loss',
@@ -374,7 +367,8 @@ class ClarifruitUnet:
                                                        batch_size=self.batch_size,
                                                        save_weights_only=False,
                                                        samples_seen=self.samples_seen,
-                                                       model_params_path=self.params_filepath)
+                                                       model_params_path=self.params_filepath,
+                                                       session_n=self.session_number)
 
         # get some non augmented images for tensorboard visualizations
         _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
@@ -416,17 +410,26 @@ class ClarifruitUnet:
         return keras_logs_path
 
     @staticmethod
+    def get_pattern(file, regex, group_n):
+        ret = None
+        pattern = re.search(regex, file)
+        if pattern is not None:
+            ret = int(pattern.group(group_n))
+        return ret
+
+    @staticmethod
     def get_file(src_path, steps, file_extention, regex):
         res = None
-        for file in glob.iglob(os.path.join(src_path, f'*.{file_extention}')):
-            pattern = re.search(regex, file)
-            samples_seen = int(pattern.group(2)) if pattern is not None else 0
+        func = ClarifruitUnet.get_pattern
+        files_iterator = glob.iglob(os.path.join(src_path, f'*.{file_extention}'))
+        sorted_file_names = sorted([(func(file, regex, 2), file) for file in files_iterator])
+        for samples_seen, file in sorted_file_names:
             if samples_seen >= steps:
-                res=file
+                res = file
                 steps = samples_seen
                 break
 
-        return res,steps
+        return res, steps
 
     @staticmethod
     def load_model(src_path, steps=None):
@@ -436,21 +439,17 @@ class ClarifruitUnet:
         :return: the parameters of the model to be used later on
         """
         if steps is not None:
-            json_file,_ = ClarifruitUnet.get_file(src_path,steps,'json',r"(steps_)(\d+)(\.)")
-            hdf5_file,samples_seen = ClarifruitUnet.get_file(src_path,steps,'hdf5',r"(steps_)(\d+)(\-)")
+            json_file, _ = ClarifruitUnet.get_file(src_path, steps, 'json', STEPS_REGEX)
+            hdf5_file, samples_seen = ClarifruitUnet.get_file(src_path, steps, 'hdf5', STEPS_REGEX)
 
 
         else:
-            json_file = max(glob.iglob(os.path.join(src_path,'*.json')), key=os.path.getctime)
+            json_file = max(glob.iglob(os.path.join(src_path, '*.json')), key=os.path.getctime)
             hdf5_file = max(glob.iglob(os.path.join(src_path, '*.hdf5')), key=os.path.getctime)
 
-            steps_pattern = re.search(r"(steps_)(\d+)(\-)", hdf5_file)
-            samples_seen = int(steps_pattern.group(2)) if steps_pattern is not None else 0
+            samples_seen = ClarifruitUnet.get_pattern(hdf5_file, STEPS_REGEX, 2)
 
-
-
-        session_pattern = re.search(r"(train_sess_)(\d+)(\_)",json_file)
-        session_number = int(session_pattern.group(2)) if session_pattern is not None else 1
+        session_number = ClarifruitUnet.get_pattern(json_file, SESS_REGEX, 2)
 
         params_dict = load_json(json_file)
         params_dict['pretrained_weights'] = hdf5_file
@@ -463,5 +462,5 @@ class ClarifruitUnet:
 
         return model
 
-    def update_model(self,**kwargs):
+    def update_model(self, **kwargs):
         self.__dict__.update(kwargs)

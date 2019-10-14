@@ -1,14 +1,15 @@
 
-from PIL import Image
 import io
-import numpy as np
-from keras.callbacks import Callback,TensorBoard
-from tensorflow.compat.v1 import Summary
-import warnings
-from auxiliary.custom_image import CustomImage
-from logger_settings import *
 import os
 import re
+import warnings
+
+import numpy as np
+from PIL import Image
+from auxiliary.custom_image import CustomImage
+from keras.callbacks import Callback, TensorBoard
+from logger_settings import *
+from tensorflow.compat.v1 import Summary
 
 configure_logger()
 logger = logging.getLogger("unet_callbacks")
@@ -156,7 +157,8 @@ class CustomModelCheckpoint(Callback):
 
     def __init__(self, filepath, monitor='loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
-                 update_freq=1000,batch_size=10,samples_seen=0,model_params_path=None):
+                 update_freq=1000, batch_size=10, samples_seen=0, model_params_path=None,
+                 session_n=1):
 
         super(CustomModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -170,6 +172,7 @@ class CustomModelCheckpoint(Callback):
         self.samples_seen = samples_seen
         self.samples_seen_at_last_write = 0
         self.model_params_path = model_params_path
+        self.sessions_n = session_n
 
 
         if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
@@ -207,7 +210,9 @@ class CustomModelCheckpoint(Callback):
                 self.modify_params_file()
 
                 self.samples_seen_at_last_write = self.samples_seen
-                filepath = self.filepath.format(steps=self.samples_seen, **logs)
+                filepath = self.filepath.format(steps=self.samples_seen,
+                                                sess=self.sessions_n,
+                                                **logs)
                 if self.save_best_only:
                     current = logs.get(self.monitor)
                     if current is None:
