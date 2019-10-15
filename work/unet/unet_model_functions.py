@@ -18,8 +18,6 @@ SESS_REGEX = r"(train_sess_)(\d+)(\.)"
 
 STEPS_REGEX = r"(steps_)(\d+)(\.)"
 
-HDF5_STEPS_REGEX = r"(steps_)(\d+)(\-)"
-
 PARAMS_FILENAME = "model_params"
 PARAMS_UPDATE_FORMAT = '.train_sess_{sess:02d}.steps_{steps:02d}.'
 
