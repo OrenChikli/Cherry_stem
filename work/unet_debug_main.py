@@ -2,9 +2,9 @@ import os
 from work.unet import unet_model_functions
 from keras.callbacks import ReduceLROnPlateau
 from work.auxiliary import data_functions
-from work.auxiliary.exceptions import *
+
 from work.auxiliary.logger_settings import configure_logger
-import click
+
 import logging
 
 

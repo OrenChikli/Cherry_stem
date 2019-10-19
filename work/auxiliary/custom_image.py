@@ -37,6 +37,7 @@ class CustomImage:
 
         self.img = img
         self.raw_mask = raw_mask
+        self.binary_mask = binary_mask
 
         self.threshold = threshold
 
@@ -45,8 +46,6 @@ class CustomImage:
         self.brown_part = None
 
         self.read_data()
-        self.binary_mask = self.get_threshold_mask()\
-            if binary_mask is None else binary_mask
 
         if self.img_name is not None:
             img_raw_name, extention = self.img_name.rsplit(".", 1)
@@ -159,7 +158,10 @@ class CustomImage:
                                                  cv2.IMREAD_GRAYSCALE)
             elif self.raw_mask is None:
                 self.raw_mask = self.read_npy(self.mask_path)
+
+            if self.binary_mask is None and self.raw_mask is not None:
                 self.binary_mask = self.get_threshold_mask()
+
 
     @logger_decorator.debug_dec
     def get_threshold_mask(self):
