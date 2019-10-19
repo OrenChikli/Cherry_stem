@@ -1,17 +1,18 @@
-from keras.layers import *
 from keras.models import *
+from keras.layers import *
 from keras.optimizers import *
-
-Adam
 import logging
+from auxiliary import decorators
 import tensorflow.compat.v1.logging as tf_logging # to stop tensorflow from displaying depracetion messages
+
 tf_logging.set_verbosity(tf_logging.ERROR)
 
 logger = logging.getLogger(__name__)
+logger_decorator = decorators.Logger_decorator(logger)
 
-
-def unet(optimizer, loss='binary_crossentropy', metrics=('accuracy'),
-         input_size=(256, 256, 1)):
+@logger_decorator.debug_dec
+def unet(optimizer, loss='binary_crossentropy', metrics=(('accuracy')),
+         input_size=(256, 256, 1),pretrained_weights = None):
     """
     an impelemntation of the unet model, taken from https://github.com/zhixuhao/unet
     :param optimizer:keras optimizer to use in the model
@@ -21,7 +22,7 @@ def unet(optimizer, loss='binary_crossentropy', metrics=('accuracy'),
     :param input_size: the dimensions of the input images, defualt is (256,256,1) images
     :return:
     """
-    logger.info(f"<- unet model with input_size={input_size}")
+    logger.info(f"creating unet model with input_size={input_size}")
 
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
@@ -71,5 +72,9 @@ def unet(optimizer, loss='binary_crossentropy', metrics=('accuracy'),
     model = Model(inputs=inputs, outputs=conv10)
 
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+    if pretrained_weights is not None:
+        logger.info(f"loading unet weights: {pretrained_weights}")
+        model.load_weights(pretrained_weights)
 
     return model

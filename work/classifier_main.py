@@ -5,8 +5,13 @@ import xgboost as xgb
 from work.stem_classifier.model_functions import *
 
 from logger_settings import *
-configure_logger()
-logger = logging.getLogger("classifier_main")
+REAL_PATH = os.path.abspath('..')
+log_path = data_functions.create_path(REAL_PATH, 'logs')
+logger = configure_logger(name="cherry_stem",
+                          console_level='INFO',
+                          file_level='DEBUG',
+                          out_path=log_path)
+
 
 
 def func():

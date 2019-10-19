@@ -1,62 +1,24 @@
-from auxiliary import data_functions
-import os
+from work.auxiliary import data_functions
 import cv2
 
 from work.segmentation import segmentation, seg_finder_with_ground_truth
+import os
 
-from datetime import datetime
+from work.auxiliary import logger_settings
 
-from logger_settings import *
-configure_logger()
-logger = logging.getLogger("anotation_main")
-
-
-def segment_multi(orig_path, mask_path, seg_path,settings_dict,img_list=None):
-    logger.debug(" <- segment_multi")
-    if img_list is None:
-        img_list = [img_entry.name for img_entry in os.scandir(orig_path)]
-
-    dir_save_path = data_functions.create_path(seg_path, 'several')
-
-    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M')
-    dir_save_path = data_functions.create_path(dir_save_path, current_time)
-    data_functions.save_json(settings_dict, "segmentation_settings.json", dir_save_path)
-    logger.info(f"segmenting to {dir_save_path}")
-
-    for img in img_list:
-        curr_img_path = os.path.join(orig_path,img)
-        curr_mask_path = os.path.join(mask_path,img)
-        curr_segment = segmentation.Segmentation(img_path=curr_img_path, mask_path=curr_mask_path,
-                                                 scale=settings_dict['scale'],
-                                                 sigma=settings_dict['sigma'],
-                                                 min_size=settings_dict['min_size'],
-                                                 pr_threshold=settings_dict['pr_threshold'])
-
-        res_mask = curr_segment.return_modified_mask()
-
-        base_name = img.rsplit('.',1)[0]
-        save_path_mask = os.path.join(dir_save_path,f"{base_name}_mask.jpg")
-        cv2.imwrite(save_path_mask,res_mask)
-
-    logger.debug(" -> segment_multi")
+REAL_PATH = os.path.abspath('..')
+LOG_PATH = os.path.join(REAL_PATH, 'logs')
+DATA_PATH = os.path.join(REAL_PATH, 'data')
 
 
+log_path = data_functions.create_path(LOG_PATH, 'segmentation_logs')
+logger = logger_settings.configure_logger(name="segmentation",
+                          console_level='INFO',
+                          file_level='DEBUG',
+                          out_path=log_path)
 
 
-def use_segment(image_name,orig_path,mask_path,seg_path,settings_dict):
-
-    seg_folder = 'segmentation'
-    seg_activation_folder = 'activation'
-
-    img_path = os.path.join(orig_path,image_name)
-    img_mask_path = os.path.join(mask_path,image_name)
-
-    #TODO insert new segmentation class
-
-
-
-
-def use_seg_finder_with_ground_truth(img_path,mask_path):
+def use_seg_finder_with_ground_truth(img_path, mask_path):
     sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path, mask_path)
 
     sf.display()
@@ -65,73 +27,97 @@ def use_seg_finder_with_ground_truth(img_path,mask_path):
     cv2.destroyAllWindows()
 
 
-def new_segmentation():
-    image_name = '72596-28736.png.jpg'
+def seg_single():
+    #img_name = '74714-32897.png.jpg'
+    # image_name = '45665-81662.png.jpg'
+    img_name = '38360-25986.png.jpg'
 
-    #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
-    orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\label'
+    # orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
+    orig_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\image')
+    mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
+    seg_path = os.path.join(DATA_PATH,r'segmentation')
 
-    img_path = os.path.join(orig_path,image_name)
-    mask_path =os.path.join(mask_path,image_name)
-    settings_dict = {'pr_threshold': 0.3,
-                     'scale': 100,
-                     'sigma': 0.1,
-                     'min_size': 60}
+    img_path = os.path.join(orig_path, img_name)
+    mask_path = os.path.join(mask_path, img_name)
 
-    sg = segmentation.Segmentation(img_path, mask_path, **settings_dict)
-    sg.apply_segmentation()
-    res = put_binary_ontop(sg.img,sg.filtered_segments)
-    plt.imshow(res)
-    plt.show()
+    display_flag= True
+    save_flag=True
+    save_segments = False
+
+    # settings_dict = {'pr_threshold': 0.15,
+    #                  'seg_type':"slic",
+    #                  'seg_params': dict(n_segments=3000,max_iter=200, sigma=0.5,
+    #                                     compactness=10.0,
+    #                                     enforce_connectivity=True,
+    #                                     min_size_factor=0.05,
+    #                                     max_size_factor=3),
+    #                  'gray_scale': False}
+
+    # settings_dict = {'pr_threshold': 0.2,
+    #                  'seg_type':"slic",
+    #                  'seg_params': dict(n_segments=2000,max_iter=50, sigma=0.0,
+    #                                     compactness=20.0,
+    #                                     enforce_connectivity=True,
+    #                                     min_size_factor=0.1,
+    #                                     max_size_factor=2,
+    #                                     convert2lab=True,
+    #                                     slic_zero=False),
+    #                  'gray_scale': False}
 
 
-def seg_main():
-    logger.debug(" <- seg main")
+
+
+    settings_dict = {'pr_threshold': 0.15,
+                     'seg_type':"felzenszwalb",
+                     'seg_params': {'scale': 1, 'sigma': 0,'min_size': 5},
+                     'gray_scale': False}
+
+    sg = segmentation.SegmentationSingle(img_path=img_path,
+                                         mask_path=mask_path,
+                                         is_binary_mask=True,
+                                         save_path=seg_path,
+                                         create_save_dest_flag=True,
+                                         **settings_dict)
+
+    sg.apply_segmentation(save_flag=save_flag, display_flag=display_flag,
+                          save_segments=save_segments)
+    sg.get_ontop(display_flag=display_flag,save_flag=save_flag)
+    cv2.waitKey(0)
+
+
+
+def main():
     image_name = 'orig_72596-28736.png.jpg'
 
-    #orig_path =r'D:\Clarifruit\cherry_stem\data\difficult\image'
-    orig_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
-    mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09\binary_thres_0.5'
-    seg_path =  r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-22_00-55-09\segmentation'
+    #img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\with_maskes\image'
+    orig_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\image')
+    mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
+    seg_path = os.path.join(DATA_PATH,r'segmentation')
+    #mask_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-09-30_07-19-46\raw_pred'
 
-    seg_folder='segmentation'
-    seg_activation_folder ='activation'
+    is_binary_mask=True
 
-    img_path = os.path.join(orig_path, image_name)
-    img_mask_path = os.path.join(mask_path,image_name)
+    img_list = [image_name]
+    # img_list = [
+    #     '38360-00777.png.jpg',
+    #     '38360-02397.png.jpg',
+    #     '38360-25986.png.jpg',
+    #     '38360-27560.png.jpg',
+    #     '38360-46226.png.jpg',
+    #     '38360-68930.png.jpg',
+    # ]
 
-    img_list = [
-                '45783-98635.png.jpg',
-                '71089-01084.png.jpg',
-                '72492-85602.png.jpg',
-                '72520-70104.png.jpg',
-                '72590-54586.png.jpg',
-                '72592-11978.png.jpg',
-                '72596-28736.png.jpg',
-                '74714-32897.png.jpg',
-                '78702-22132.png.jpg',
-                '78702-32898.png.jpg',
-                '78702-35309.png.jpg',
-                '78712-02020.png.jpg']
 
-    settings_dict = {'threshold': 1,
-                     'pr_threshold': 0.3,
-                     'scale': 50,
-                     'sigma': 0.1,
-                     'min_size': 20}
+    settings_dict = {'pr_threshold': 0.5,
+                     'seg_type':"quickshift",
+                     'seg_params': {},
+                     'gray_scale': False}
 
-    #use_segment(image_name,orig_path, mask_path, seg_path, settings_dict)
-    #use_seg_info(img_path)
-    #use_seg_finder(img_path)
-    #use_seg_filter(img_path)
-    #use_seg_finder_with_ground_truth(img_path,img_mask_path)
-    #img_list = [item.name for item in os.scandir(orig_path)]
-    segment_multi(orig_path, mask_path, seg_path,settings_dict)
-    logger.debug(" -> seg_main")
+    multi_sg = segmentation.SegmentationMulti(img_path=img_path, mask_path=mask_path,
+                                              seg_path=seg_path,is_binary_mask=is_binary_mask)
+    multi_sg.segment_multi(settings_dict, img_list=None)
+
 
 if __name__ == '__main__':
-
-
-    seg_main()
-    #new_segmentation()
+    #main()
+    seg_single()

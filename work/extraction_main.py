@@ -225,7 +225,7 @@ def main():
     #                             obj_type=object_type)
     # experiment with current data
 
-    # get_binary_masks(img_path, mask_path, src_path, threshold)
+    get_binary_masks(img_path, mask_path, src_path, threshold)
     # create_stems(img_path,mask_path,src_path,threshold)
     ontop(img_path, mask_path, src_path, threshold)
     # filtter_images(img_path, mask_path, src_path, threshold, save_flag)

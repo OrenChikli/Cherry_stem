@@ -1,24 +1,23 @@
 
+from PIL import Image
 import io
+import numpy as np
+from keras.callbacks import Callback,TensorBoard
+from tensorflow.compat.v1 import Summary
+import warnings
+from work.auxiliary.custom_image import CustomImage
+from work.auxiliary import decorators
+from work.auxiliary.logger_settings import *
 import os
 import re
-import warnings
 
-import numpy as np
-from PIL import Image
-from auxiliary.custom_image import CustomImage
-from keras.callbacks import Callback, TensorBoard
-from logger_settings import *
-from tensorflow.compat.v1 import Summary
-
-configure_logger()
 logger = logging.getLogger("unet_callbacks")
-
-PARAMS_UPDATE_FORMAT = '.steps_{steps:02d}.json'
+logger_decorator = decorators.Logger_decorator(logger)
 
 
 class CustomTensorboardCallback(TensorBoard):
 
+    @logger_decorator.debug_dec
     def __init__(self, log_dir='./logs',
                  histogram_freq=0,
                  batch_size=32,
@@ -34,7 +33,6 @@ class CustomTensorboardCallback(TensorBoard):
                  threshold=0.5,
                  samples_seen=0):
 
-        logger.debug(" <- CustomTensorboardCallback init")
         super().__init__(log_dir,
                          histogram_freq,
                          batch_size,
@@ -50,14 +48,13 @@ class CustomTensorboardCallback(TensorBoard):
         self.threshold = threshold
         self.samples_seen = samples_seen
 
-        logger.debug(" -> CustomTensorboardCallback init")
-
+    @logger_decorator.debug_dec
     def set_model(self, model):
         super().set_model(model)
         if self.data is not None:
             self.get_data()
 
-
+    @logger_decorator.debug_dec
     def get_data(self):
         """
         Create base images and labels for tensorboard visualization from given validation set
@@ -84,7 +81,7 @@ class CustomTensorboardCallback(TensorBoard):
 
         self.data = np.concatenate(data_list,axis=0)
 
-
+    @logger_decorator.debug_dec
     def make_image(self, tensor):
         """
         Convert an numpy representation image to Image protobuf.
@@ -102,8 +99,7 @@ class CustomTensorboardCallback(TensorBoard):
         return Summary.Image(height=height, width=width, colorspace=channel,
                              encoded_image_string=image_string)
 
-
-
+    @logger_decorator.debug_dec
     def saveToTensorBoard(self, image, tag, batch=None):
 
         image_summary = Summary.Value(tag=tag, image=image)
@@ -111,6 +107,7 @@ class CustomTensorboardCallback(TensorBoard):
 
         self.writer.add_summary(summary_value, global_step=batch)
 
+    @logger_decorator.debug_dec
     def on_batch_end(self, batch, logs=None):
         """
         modifiy the Tensorboard on_batch_end to get predictions from self.data
@@ -125,8 +122,6 @@ class CustomTensorboardCallback(TensorBoard):
             if samples_seen_since >= self.update_freq:
                 self._write_logs(logs, self.samples_seen)
                 self.samples_seen_at_last_write = self.samples_seen
-                #TODO: maybe make log?
-                #print(f"\ntensorboard update on step {self.samples_seen}")
                 if self.data is not None:
                     batch_size = self.data.shape[0]
                     y_pred = self.model.predict(self.data,batch_size=batch_size)
@@ -136,29 +131,35 @@ class CustomTensorboardCallback(TensorBoard):
 
                         custom_img = CustomImage(img=img, mask=raw_pred, threshold=self.threshold)
                         custom_img.get_ontop()
+                        raw_pred_img = (255 * raw_pred).astype(np.uint8)
+
+                        proto_pred_raw = self.make_image(raw_pred_img)
+                        proto_pred_binary = self.make_image(custom_img.threshold_mask)
                         proto_ontop = self.make_image(custom_img.ontop)
 
-                        tag = f'plot_{i}/ontop_threshold_{self.threshold}'
+
+                        raw_pred_tag = f'plot_{i}/raw_pred'
+                        self.saveToTensorBoard(image=proto_pred_raw,
+                                               tag=raw_pred_tag,
+                                               batch=self.samples_seen)
+
+                        binary_pred_tag = f'plot_{i}/binary_pred_thres_{self.threshold}'
+                        self.saveToTensorBoard(image=proto_pred_binary,
+                                               tag=binary_pred_tag,
+                                               batch=self.samples_seen)
+
+                        onrop_tag = f'plot_{i}/ontop_threshold_{self.threshold}'
                         self.saveToTensorBoard(image=proto_ontop,
-                                               tag=tag,
+                                               tag=onrop_tag,
                                                batch=self.samples_seen)
-
-                        raw_pred_img = (255 * raw_pred).astype(np.uint8)
-                        proto_pred = self.make_image(raw_pred_img)
-                        tag = f'plot_{i}/pred'
-                        self.saveToTensorBoard(image=proto_pred,
-                                               tag=tag,
-                                               batch=self.samples_seen)
-
 
 
 class CustomModelCheckpoint(Callback):
-
-
+    @logger_decorator.debug_dec
     def __init__(self, filepath, monitor='loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
-                 update_freq=1000, batch_size=10, samples_seen=0, model_params_path=None,
-                 session_n=1):
+                 update_freq=1000,batch_size=10,samples_seen=0,model_params_path=None,
+                 session_n=1,period=1):
 
         super(CustomModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -172,7 +173,9 @@ class CustomModelCheckpoint(Callback):
         self.samples_seen = samples_seen
         self.samples_seen_at_last_write = 0
         self.model_params_path = model_params_path
-        self.sessions_n = session_n
+        self.sessions_n=session_n
+        self.period = period
+        self.epochs_since_last_save=0
 
 
         if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
@@ -182,11 +185,9 @@ class CustomModelCheckpoint(Callback):
             self.monitor_op = np.less
             self.best = np.Inf
 
-
+    @logger_decorator.debug_dec
     def modify_params_file(self):
         dirname, basename = os.path.split(self.model_params_path)
-        # basename = os.path.basename(self.model_params_path)
-        # dirname = os.path.dirname(self.model_params_path)
         new_file_name=re.sub(r"(steps_)(\d+)(\.)",
                              f"\g<1>{self.samples_seen}\g<3>",
                              basename)
@@ -194,6 +195,7 @@ class CustomModelCheckpoint(Callback):
         os.rename(self.model_params_path,new_model_params_path)
         self.model_params_path = new_model_params_path
 
+    @logger_decorator.debug_dec
     def on_batch_end(self, batch, logs=None):
         """
         modifiy the Tensorboard on_batch_end to get predictions from self.data
@@ -202,8 +204,8 @@ class CustomModelCheckpoint(Callback):
         :param logs:
         :return:
         """
+        self.samples_seen += logs['size']
         if self.update_freq != 'epoch':
-            self.samples_seen += logs['size']
             samples_seen_since = self.samples_seen - self.samples_seen_at_last_write
             if samples_seen_since >= self.update_freq:
 
@@ -237,6 +239,46 @@ class CustomModelCheckpoint(Callback):
                 else:
                     if self.verbose > 0:
                         print('\nstep %05d: saving model to %s' % (self.samples_seen, filepath))
+                    if self.save_weights_only:
+                        self.model.save_weights(filepath, overwrite=True)
+                    else:
+                        self.model.save(filepath, overwrite=True)
+
+    @logger_decorator.debug_dec
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        self.epochs_since_last_save += 1
+        if self.update_freq == 'epoch':
+            self.modify_params_file()
+            if self.epochs_since_last_save >= self.period:
+                self.epochs_since_last_save = 0
+                filepath = self.filepath.format(steps=self.samples_seen,
+                                                sess=self.sessions_n,
+                                                **logs)
+                if self.save_best_only:
+                    current = logs.get(self.monitor)
+                    if current is None:
+                        warnings.warn('Can save best model only with %s available, '
+                                      'skipping.' % (self.monitor), RuntimeWarning)
+                    else:
+                        if self.monitor_op(current, self.best):
+                            if self.verbose > 0:
+                                print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
+                                      ' saving model to %s'
+                                      % (epoch + 1, self.monitor, self.best,
+                                         current, filepath))
+                            self.best = current
+                            if self.save_weights_only:
+                                self.model.save_weights(filepath, overwrite=True)
+                            else:
+                                self.model.save(filepath, overwrite=True)
+                        else:
+                            if self.verbose > 0:
+                                print('\nEpoch %05d: %s did not improve from %0.5f' %
+                                      (epoch + 1, self.monitor, self.best))
+                else:
+                    if self.verbose > 0:
+                        print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
                     if self.save_weights_only:
                         self.model.save_weights(filepath, overwrite=True)
                     else:
