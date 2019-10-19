@@ -1,11 +1,13 @@
 import logging
 import cv2
 
-from auxiliary.image import Image
-from .segmentation import Segmentation
+from auxiliary.custom_image import CustomImage
+from auxiliary.decorators import Logger_decorator
+from .segmentation import SegmentationSingle
 
 
 logger = logging.getLogger(__name__)
+logger_decorator = Logger_decorator(logger)
 
 
 class MaskSegmentFinder:
@@ -26,7 +28,7 @@ class MaskSegmentFinder:
         self.image = Image(path,mask_path)
         self.image.prepare_for_detection()
 
-        self.segmentation = Segmentation(self.image)
+        self.segmentation = SegmentationSingle(self.image)
 
         logger.debug(" <- __init__")
 

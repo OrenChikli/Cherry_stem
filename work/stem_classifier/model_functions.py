@@ -9,9 +9,10 @@ from keras.optimizers import *
 from work.stem_classifier.dl_classifier import class_model
 # from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
 import logging
-
+from auxiliary import decorators
 
 logger = logging.getLogger(__name__)
+logger_decorator = decorators.Logger_decorator(logger)
 
 MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
 COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
@@ -19,7 +20,7 @@ OPTIMIZER_DICT = {'Adam': Adam, 'adagrad': adagrad}
 
 
 class ClarifruitClassifier:
-
+    @logger_decorator.debug_dec
     def __init__(self, train_path, weights_file_name='model_weights.hdf5',
                  data_gen_args=None, callbacks=None,
                  optimizer=None, optimizer_params=None, loss=None, metrics=None, pretrained_weights=None,

@@ -19,9 +19,11 @@ from keras.layers import *
 from keras.optimizers import *
 import tensorflow.compat.v1.logging as tf_logging  # to stop tensorflow from displaying depracetion messages
 
+from auxiliary import decorators
 tf_logging.set_verbosity(tf_logging.ERROR)
 
 logger = logging.getLogger(__name__)
+logger_decorator = decorators.Logger_decorator(logger)
 
 SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression,
                        'RandomForestClassifier':RandomForestClassifier,
@@ -29,10 +31,8 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression,
 
 
 class StemHistClassifier:
-
+    @logger_decorator.debug_dec
     def __init__(self, train_path,label_col,drop_cols=None,hist_type='bgr',threshold='0.4'):
-        logger.debug(" <- init")
-
 
         self.threshold=threshold
         self.hist_type = hist_type
@@ -43,8 +43,8 @@ class StemHistClassifier:
         self.model = None
         self.train_time = None
         self.save_path=None
-        logger.debug(" -> init")
 
+    @logger_decorator.debug_dec
     @staticmethod
     def load_npy_data(src_path):
         df = None
@@ -64,15 +64,17 @@ class StemHistClassifier:
         df.insert(0, "file_name", name_list)
 
         return df
-    @staticmethod
-    def load_data(path,hist_type):
+
+    @logger_decorator.debug_dec
+    @classmethod
+    def load_data(cls,path,hist_type):
         logger.debug(" <- load_data")
         logger.debug(f"loading train data from:{path}")
         ret_df = pd.DataFrame()
 
         for label_folder in os.scandir(path):
             hist_folder = os.path.join(label_folder.path, f'{hist_type}_histograms')
-            curr_df = StemHistClassifier.load_npy_data(hist_folder)
+            curr_df = cls.load_npy_data(hist_folder)
             curr_df['label'] =label_folder.name
             ret_df = pd.concat((ret_df,curr_df))
 
@@ -82,6 +84,7 @@ class StemHistClassifier:
 
         return ret_df
 
+    @logger_decorator.debug_dec
     @staticmethod
     def return_hist(hist,hist_type):
         if hist_type == 'bgr':
@@ -92,6 +95,7 @@ class StemHistClassifier:
             hist = np.squeeze(hist, axis=1)
         return hist
 
+    @logger_decorator.debug_dec
     @staticmethod
     def from_list_data_generator(src_list):
         for item_entry,item_label in src_list:
@@ -100,8 +104,7 @@ class StemHistClassifier:
             name = item_entry.name.rsplit('.',1)[0]
             yield hist, item_label,name
 
-
-
+    @logger_decorator.debug_dec
     @staticmethod
     def test_data_iterator(test_path):
         for item_entry in os.scandir(test_path):
@@ -109,10 +112,9 @@ class StemHistClassifier:
             hist = normalize(hist).flatten().reshape(1,-1)
             yield item_entry.name, hist
 
-
-
+    @logger_decorator.debug_dec
     def train_model(self,save_path, model_name, **model_kwargs):
-        logger.debug(" <- train_model")
+
         self.model = SKLEARN_CLASSIFIERS[model_name](**model_kwargs)
         x_train = self.train_df.drop([self.drop_cols,self.label_col],axis=1)
         y_train = self.train_df[self.label_col]
@@ -122,8 +124,8 @@ class StemHistClassifier:
         self.model.fit(x_train,y_train)
 
         self.save_model(model_kwargs, model_name, save_path)
-        logger.debug(" -> train_model")
 
+    @logger_decorator.debug_dec
     def save_model(self, model_kwargs, model_name, save_path):
 
         save_path = data_functions.create_path(save_path, self.train_time)
@@ -135,10 +137,9 @@ class StemHistClassifier:
         data_functions.save_json(model_kwargs, f"{model_name}_input_params.json", save_path)
         data_functions.save_pickle(self.model, "trained_model.pickle", save_path)
 
-
-
+    @logger_decorator.debug_dec
     def model_predict(self,test_path,save_path, orig_images_path,img_extention='.jpg'):
-        logger.debug(" <- model_predict")
+
         save_path = data_functions.create_path(save_path, self.train_time)
 
         test_df = self.load_data(test_path,self.hist_type)
@@ -156,8 +157,8 @@ class StemHistClassifier:
         with open(os.path.join(save_path,"classification_report.txt"),'w') as f:
             f.write(report)
         print(report)
-        logger.debug(" -> model_predict")
 
+@logger_decorator.debug_dec
 def get_pred_via_list(src_list,save_path, orig_images_path,img_extention='.jpg'):
     save_path = data_functions.create_path(save_path, "from_list")
     for name,pred in src_list:
@@ -166,10 +167,8 @@ def get_pred_via_list(src_list,save_path, orig_images_path,img_extention='.jpg')
         curr_save_path = data_functions.create_path(save_path, str(pred))
         _ = shutil.copy(curr_img_path, curr_save_path)
 
-
+@logger_decorator.debug_dec
 def dl_model():
-
-
 
     def class_model(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=('accuracy'),
              pretrained_weights=None, input_size=(256, 256, 1)):
