@@ -93,20 +93,8 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
-# celery beat schedule file
-celerybeat-schedule
 
-# SageMath parsed files
-*.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -126,8 +114,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+.idea
 data/*
 /from_roman/
 /cherry_venv/
-/logs/
+logs/*
 
