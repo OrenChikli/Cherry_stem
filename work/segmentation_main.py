@@ -18,15 +18,6 @@ logger = logger_settings.configure_logger(name="segmentation",
                           out_path=log_path)
 
 
-def use_seg_finder_with_ground_truth(img_path, mask_path):
-    sf = seg_finder_with_ground_truth.MaskSegmentFinder(img_path, mask_path)
-
-    sf.display()
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
 def seg_single():
     #img_name = '74714-32897.png.jpg'
     # image_name = '45665-81662.png.jpg'

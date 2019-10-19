@@ -136,8 +136,9 @@ class CustomTensorboardCallback(TensorBoard):
                         img = (255 * self.data[i]).astype(np.uint8)
                         raw_pred = y_pred[i]
 
-                        custom_img = CustomImage(img=img, mask=raw_pred,
-                                                 threshold=self.threshold)
+                        custom_img = CustomImage(img=img, raw_mask=raw_pred,
+                                                 threshold=self.threshold,
+                                                 create_save_dest_flag=False)
 
                         raw_pred_img = (255 * raw_pred).astype(np.uint8)
 

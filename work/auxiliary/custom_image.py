@@ -37,7 +37,6 @@ class CustomImage:
 
         self.img = img
         self.raw_mask = raw_mask
-        self.binary_mask = binary_mask
 
         self.threshold = threshold
 
@@ -46,6 +45,9 @@ class CustomImage:
         self.brown_part = None
 
         self.read_data()
+        self.binary_mask = self.get_threshold_mask()\
+            if binary_mask is None else binary_mask
+
         if self.img_name is not None:
             img_raw_name, extention = self.img_name.rsplit(".", 1)
             self.img_raw_name = img_raw_name
@@ -167,8 +169,8 @@ class CustomImage:
         greater than self.threshold
         :return:
         """
-        threshold_mask = (255 * (self.raw_mask > self.threshold)).astype(np.uint8)
-        return threshold_mask
+        return (255 * (self.raw_mask > self.threshold)).astype(np.uint8)
+
 
     @logger_decorator.debug_dec
     def get_ontop(self, mask_color=(255,0 ,0),mask=None,
