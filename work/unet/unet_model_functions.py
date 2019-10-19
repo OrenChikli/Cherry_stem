@@ -257,8 +257,9 @@ class ClarifruitUnet:
             else:
                 orig_shape = img.shape[::-1]
 
+
+            img = cv2.resize(img, tuple(self.target_size))
             img = img / 255
-            img = cv2.resize(img, self.target_size)
             if self.color_mode == "grayscale":
                 img = np.reshape(img, img.shape + (1,))
             img = np.reshape(img, (1,) + img.shape)
@@ -299,12 +300,10 @@ class ClarifruitUnet:
         save_path = data_functions.create_path(dest_path, self.train_time)
         save_path = data_functions.create_path(save_path, 'raw_pred')
         logger.info(f"saving predictions to {save_path}")
-        # saving the src_path of the current files
-        with open(os.path.join(save_path, "src_path.txt"), 'w') as f:
-            f.write(test_path)
 
         test_gen = self.test_generator(test_path)
         for img, img_entry, orig_shape in test_gen:
+            logger.info(f"getting prediction for {img_entry.name}")
             pred_raw = self.model.predict(img, batch_size=1)[0]
             pred_raw_resized = cv2.resize(pred_raw, orig_shape)
 
@@ -553,10 +552,10 @@ class ClarifruitUnet:
             hdf5_file = max(glob.iglob(os.path.join(src_path, '*.hdf5')),
                             key=os.path.getctime)
 
-            samples_seen = cls.get_pattern(hdf5_file, STEPS_REGEX, 2)
+            samples_seen = cls.get_pattern(hdf5_file, STEPS_REGEX)
             samples_seen = samples_seen if samples_seen is not None else 0
 
-        session_number = cls.get_pattern(hdf5_file, SESS_REGEX, 2)
+        session_number = cls.get_pattern(hdf5_file, SESS_REGEX)
         session_number = session_number if session_number is not None else 1
 
         params_dict = data_functions.load_json(json_file)

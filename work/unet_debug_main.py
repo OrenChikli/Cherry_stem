@@ -32,7 +32,7 @@ def main():
     test_path = os.path.join(DATA_PATH, r'raw_data\images_orig')
 
     src_path = os.path.join(DATA_PATH,
-                            r'unet_data\training\2019-10-17_14-38-00')
+                            r'unet_data\training\2019-10-19_21-18-37')
 
     pretrained_weights = os.path.join(DATA_PATH,
                                       r'unet_data\training\2019-09-30_07-19-46\unet_cherry_stem.hdf5')
@@ -89,12 +89,13 @@ def main():
                                      verbose=1, mode='auto', min_delta=0.0001,
                                      cooldown=0, min_lr=1e-6)])
 
-    model = unet_model_functions.ClarifruitUnet(**params_dict)
+    #model = unet_model_functions.ClarifruitUnet(**params_dict)
 
-    # model = unet_model_functions.ClarifruitUnet.load_model(src_path,update_dict,steps)
+    model = unet_model_functions.ClarifruitUnet.load_model(src_path,update_dict,steps)
 
     model.set_model_for_train()
-    model.fit_unet()
+    #model.fit_unet()
+    model.prediction(test_path=test_path,dest_path=dest_path)
 
 
 if __name__ == '__main__':
