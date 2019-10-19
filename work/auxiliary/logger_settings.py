@@ -16,8 +16,7 @@ def configure_logger(name, console_level='INFO', file_level='ERROR',
     """
     A method to configure a logger for console logging and logging to file,
      with different levels
-    :param name: name of the logger , will also be used to name the file logs
-    dest path
+    :param name: name the of file logs dest path
     :param console_level: the logger level for the console handler
     :param file_level: the logger level for the file writer handler
     :param out_path: the destination path for the log files
@@ -51,6 +50,4 @@ def configure_logger(name, console_level='INFO', file_level='ERROR',
     logging.getLogger('PIL.Image').setLevel('ERROR')
     # otherwise will get:
     # PIL.Image: Error closing: 'Image' object has no attribute 'fp'
-    logger = logging.getLogger(name)
 
-    return logger

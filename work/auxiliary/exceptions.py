@@ -10,3 +10,6 @@ class ReadImageException(CvException):
 
 class CustomImageException(Exception):
     pass
+
+class UnetModelException(Exception):
+    pass
