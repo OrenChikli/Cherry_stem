@@ -1,8 +1,8 @@
 from keras.models import *
 from keras.layers import *
-from keras.optimizers import *
+
 import logging
-from auxiliary import decorators
+from work.auxiliary import decorators
 import tensorflow.compat.v1.logging as tf_logging # to stop tensorflow from displaying depracetion messages
 
 tf_logging.set_verbosity(tf_logging.ERROR)
@@ -14,13 +14,17 @@ logger_decorator = decorators.Logger_decorator(logger)
 def unet(optimizer, loss='binary_crossentropy', metrics=(('accuracy')),
          input_size=(256, 256, 1),pretrained_weights = None):
     """
-    an impelemntation of the unet model, taken from https://github.com/zhixuhao/unet
+    an implementation of the unet model,
+    taken from https://github.com/zhixuhao/unet
+
     :param optimizer:keras optimizer to use in the model
     :param loss: keras loss function
     :param metrics: metrics list for
-    :param pretrained_weights: path to possible pretrained weights which can be loaded into the model
-    :param input_size: the dimensions of the input images, defualt is (256,256,1) images
-    :return:
+    :param pretrained_weights:str, path to possible pretrained weights which can
+    be loaded into the model
+    :param input_size:tuple, the dimensions of the input images, default is
+     (256,256,1)
+    :return: a compiled keras model object
     """
     logger.info(f"creating unet model with input_size={input_size}")
 

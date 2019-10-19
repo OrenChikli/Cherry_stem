@@ -2,13 +2,16 @@ from functools import wraps
 import time
 
 
+
+#TODO: think how to implement log_type in configure logger for only one call
 class Logger_decorator:
-    def __init__(self,logger,log_type="NULL"):
+    def __init__(self,logger,log_type="DEBUG"):
         self.logger = logger
         self.log_type = log_type
 
 
     def debug_dec(self, func):
+
 
 
         @wraps(func)

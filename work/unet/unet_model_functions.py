@@ -1,18 +1,20 @@
 from keras.preprocessing.image import ImageDataGenerator
 
 import numpy as np
+import os
+import cv2
 from datetime import datetime
 import glob
-from auxiliary.data_functions import *
+from work.auxiliary import data_functions
 from keras.optimizers import get as get_optimizer
 from keras.models import load_model
 
-from auxiliary.decorators import Logger_decorator
-
+from work.auxiliary.decorators import Logger_decorator
 
 from work.unet.unet_model import unet
-from work.unet.unet_callbacks import CustomTensorboardCallback, CustomModelCheckpoint
-# from tqdm import tqdm # this causes problems with kers progress bar in jupyter!!!
+from work.unet.unet_callbacks import CustomTensorboardCallback, \
+    CustomModelCheckpoint
+
 import logging
 from tensorflow.python.keras import backend as K
 import re
@@ -25,14 +27,17 @@ HDF5_STEPS_REGEX = r"(steps_)(\d+)(\-)"
 
 PARAMS_UPDATE_FORMAT = '.train_sess_{sess:02d}.steps_{steps:02d}.'
 
-logger = logging.getLogger(__name__)
-logger_decorator = Logger_decorator(logger)
-
 MODES_DICT = {'grayscale': 1, 'rgb': 3}  # translate for image dimensions
 COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
 
+logger = logging.getLogger(__name__)
+logger_decorator = Logger_decorator(logger)
+
 
 class ClarifruitUnet:
+    """
+    a set of functions to use the unet model for image segmentation
+    """
 
     @logger_decorator.debug_dec
     def __init__(self, train_path, save_path,
@@ -42,22 +47,21 @@ class ClarifruitUnet:
                  x_folder_name='image',
                  y_folder_name='label',
 
-                 seed=1,data_gen_args=None,validation_split=0.2, validation_steps=10,
+                 seed=1, data_gen_args=None, validation_split=0.2,
+                 validation_steps=10,
 
                  callbacks=None,
-                 optimizer=None,optimizer_params=None,loss=None, metrics=None,
+                 optimizer=None, optimizer_params=None, loss=None, metrics=None,
 
-                 target_size=(256, 256),color_mode='rgb',
+                 target_size=(256, 256), color_mode='rgb',
 
-                 batch_size=10,epochs=5,steps_per_epoch=10,
+                 batch_size=10, epochs=5, steps_per_epoch=10,
 
                  train_time=None,
 
-                 tensorboard_update_freq=100,weights_update_freq=1000,
+                 tensorboard_update_freq=100, weights_update_freq=1000,
                  ontop_display_threshold=0.5,
                  save_weights_only=True):
-
-
 
         K.clear_session()
         self.save_name = save_name
@@ -115,26 +119,11 @@ class ClarifruitUnet:
             logger.info(f"loaing model from checkpoint: {checkpoint}")
             self.model = load_model(checkpoint)
 
-            #
-            # if self.model.optimizer.__class__.__name__ == optimizer:
-            #     for value in self.optimizer_params:
-            #         attr = getattr(self.model.optimizer,value)
-            #         if type(attr) == 'tensorflow.python.ops.variables.RefVariable':
-            #             K.set_value(attr,self.optimizer_params[value])
-            #         else:
-            #             setattr(self.model.optimizer,value,self.optimizer_params[value])
-            #
-            #
-            # self.model.compile(optimizer=self.model.optimizer, loss=self.loss, metrics=self.metrics)
-
         else:
             if pretrained_weights is not None:
                 logger.info(f"loading model weights from {pretrained_weights}")
             self.model = None
             self.get_unet_model()
-
-
-
 
     @staticmethod
     @logger_decorator.debug_dec
@@ -147,25 +136,34 @@ class ClarifruitUnet:
                              seed=1):
         """
 
-        Create a datagen generator with  train validation split
-        :param batch_size: the batch size of each step
-        :param src_path: the path to the data
-        :param folder: the name of the folder in the data_path
-        :param input_aug_dict: a dictionary with the data augmentation parameters of the images
-        :param save_prefix: if output images are saved, this is the prefix in the file names
-        :param color_mode: how to load the images, options are "grayscale", "rgb", default is "grayscale"
-        :param save_to_dir: path to save output images, if None nothing is saved, default is None
-        :param target_size: pixel size of output images,default is (256,256)
-        :param validation_split: size of the validation data set, default is 0.2
-        :param seed: random seed used in image generation, default is 1
+        Create a datagen generator with train validation split.
+        :param batch_size:int, the batch size of each step.
+        :param src_path:str, the path to the data.
+        :param folder:str, the name of the folder in the data_path.
+        :param input_aug_dict:optional, dict, a dictionary with the data
+         augmentation parameters of the images.
+        :param save_prefix:str, if output images are saved, this is the prefix
+         in the file names.
+        :param color_mode:optional,str, how to load the images, options are
+         "grayscale", "rgb", default is "grayscale".
+        :param save_to_dir:optional,str, path to save output images,
+         if None- nothing is saved, default is None.
+        :param target_size:optional,tuple, pixel size of output images,
+        default is (256,256).
+        :param validation_split:optional,float, size of the validation data set,
+         default is 0.2.
+        :param seed: optional,int, random seed used in image generation,
+         default is 1.
         :return: a flow_from_dictionary keras datagenerator
         """
 
-        aug_dict = {'rescale': 1. / 255}  # always rescale the images to the model
+        aug_dict = {'rescale': 1. / 255}  # always rescale the images to
+        # the model
         if input_aug_dict is not None:
             aug_dict.update(input_aug_dict)
 
-        datagen = ImageDataGenerator(**aug_dict, validation_split=validation_split)
+        datagen = ImageDataGenerator(**aug_dict,
+                                     validation_split=validation_split)
 
         train_gen = datagen.flow_from_directory(
             src_path,
@@ -196,33 +194,38 @@ class ClarifruitUnet:
     @logger_decorator.debug_dec
     def clarifruit_train_val_generators(self, aug_flag=True):
         """
-        a method to create train and validation data generators for the current instance
+        a method to create train and validation data generators for the current
+        instance
+        :param aug_flag: bool, optional, whether to use the augdict parameters,
+        used for tensorboard visualizations of several validation set images
         :return:
         """
 
         aug_dict = self.data_gen_args if aug_flag else None
 
-        image_train_generator, image_val_generator = self.train_val_generators(batch_size=self.batch_size,
-                                                                               src_path=self.train_path,
-                                                                               folder=self.x_folder_name,
-                                                                               input_aug_dict=aug_dict,
-                                                                               color_mode=self.color_mode,
-                                                                               save_prefix=self.x_folder_name,
-                                                                               save_to_dir=self.save_to_dir,
-                                                                               target_size=self.target_size,
-                                                                               seed=self.seed,
-                                                                               validation_split=self.validation_split)
+        image_train_generator, image_val_generator = self.train_val_generators(
+            batch_size=self.batch_size,
+            src_path=self.train_path,
+            folder=self.x_folder_name,
+            input_aug_dict=aug_dict,
+            color_mode=self.color_mode,
+            save_prefix=self.x_folder_name,
+            save_to_dir=self.save_to_dir,
+            target_size=self.target_size,
+            seed=self.seed,
+            validation_split=self.validation_split)
 
-        mask_train_generator, mask_val_generator = self.train_val_generators(batch_size=self.batch_size,
-                                                                             src_path=self.train_path,
-                                                                             folder=self.y_folder_name,
-                                                                             input_aug_dict=aug_dict,
-                                                                             color_mode='grayscale',
-                                                                             save_prefix=self.y_folder_name,
-                                                                             save_to_dir=self.save_to_dir,
-                                                                             target_size=self.target_size,
-                                                                             seed=self.seed,
-                                                                             validation_split=self.validation_split)
+        mask_train_generator, mask_val_generator = self.train_val_generators(
+            batch_size=self.batch_size,
+            src_path=self.train_path,
+            folder=self.y_folder_name,
+            input_aug_dict=aug_dict,
+            color_mode='grayscale',
+            save_prefix=self.y_folder_name,
+            save_to_dir=self.save_to_dir,
+            target_size=self.target_size,
+            seed=self.seed,
+            validation_split=self.validation_split)
 
         train_generator = zip(image_train_generator, mask_train_generator)
         val_generator = zip(image_val_generator, mask_val_generator)
@@ -232,12 +235,16 @@ class ClarifruitUnet:
     @logger_decorator.debug_dec
     def test_generator(self, test_path):
         """
-        create a generator which yield appropriate images be be used with the model's predict
-        method, i.e reshapes the images and loads them in the appropriate color mode
+        create a generator which yield appropriate images be be used with the
+        model's predict method, i.e reshapes the images and loads them in the
+         appropriate color mode
         :param test_path:
-        :return: img- an image in an apropriate dimentions for the unet model predict method
-                 img_entry- the result of the os.scandir method, and object with the source image name and path
-                 orig_shape- the original shape of the source image, to be used for reshaping the prediction back to
+        :return: img- an image in an apropriate dimentions for the unet model
+         predict method
+                 img_entry- the result of the os.scandir method, and object with
+                  the source image name and path
+                 orig_shape- the original shape of the source image, to be used
+                  for reshaping the prediction back to
                              the source image size
         """
 
@@ -262,8 +269,9 @@ class ClarifruitUnet:
         """
         a method to yield predictions from the test path
         :param test_path: a path containing the test images
-        :return: img_entry- the result of the os.scandir method, and object with the source image name and path
-                 pred_raw_resised- a mask image, the prediction for the image
+        :return: img_entry- the result of the os.scandir method, and object with
+                            the source image name and path
+                 pred_raw_resized- a mask image, the prediction for the image
         """
         logger.info(f" generating prediction on files from {test_path}")
 
@@ -276,20 +284,20 @@ class ClarifruitUnet:
     @logger_decorator.debug_dec
     def prediction(self, test_path, dest_path):
         """
-        a method to get predictions from a trained model of images in the test_path variable, and save the results to the
-        path specified in the dest_path variable
+        a method to get predictions from a trained model of images in the
+        test_path variable, and save the results to the path specified in the
+        dest_path variable
         :param dest_path: the destination path to save he prediction results
         :param test_path: the path where the test data resides
         :return:
         """
         logger.info(f"prediction on files from {test_path}")
 
-
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        save_path = create_path(dest_path, self.train_time)
-        save_path = create_path(save_path, 'raw_pred')
+        save_path = data_functions.create_path(dest_path, self.train_time)
+        save_path = data_functions.create_path(save_path, 'raw_pred')
         logger.info(f"saving predictions to {save_path}")
         # saving the src_path of the current files
         with open(os.path.join(save_path, "src_path.txt"), 'w') as f:
@@ -307,7 +315,6 @@ class ClarifruitUnet:
             pred_image = (255 * pred_raw_resized).astype(np.uint8)
             cv2.imwrite(os.path.join(save_path, img_entry.name), pred_image)
 
-
         return save_path
 
     @logger_decorator.debug_dec
@@ -321,7 +328,6 @@ class ClarifruitUnet:
             'class_name': self.optimizer,
             'config': self.optimizer_params}
         optimizer = get_optimizer(config)
-        #optimizer =keras.optimizers.Adam(**self.optimizer_params)
 
         self.model = unet(optimizer=optimizer,
                           loss=self.loss,
@@ -331,7 +337,10 @@ class ClarifruitUnet:
 
     @logger_decorator.debug_dec
     def fit_unet(self):
-        """ fit a unet model for the current instance"""
+        """
+        fit a unet model for the current instance
+        :return:
+        """
         logger.info(f"Training model with optimizer:{self.optimizer}")
         logger.info(f"Optimizer params: {self.optimizer_params}")
         self.model.fit_generator(
@@ -345,21 +354,33 @@ class ClarifruitUnet:
 
     @logger_decorator.debug_dec
     def save_model_params(self):
-
+        """
+        save the current ClarifruitUnet instance parameters to a json file
+        :return:
+        """
         params_dict = self.get_model_params()
         if self.params_filepath is not None:
-            file_params = load_json(self.params_filepath)
-            if file_params != params_dict:  # cheking if the parametes for this session are diffrent
+            file_params = data_functions.load_json(self.params_filepath)
+            if file_params != params_dict:  # cheking if the parametes for this
+                # session are diffrent then those
+                # in the source file
                 self.session_number += 1
 
-        curr_file_name = (self.params_file_name + PARAMS_UPDATE_FORMAT + 'json').format(sess=self.session_number,
-                                                                                        steps=self.samples_seen)
+        curr_file_name = (
+                self.params_file_name + PARAMS_UPDATE_FORMAT + 'json').format(
+            sess=self.session_number,
+            steps=self.samples_seen)
 
-        save_json(params_dict, curr_file_name, self.curr_folder)
+        data_functions.save_json(params_dict, curr_file_name, self.curr_folder)
         self.params_filepath = os.path.join(self.curr_folder, curr_file_name)
 
     @logger_decorator.debug_dec
     def get_model_params(self):
+        """
+        get a dictionary of the model parameters to be saved, removes
+        unnecessary parameters
+        :return: a dictionary of parameters
+        """
         params_dict = vars(self).copy()
         exclude_params = ['input_size',
                           'model',
@@ -375,7 +396,7 @@ class ClarifruitUnet:
                           'weights_file_name',
                           'checkpoint_filename',
                           'curr_folder'
-        ]
+                          ]
 
         for key in exclude_params:
             params_dict.pop(key)
@@ -384,29 +405,35 @@ class ClarifruitUnet:
     @logger_decorator.debug_dec
     def set_model_checkpint(self):
         """
-        set the model checkpoint keras callbacks method for the current training session,
-        where the model weights will be saved in folder assigned for the current session
-        :param dest_path: the destination folder where the specific session will be saved to
+        set the model checkpoint keras callbacks method for the current training
+        session, where the model weights will be saved in folder assigned for
+        the current session
         :return: the save folder for the current training session
         """
 
-        keras_logs_path = create_path(self.curr_folder, self.keras_logs_folder)
+        keras_logs_path = data_functions.create_path(self.curr_folder,
+                                                     self.keras_logs_folder)
 
-        file_name = self.weights_file_name if self.save_weights_only else self.checkpoint_filename
+        file_name = self.weights_file_name if self.save_weights_only \
+            else self.checkpoint_filename
 
-        steps_file_name = file_name + PARAMS_UPDATE_FORMAT + 'loss_{loss:.4f}.hdf5'
+        steps_file_name = file_name + \
+                          PARAMS_UPDATE_FORMAT + \
+                          'loss_{loss:.4f}.hdf5'
+
         steps_out_model_path = os.path.join(self.curr_folder, steps_file_name)
 
-        steps_model_checkpoint = CustomModelCheckpoint(steps_out_model_path,
-                                                       monitor='loss',
-                                                       verbose=1,
-                                                       save_best_only=False,
-                                                       update_freq=self.weights_update_freq,
-                                                       batch_size=self.batch_size,
-                                                       save_weights_only=self.save_weights_only,
-                                                       samples_seen=self.samples_seen,
-                                                       model_params_path=self.params_filepath,
-                                                       session_n=self.session_number)
+        steps_model_checkpoint = CustomModelCheckpoint(
+            steps_out_model_path,
+            monitor='loss',
+            verbose=1,
+            save_best_only=False,
+            update_freq=self.weights_update_freq,
+            batch_size=self.batch_size,
+            save_weights_only=self.save_weights_only,
+            samples_seen=self.samples_seen,
+            model_params_path=self.params_filepath,
+            session_n=self.session_number)
 
         # get some non augmented images for tensorboard visualizations
         _, val_gen_no_aug = self.clarifruit_train_val_generators(aug_flag=False)
@@ -414,87 +441,117 @@ class ClarifruitUnet:
         # TODO modify hardcoded values
         v_data = [next(val_gen_no_aug) for i in range(1000) if i % 200 == 0.0]
 
-        image_history = CustomTensorboardCallback(log_dir=keras_logs_path,
-                                                  batch_size=self.batch_size,
-                                                  histogram_freq=0,
-                                                  write_graph=True,
-                                                  update_freq=self.tensorboard_update_freq,
-                                                  data=v_data,
-                                                  threshold=self.ontop_display_threshold,
-                                                  samples_seen=self.samples_seen)
+        image_history = CustomTensorboardCallback(
+            log_dir=keras_logs_path,
+            batch_size=self.batch_size,
+            histogram_freq=0,
+            write_graph=True,
+            update_freq=self.tensorboard_update_freq,
+            data=v_data,
+            threshold=self.ontop_display_threshold,
+            samples_seen=self.samples_seen)
 
         callbacks = [image_history, steps_model_checkpoint]
 
         if self.callbacks is None:
             self.callbacks = callbacks
         else:
-            #self.callbacks = callbacks + self.callbacks
-            self.callbacks = callbacks
+            self.callbacks = callbacks + self.callbacks
 
         return keras_logs_path
 
     @logger_decorator.debug_dec
     def set_model_for_train(self):
         """
-        train the unet model for current instance and save the results if possible
-        :param params_dict: the parameters used to define the current instance
-        :param dest_path: optional destination path to save the model
-        :return:
+        prepare the instance for training.
+        set the destenation folder for saving the results, save the model
+        parameters set the model checkpoints and get the model generators
+        :return: the path of the keras logs to be used with tensorboard
         """
         if self.train_time is None:
             self.train_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        self.curr_folder = create_path(self.save_path, self.train_time)
+        self.curr_folder = data_functions.create_path(
+            self.save_path, self.train_time)
         logger.info(f"training results will be stored in: {self.curr_folder}")
 
         self.save_model_params()
-        self.train_generator, self.val_generator = self.clarifruit_train_val_generators()
+        self.train_generator, self.val_generator = \
+            self.clarifruit_train_val_generators()
         keras_logs_path = self.set_model_checkpint()
 
         return keras_logs_path
 
     @staticmethod
     @logger_decorator.debug_dec
-    def get_pattern(file, regex, group_n):
+    def get_pattern(src_string, regex):
+        """
+        use a regex expression with 3 capturing groups to return the 2 group
+        if the pattern exsists in the src_string
+        :param src_string: str, a string to be searched for the pattern
+        :param regex: a regular expression which has 3 capturing groups
+        :return: the second capturing group if the pattern is found
+        """
         ret = None
-        pattern = re.search(regex, file)
+        pattern = re.search(regex, src_string)
         if pattern is not None:
-            ret = int(pattern.group(group_n))
+            ret = int(pattern.group(2))
         return ret
 
     @classmethod
     @logger_decorator.debug_dec
-    def get_file(cls,src_path, steps, file_extention, regex):
+    def get_file_via_steps(cls, src_path, steps, file_extention, regex):
+        """
+        load a file which has a number of steps in it's file name, which are
+        greater or equal to the given steps
+        :param src_path: the source path to the files
+        :param steps: the number of steps to be searched
+        :param file_extention: the extention type of the files to be searced
+        :param regex: the regular expression with 3 capuring groups where the
+        2 group corresponds to the number of steps
+        :return:
+        """
         res = None
         func = cls.get_pattern
-        files_iterator = glob.iglob(os.path.join(src_path, f'*.{file_extention}'))
-        sorted_file_names = sorted([(func(file, regex, 2), file) for file in files_iterator])
+        files_iterator = glob.iglob(
+            os.path.join(src_path, f'*.{file_extention}'))
+        sorted_file_names = sorted(
+            [(func(file, regex, 2), file) for file in files_iterator])
         for samples_seen, file in sorted_file_names:
             if samples_seen >= steps:
                 res = file
                 steps = samples_seen
                 break
+        logger.warning("couldnt find files for the specified number of steps,"
+                       "loading the latest files instead")
 
         return res, steps
 
     @classmethod
     @logger_decorator.debug_dec
-    def load_model(cls,src_path,update_dict=None, steps=None):
+    def load_model(cls, src_path, update_dict=None, steps=None):
         """
         load a pretrained model located in the src_path
         :param src_path: the path containing the pretrained model
-        :param steps:
-        :return: the parameters of the model to be used later on
+        :param update_dict: optional, dict, a dictionary of parameter used to
+        modifiey the loaded model
+        :param steps:optional,int, the steps from which to load the model,
+        if None, the latest weights and parameters are loaded, default None
+
+        :return:  a ClarifruitUnet instance
         """
 
         if steps is not None:
-            json_file, _ = cls.get_file(src_path, steps, 'json', STEPS_REGEX)
-            hdf5_file, samples_seen = cls.get_file(src_path, steps, 'hdf5', STEPS_REGEX)
+            json_file, _ = cls.get_file_via_steps(src_path, steps, 'json', STEPS_REGEX)
+            hdf5_file, samples_seen = cls.get_file_via_steps(src_path, steps, 'hdf5',
+                                                             STEPS_REGEX)
 
 
         else:
-            json_file = max(glob.iglob(os.path.join(src_path, '*.json')), key=os.path.getctime)
-            hdf5_file = max(glob.iglob(os.path.join(src_path, '*.hdf5')), key=os.path.getctime)
+            json_file = max(glob.iglob(os.path.join(src_path, '*.json')),
+                            key=os.path.getctime)
+            hdf5_file = max(glob.iglob(os.path.join(src_path, '*.hdf5')),
+                            key=os.path.getctime)
 
             samples_seen = cls.get_pattern(hdf5_file, STEPS_REGEX, 2)
             samples_seen = samples_seen if samples_seen is not None else 0
@@ -502,10 +559,11 @@ class ClarifruitUnet:
         session_number = cls.get_pattern(hdf5_file, SESS_REGEX, 2)
         session_number = session_number if session_number is not None else 1
 
-        params_dict = load_json(json_file)
+        params_dict = data_functions.load_json(json_file)
 
         params_dict['pretrained_weights'] = hdf5_file
 
+        #TODO: try to rearange loading weights
         # if 'weights' in os.path.basename(hdf5_file):
         #     params_dict['pretrained_weights'] = hdf5_file
         # else:
@@ -514,7 +572,7 @@ class ClarifruitUnet:
         params_dict['train_time'] = os.path.basename(src_path)
         if update_dict is not None:
             if 'pretrained_weights' or 'checkpoint' in update_dict:
-                params_dict['pretrained_weights'] =None
+                params_dict['pretrained_weights'] = None
                 params_dict['checkpoint'] = None
             params_dict.update(update_dict)
 
@@ -529,8 +587,12 @@ class ClarifruitUnet:
 
     @logger_decorator.debug_dec
     def update_model(self, **kwargs):
+        """
+        update the current instance to have new parameter given in kwargs
+        :param kwargs: the new update parameters
+        :return:
+        """
         self.__dict__.update(kwargs)
-        opt_params = ['optimizer_params','optimizer']
+        opt_params = ['optimizer_params', 'optimizer']
         if any(item in kwargs.keys() for item in opt_params):
             self.get_unet_model()
-

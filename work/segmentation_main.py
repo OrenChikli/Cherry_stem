@@ -1,7 +1,7 @@
 from work.auxiliary import data_functions
 import cv2
 
-from work.segmentation import segmentation, seg_finder_with_ground_truth
+from work.segmentation import segmentation
 import os
 
 from work.auxiliary import logger_settings
@@ -113,7 +113,7 @@ def main():
                      'seg_params': {},
                      'gray_scale': False}
 
-    multi_sg = segmentation.SegmentationMulti(img_path=img_path, mask_path=mask_path,
+    multi_sg = segmentation.segment_multi(img_path=img_path, mask_path=mask_path,
                                               seg_path=seg_path,is_binary_mask=is_binary_mask)
     multi_sg.segment_multi(settings_dict, img_list=None)
 

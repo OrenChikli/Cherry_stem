@@ -1,10 +1,9 @@
 from work.stem_classifier import classify
-from auxiliary import data_functions
+from work.auxiliary import data_functions
 import os
-import xgboost as xgb
 from work.stem_classifier.model_functions import *
 
-from logger_settings import *
+from work.auxiliary.logger_settings import configure_logger
 REAL_PATH = os.path.abspath('..')
 log_path = data_functions.create_path(REAL_PATH, 'logs')
 logger = configure_logger(name="cherry_stem",

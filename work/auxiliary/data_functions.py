@@ -7,7 +7,7 @@ import shutil
 import cv2
 import matplotlib.pyplot as plt
 import json
-from work.auxiliary import display_functions,decorators
+from work.auxiliary import decorators
 from scipy.spatial.distance import euclidean
 import pickle
 
@@ -33,7 +33,8 @@ def create_path(src_path, path_extention):
 @logger_decorator.debug_dec
 def get_masks_via_img(src_img_path,src_mask_path,dest_mask_path):
     """
-    use thesrc_img_path with selected images to move respective masks from src_mask path to dest_mask_path
+    use the src_img_path with selected images to move respective masks from
+     src_mask path to dest_mask_path
     :param src_img_path: folder containing the source images
     :param src_mask_path: folder containing all the predictions
     :param dest_mask_path: destination to move respective masks
@@ -84,7 +85,8 @@ def save_json(params_dict, file_name, save_path):
     """
     save a given dict object as a json file
     :param params_dict: input dict object to be saved
-    :param file_name: the save file name(or full path), must have .json file extention, e.g "rsults.json"
+    :param file_name: the save file name(or full path), must have .json file
+     extention, e.g "rsults.json"
     :param save_path: the destination where to save the json file
     :return: None
     """
@@ -107,22 +109,7 @@ def load_json(path):
     return res
 
 
-@logger_decorator.debug_dec
-def save_pickle(object,file_name,save_path):
-    file_save_path = os.path.join(save_path,file_name)
-    with open(file_save_path, 'wb') as f:
-        pickle.dump(object, f)
 
-@logger_decorator.debug_dec
-def load_pickle(path):
-    """
-    loads a json file from the path
-    :param path: the full path to the json file
-    :return: a json.load object
-    """
-    with open(path, 'rb') as f:
-        res = pickle.load(f)
-    return res
 
 
 @logger_decorator.debug_dec
@@ -142,17 +129,6 @@ def plot_res(test_img, ground_truth_mask, test_mask_raw):
     plt.show()
 
 
-
-@logger_decorator.debug_dec
-def get_with_maskes(img_path,mask_path,dest_path,color=(0,255,255)):
-    img_list = os.scandir(img_path)
-    for img_entry in img_list:
-        img = cv2.imread(img_entry.path,cv2.IMREAD_UNCHANGED)
-        curr_mask_path = os.path.join(mask_path,img_entry.name)
-        mask = cv2.imread(curr_mask_path,cv2.IMREAD_UNCHANGED)
-        ontop = display_functions.put_binary_ontop(img,mask,color)
-        curr_dest_path = os.path.join(dest_path,img_entry.name)
-        cv2.imwrite(curr_dest_path,ontop)
 
 @logger_decorator.debug_dec
 def find_closest(item,item_dict):

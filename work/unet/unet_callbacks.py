@@ -1,8 +1,7 @@
-
 from PIL import Image
 import io
 import numpy as np
-from keras.callbacks import Callback,TensorBoard
+from keras.callbacks import Callback, TensorBoard
 from tensorflow.compat.v1 import Summary
 import warnings
 from work.auxiliary.custom_image import CustomImage
@@ -57,15 +56,16 @@ class CustomTensorboardCallback(TensorBoard):
     @logger_decorator.debug_dec
     def get_data(self):
         """
-        Create base images and labels for tensorboard visualization from given validation set
-        also sets the data as an input tensor for showing prediction progress
+        Create base images and labels for tensorboard visualization from given
+        validation set also sets the data as an input tensor for showing
+        prediction progress
         :return:
         """
         data_list = []
-        for i,data in enumerate(self.data):
+        for i, data in enumerate(self.data):
             image_data = data[0][5]
             label_data = data[1][5]
-            data_list.append(image_data[np.newaxis,:])
+            data_list.append(image_data[np.newaxis, :])
             raw_image = (255 * image_data).astype(np.uint8)
             raw_mask = (255 * label_data).astype(np.uint8)
 
@@ -79,7 +79,7 @@ class CustomTensorboardCallback(TensorBoard):
             self.saveToTensorBoard(image=proto_ground_truth,
                                    tag=image_tag)
 
-        self.data = np.concatenate(data_list,axis=0)
+        self.data = np.concatenate(data_list, axis=0)
 
     @logger_decorator.debug_dec
     def make_image(self, tensor):
@@ -89,7 +89,7 @@ class CustomTensorboardCallback(TensorBoard):
         """
         height, width, channel = tensor.shape
         if channel == 1:
-            image = Image.fromarray(tensor[:,:,0])
+            image = Image.fromarray(tensor[:, :, 0])
         else:
             image = Image.fromarray(tensor)
         output = io.BytesIO()
@@ -101,6 +101,13 @@ class CustomTensorboardCallback(TensorBoard):
 
     @logger_decorator.debug_dec
     def saveToTensorBoard(self, image, tag, batch=None):
+        """
+        save a protobuf image with a given tag with the writter class
+        :param image: a protobuf image
+        :param tag: str, the tag of the image
+        :param batch: the current number of steps
+        :return:
+        """
 
         image_summary = Summary.Value(tag=tag, image=image)
         summary_value = Summary(value=[image_summary])
@@ -110,40 +117,42 @@ class CustomTensorboardCallback(TensorBoard):
     @logger_decorator.debug_dec
     def on_batch_end(self, batch, logs=None):
         """
-        modifiy the Tensorboard on_batch_end to get predictions from self.data
+        modify the Tensorboard on_batch_end to get predictions from self.data
         at the predefined update frequency
-        :param batch: batch number
-        :param logs:
-        :return:
+
         """
         if self.update_freq != 'epoch':
             self.samples_seen += logs['size']
-            samples_seen_since = self.samples_seen - self.samples_seen_at_last_write
+            samples_seen_since = self.samples_seen - \
+                                 self.samples_seen_at_last_write
             if samples_seen_since >= self.update_freq:
                 self._write_logs(logs, self.samples_seen)
                 self.samples_seen_at_last_write = self.samples_seen
                 if self.data is not None:
                     batch_size = self.data.shape[0]
-                    y_pred = self.model.predict(self.data,batch_size=batch_size)
+                    y_pred = self.model.predict(self.data,
+                                                batch_size=batch_size)
                     for i in range(batch_size):
                         img = (255 * self.data[i]).astype(np.uint8)
                         raw_pred = y_pred[i]
 
-                        custom_img = CustomImage(img=img, mask=raw_pred, threshold=self.threshold)
-                        custom_img.get_ontop()
+                        custom_img = CustomImage(img=img, mask=raw_pred,
+                                                 threshold=self.threshold)
+
                         raw_pred_img = (255 * raw_pred).astype(np.uint8)
 
                         proto_pred_raw = self.make_image(raw_pred_img)
-                        proto_pred_binary = self.make_image(custom_img.threshold_mask)
-                        proto_ontop = self.make_image(custom_img.ontop)
-
+                        proto_pred_binary = self.make_image(
+                            custom_img.binary_mask)
+                        proto_ontop = self.make_image(custom_img.get_ontop())
 
                         raw_pred_tag = f'plot_{i}/raw_pred'
                         self.saveToTensorBoard(image=proto_pred_raw,
                                                tag=raw_pred_tag,
                                                batch=self.samples_seen)
 
-                        binary_pred_tag = f'plot_{i}/binary_pred_thres_{self.threshold}'
+                        binary_pred_tag = f'plot_{i}/binary_pred_thres_' \
+                                          f'{self.threshold}'
                         self.saveToTensorBoard(image=proto_pred_binary,
                                                tag=binary_pred_tag,
                                                batch=self.samples_seen)
@@ -158,8 +167,9 @@ class CustomModelCheckpoint(Callback):
     @logger_decorator.debug_dec
     def __init__(self, filepath, monitor='loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
-                 update_freq=1000,batch_size=10,samples_seen=0,model_params_path=None,
-                 session_n=1,period=1):
+                 update_freq=1000, batch_size=10, samples_seen=0,
+                 model_params_path=None,
+                 session_n=1, period=1):
 
         super(CustomModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -173,10 +183,9 @@ class CustomModelCheckpoint(Callback):
         self.samples_seen = samples_seen
         self.samples_seen_at_last_write = 0
         self.model_params_path = model_params_path
-        self.sessions_n=session_n
+        self.sessions_n = session_n
         self.period = period
-        self.epochs_since_last_save=0
-
+        self.epochs_since_last_save = 0
 
         if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
             self.monitor_op = np.greater
@@ -188,11 +197,11 @@ class CustomModelCheckpoint(Callback):
     @logger_decorator.debug_dec
     def modify_params_file(self):
         dirname, basename = os.path.split(self.model_params_path)
-        new_file_name=re.sub(r"(steps_)(\d+)(\.)",
-                             f"\g<1>{self.samples_seen}\g<3>",
-                             basename)
-        new_model_params_path = os.path.join(dirname,new_file_name)
-        os.rename(self.model_params_path,new_model_params_path)
+        new_file_name = re.sub(r"(steps_)(\d+)(\.)",
+                               f"\g<1>{self.samples_seen}\g<3>",
+                               basename)
+        new_model_params_path = os.path.join(dirname, new_file_name)
+        os.rename(self.model_params_path, new_model_params_path)
         self.model_params_path = new_model_params_path
 
     @logger_decorator.debug_dec
@@ -206,7 +215,8 @@ class CustomModelCheckpoint(Callback):
         """
         self.samples_seen += logs['size']
         if self.update_freq != 'epoch':
-            samples_seen_since = self.samples_seen - self.samples_seen_at_last_write
+            samples_seen_since = self.samples_seen - \
+                                 self.samples_seen_at_last_write
             if samples_seen_since >= self.update_freq:
 
                 self.modify_params_file()
@@ -218,27 +228,34 @@ class CustomModelCheckpoint(Callback):
                 if self.save_best_only:
                     current = logs.get(self.monitor)
                     if current is None:
-                        warnings.warn('Can save best model only with %s available, '
-                                      'skipping.' % (self.monitor), RuntimeWarning)
+                        warnings.warn(
+                            'Can save best model only with %s available, '
+                            'skipping.' % (self.monitor), RuntimeWarning)
                     else:
                         if self.monitor_op(current, self.best):
                             if self.verbose > 0:
-                                print('\nstep %05d: %s improved from %0.5f to %0.5f,'
-                                      ' saving model to %s'
-                                      % (self.samples_seen, self.monitor, self.best,
-                                         current, filepath))
+                                print('\nstep %05d: %s improved from %0.5f '
+                                      'to %0.5f, saving model to %s' % (
+                                          self.samples_seen, self.monitor,
+                                          self.best,
+                                          current, filepath))
+
                             self.best = current
                             if self.save_weights_only:
-                                self.model.save_weights(filepath, overwrite=True)
+                                self.model.save_weights(filepath,
+                                                        overwrite=True)
                             else:
                                 self.model.save(filepath, overwrite=True)
                         else:
                             if self.verbose > 0:
-                                print('\nsteps %05d: %s did not improve from %0.5f' %
-                                      (self.samples_seen, self.monitor, self.best))
+                                print('\nsteps %05d: %s did not improve from'
+                                      ' %0.5f' % (
+                                        self.samples_seen, self.monitor,
+                                        self.best))
                 else:
                     if self.verbose > 0:
-                        print('\nstep %05d: saving model to %s' % (self.samples_seen, filepath))
+                        print('\nstep %05d: saving model to %s' % (
+                            self.samples_seen, filepath))
                     if self.save_weights_only:
                         self.model.save_weights(filepath, overwrite=True)
                     else:
@@ -258,29 +275,33 @@ class CustomModelCheckpoint(Callback):
                 if self.save_best_only:
                     current = logs.get(self.monitor)
                     if current is None:
-                        warnings.warn('Can save best model only with %s available, '
-                                      'skipping.' % (self.monitor), RuntimeWarning)
+                        warnings.warn(
+                            'Can save best model only with %s available, '
+                            'skipping.' % (self.monitor), RuntimeWarning)
                     else:
                         if self.monitor_op(current, self.best):
                             if self.verbose > 0:
-                                print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
-                                      ' saving model to %s'
-                                      % (epoch + 1, self.monitor, self.best,
-                                         current, filepath))
+                                print(
+                                    '\nEpoch %05d: %s improved from %0.5f to %0.5f,'
+                                    ' saving model to %s'
+                                    % (epoch + 1, self.monitor, self.best,
+                                       current, filepath))
                             self.best = current
                             if self.save_weights_only:
-                                self.model.save_weights(filepath, overwrite=True)
+                                self.model.save_weights(filepath,
+                                                        overwrite=True)
                             else:
                                 self.model.save(filepath, overwrite=True)
                         else:
                             if self.verbose > 0:
-                                print('\nEpoch %05d: %s did not improve from %0.5f' %
-                                      (epoch + 1, self.monitor, self.best))
+                                print(
+                                    '\nEpoch %05d: %s did not improve from %0.5f' %
+                                    (epoch + 1, self.monitor, self.best))
                 else:
                     if self.verbose > 0:
-                        print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                        print('\nEpoch %05d: saving model to %s' % (
+                            epoch + 1, filepath))
                     if self.save_weights_only:
                         self.model.save_weights(filepath, overwrite=True)
                     else:
                         self.model.save(filepath, overwrite=True)
-

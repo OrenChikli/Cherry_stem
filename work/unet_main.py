@@ -1,25 +1,30 @@
 import os
 from work.unet import unet_model_functions
 from keras.callbacks import ReduceLROnPlateau
-from auxiliary import data_functions
-from logger_settings import configure_logger
+from work.auxiliary import data_functions
+from work.auxiliary.logger_settings import configure_logger
 
 REAL_PATH = os.path.abspath('..')
 LOG_PATH = os.path.join(REAL_PATH,'logs')
+DATA_PATH = os.path.join(REAL_PATH, 'data')
 
-log_path = data_functions.create_path(LOG_PATH,'unet_logs')
+log_path = data_functions.create_path(LOG_PATH, 'unet_logs')
 logger = configure_logger(name="cherry_stem",
                           console_level='INFO',
                           file_level='INFO',
                           out_path=log_path)
 
-
 def main():
-    train_path = os.path.join(REAL_PATH, r'data\raw_data\with_maskes')
-    dest_path = os.path.join(REAL_PATH, r'data\unet_data\training')
-    test_path = os.path.join(REAL_PATH, r'data\raw_data\images_orig')
 
-    src_path = r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-17_14-38-00'
+
+    train_path = os.path.join(DATA_PATH,r'raw_data\with_maskes')
+    dest_path = os.path.join(DATA_PATH,r'unet_data\training')
+    test_path = os.path.join(DATA_PATH,r'raw_data\images_orig')
+
+    src_path = os.path.join(DATA_PATH,r'unet_data\training\2019-10-17_14-38-00')
+
+    pretrained_weights = os.path.join(DATA_PATH,r'unet_data\training\2019-09-30_07-19-46\unet_cherry_stem.hdf5')
+
     steps = None
 
     params_dict = dict(
@@ -31,7 +36,7 @@ def main():
 
         save_name='cherry',
 
-        pretrained_weights=r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-16_16-48-42\cherry_ckpt.train_sess_01.steps_7132.loss_0.0270.hdf5',
+        pretrained_weights=pretrained_weights,
         checkpoint=None,
         data_gen_args=dict(rotation_range=180,
                            brightness_range=[0.2, 1.],
@@ -67,8 +72,8 @@ def main():
                                      verbose=1, mode='auto', min_delta=0.0001,
                                      cooldown=0, min_lr=1e-6)])
 
-    update_dict=None
-    update_dict = dict(callbacks=[ReduceLROnPlateau(monitor='loss', factor=0.8, patience=2,
+
+    update_dict = dict(callbacks=[ReduceLROnPlateau(monitor='loss', factor=0.2, patience=2,
                                                     verbose=1, mode='auto', min_delta=0.0001,
                                                     cooldown=0, min_lr=1e-6)])
 

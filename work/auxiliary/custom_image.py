@@ -47,13 +47,20 @@ class CustomImage:
 
         self.read_data()
         if self.img_name is not None:
-            self.get_save_params()
+            img_raw_name, extention = self.img_name.rsplit(".", 1)
+            self.img_raw_name = img_raw_name
+            self.extention = '.' + extention
 
         if create_save_dest_flag:
             self.create_save_dest()
 
+    @logger_decorator.debug_dec
     def create_save_dest(self):
-
+        """
+        Create a folder with the current time stamp the destination folder,
+        where any results to be save to file will be saved to
+        :return:
+        """
         dir_save_path = data_functions.create_path(self.save_path, self.img_raw_name)
         current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         self.save_path = data_functions.create_path(dir_save_path, current_time)
@@ -72,62 +79,94 @@ class CustomImage:
 
     @staticmethod
     def read_img(path,mode=cv2.IMREAD_COLOR):
+        """
+        A method to read an image using cv.imread with exceptions
+        :param path: source to the image
+        :param mode: one of the cv2 imread enumerations specified in
+        https://docs.opencv.org/3.4/d4/da8/group__imgcodecs.html
+        :return: cv2.imread result if not None
+        """
         try:
             logger.debug(f"Reading image from {path}")
             img = cv2.imread(path, mode | cv2.IMREAD_IGNORE_ORIENTATION)
 
             if img is None:
                 error_message = f"Can't read image from"
-                logger.error(error_message, path)
                 raise ReadImageException(error_message, path)
             else:
                 return img
 
         except:
-            message = f"Failed reading image from: {path}"
+            message = 'Problem reading image file'
             logger.exception(message)
-            raise ReadImageException(message)
+
 
     @staticmethod
     def read_npy(path):
+        """
+        a method to read npy files
+        :param path: the path to the file
+        :return:
+        """
+        try:
+            logger.info(f"Reading npy file from {path}")
+            img = np.load(path)
 
-        logger.info(f"Reading npy file from {path}")
-        img = np.load(path)
+            if img is None:
+                error_message = f"Can't read npy from"
+                logger.error(error_message, path)
+                raise ReadImageException(error_message, path)
+            else:
+                return img
+        except:
+            message = 'Problem reading npy file'
+            logger.exception(message)
 
-        if img is None:
-            error_message = f"Can't read npy from"
-            logger.error(error_message, path)
-            raise ReadImageException(error_message, path)
-        else:
-            return img
 
     @logger_decorator.debug_dec
     def save_img(self,img, label=''):
+        """
+        A method to save a given image to self.save_path
+        :param img: np.array image to be saved
+        :param label: optional, str, an added label to the file name for later
+        identification
+        :return:
+        """
 
         img_name = self.img_raw_name +"." + label + self.extention
         save_path = os.path.join(self.save_path,img_name)
         logger.info(f"saving image: {img_name} to: {self.save_path}")
         cv2.imwrite(save_path, img)
 
-    def get_save_params(self):
-        img_raw_name, extention = self.img_name.rsplit(".", 1)
-        self.img_raw_name = img_raw_name
-        self.extention = '.' + extention
+
+
 
     @logger_decorator.debug_dec
     def read_data(self):
+        """
+        a method to read the data given in the "self.img_path", "self.mask_path"
+        if these are not None
+        :return:
+        """
 
         if self.img_path is not None and self.img is None:
             self.img = self.read_img(self.img_path,cv2.IMREAD_COLOR)
         if self.mask_path is not None:
             if self.is_binary_mask and self.binary_mask is None:
-                self.binary_mask = self.read_img(self.mask_path, cv2.IMREAD_GRAYSCALE)
+                self.binary_mask = self.read_img(self.mask_path,
+                                                 cv2.IMREAD_GRAYSCALE)
             elif self.raw_mask is None:
                 self.raw_mask = self.read_npy(self.mask_path)
                 self.binary_mask = self.get_threshold_mask()
 
     @logger_decorator.debug_dec
     def get_threshold_mask(self):
+        """
+        return a binary mask using the "self.threshold" and "self.raw_mask"
+        where a pixel has a value of 255 if it's value in self.raw_mask is
+        greater than self.threshold
+        :return:
+        """
         threshold_mask = (255 * (self.raw_mask > self.threshold)).astype(np.uint8)
         return threshold_mask
 
@@ -135,41 +174,77 @@ class CustomImage:
     def get_ontop(self, mask_color=(255,0 ,0),mask=None,
                   display_flag=False,save_flag=False,
                   disp_label='Binary mask ontop of image',save_label='bin_ontop'):
+        """
+        Display the a binary mask on top of the image
+        :param mask_color: tuple, the color of the mask on the result,
+        default (255,0,0)
+        :param mask: optional, np.array, a mask image to be used, if None
+        self.binary_mask
+        is used
+        :param display_flag: optional,bool, whether to display the result
+        :param save_flag: optional,bool, whether to save the result to file
+        :param disp_label: optional,str, the display label if display_flag is
+        True
+        :param save_label: optional,str, a label which is added to the file
+        name of the image to save if display_flag is True
+        :return: the image with the mask ontop
+        """
 
         res = self.img.copy()
         if mask is None:
             mask = self.binary_mask
         mask_inds = (mask == 255)
         res[mask_inds] = mask_color if self.img.shape[2] == 3 else 255
-        self.img_save_display(res, disp_label, display_flag, save_flag, save_label)
+        if save_flag:
+            self.save_img(res, save_label)
+        if display_flag:
+            self.display_img(res, disp_label)
         return res
 
-    def img_save_display(self,img, disp_label, display_flag, save_flag, save_label):
-        if save_flag:
-            self.save_img(img, save_label)
-        if display_flag:
-            self.display_img(img, disp_label)
+
+
 
     @logger_decorator.debug_dec
     def display_img(self,img, disp_label='image'):
-        # if img.shape[-1] == 1:
-        #     plt.imshow(img[:,:,0])
-        # else:
-        #     plt.imshow(img)
+        """
+        a function to display images, exist's for easy modification in the
+        future
+        :param img: np.array, the image to be displayed
+        :param disp_label: str, the title of the image
+        :return:
+        """
+
         cv2.imshow(disp_label,img)
 
-        #cv2.destroyAllWindows()
+
 
     @logger_decorator.debug_dec
     def cut_via_mask(self,display_flag=False,save_flag=False,
                   disp_label='Image Cut via mask',save_label='cut'):
-        """Cut parts of an image using a mask - get the parts that overlap with the mask"""
+        """
+        Cut parts of an image using a mask - get the parts that overlap with
+        the mask and save to a new image
+        :param display_flag: optional,bool, whether to display the result
+        :param save_flag: optional,bool, whether to save the result to file
+        :param disp_label: optional,str, the display label if display_flag is
+        True
+        :param save_label: optional,str, a label which is added to the file
+        name of the image to save if display_flag is True
+        :return: parts of the source image that overlaps with the mask
+        """
         res = cv2.bitwise_and(self.img, self.img, mask=self.binary_mask)
-        self.img_save_display(res, disp_label, display_flag, save_flag, save_label)
+        if save_flag:
+            self.save_img(res, save_label)
+        if display_flag:
+            self.display_img(res, disp_label)
         return res
 
     @logger_decorator.debug_dec
     def filter_cut_image(self):
+        """
+        ---Experimental---
+        :return:
+        """
         if self.image_cut is None:
             self.image_cut = self.cut_via_mask()
 
@@ -179,11 +254,14 @@ class CustomImage:
         mask = mask_brown + mask_green
         # mask = cv2.inRange(hsv, (12, 0, 0), (100, 255, 255))
         res = cv2.bitwise_and(self.image_cut, self.image_cut, mask=mask)
-        self.img_save_display(res, disp_label, display_flag, save_flag, save_label)
         return res
 
     @logger_decorator.debug_dec
     def filter_cut_image_green_brown(self):
+        """
+        ---Experimental---
+        :return:
+        """
         if self.image_cut is None:
             self.image_cut = self.cut_via_mask()
 
@@ -199,6 +277,13 @@ class CustomImage:
 
     @logger_decorator.debug_dec
     def get_hist_via_mask_cut(self, hist_type='brg', display_flag=False):
+        """
+                ---Experimental---
+
+        :param hist_type:
+        :param display_flag:
+        :return:
+        """
         img = self.img.copy()
         if hist_type == 'hsv':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -217,6 +302,14 @@ class CustomImage:
 
     @logger_decorator.debug_dec
     def get_hist_via_mask(self, hist_type='brg', display_flag=False):
+        """
+
+        ---Experimental---
+
+        :param hist_type:
+        :param display_flag:
+        :return:
+        """
         img = self.img.copy()
         if hist_type == 'hsv':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)

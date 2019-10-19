@@ -19,7 +19,8 @@ from keras.layers import *
 from keras.optimizers import *
 import tensorflow.compat.v1.logging as tf_logging  # to stop tensorflow from displaying depracetion messages
 
-from auxiliary import decorators
+from work.auxiliary import decorators
+
 tf_logging.set_verbosity(tf_logging.ERROR)
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 from work.unet.unet_model_functions import ClarifruitUnet
-from auxiliary import data_functions
-from auxiliary.custom_image import CustomImage
+from work.auxiliary import data_functions
+from work.auxiliary.custom_image import CustomImage
 import os
 from work.stem_classifier.classify import StemHistClassifier
 

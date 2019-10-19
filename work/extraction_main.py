@@ -1,6 +1,6 @@
 from work.stem_extraction.stem_extract import *
 
-from logger_settings import *
+from work.auxiliary.logger_settings import configure_logger
 
 configure_logger()
 logger = logging.getLogger("extraction_main")
