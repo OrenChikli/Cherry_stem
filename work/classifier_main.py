@@ -5,8 +5,12 @@ from work.stem_classifier.model_functions import *
 
 from work.auxiliary.logger_settings import configure_logger
 REAL_PATH = os.path.abspath('..')
-log_path = data_functions.create_path(REAL_PATH, 'logs')
-logger = configure_logger(name="cherry_stem",
+LOG_PATH = os.path.abspath('logs')
+DATA_PATH = os.path.abspath('data')
+
+log_path = data_functions.create_path(LOG_PATH, 'stem_extract')
+
+logger = configure_logger(name="classifier",
                           console_level='INFO',
                           file_level='DEBUG',
                           out_path=log_path)
@@ -57,9 +61,9 @@ def func():
 
 
 def main():
-
-    src_path= r'D:\Clarifruit\cherry_stem\data\unet_data\training\2019-10-07_20-12-39\thres_0.4'
-    img_path = r'D:\Clarifruit\cherry_stem\data\raw_data\images_orig'
+    src_path = os.path.join(DATA_PATH,
+                            r'unet_data\training\2019-10-20_19-26-14\thres_0.4')
+    img_path = os.path.join(DATA_PATH, r'raw_data\images_orig')
 
     train_folder=r'train'
     test_folder = 'test'

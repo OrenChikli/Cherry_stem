@@ -139,6 +139,9 @@ class CustomImage:
         cv2.imwrite(save_path, img)
 
 
+    def save_pickle(self,):
+        with open('Fruits.obj', 'wb') as fp:
+            pickle.dump(banana, fp)
 
 
     @logger_decorator.debug_dec

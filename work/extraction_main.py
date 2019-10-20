@@ -28,7 +28,7 @@ def main():
 
     threshold = 0.4
     hist_type = 'bgr'
-    object_type = 'ontop'
+    object_type = 'hists'
 
     save_flag = True
 

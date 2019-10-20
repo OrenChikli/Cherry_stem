@@ -3,7 +3,7 @@ import numpy as np
 import random
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from auxiliary import data_functions
+from work.auxiliary import data_functions
 import shutil
 from datetime import datetime
 import logging
@@ -45,8 +45,9 @@ class StemHistClassifier:
         self.train_time = None
         self.save_path=None
 
-    @logger_decorator.debug_dec
+
     @staticmethod
+    @logger_decorator.debug_dec
     def load_npy_data(src_path):
         df = None
         name_list = []
@@ -66,10 +67,9 @@ class StemHistClassifier:
 
         return df
 
-    @logger_decorator.debug_dec
     @classmethod
+    @logger_decorator.debug_dec
     def load_data(cls,path,hist_type):
-        logger.debug(" <- load_data")
         logger.debug(f"loading train data from:{path}")
         ret_df = pd.DataFrame()
 
@@ -81,12 +81,10 @@ class StemHistClassifier:
 
         ret_df = shuffle(ret_df)
 
-        logger.debug(" -> load_data")
-
         return ret_df
 
-    @logger_decorator.debug_dec
     @staticmethod
+    @logger_decorator.debug_dec
     def return_hist(hist,hist_type):
         if hist_type == 'bgr':
             hist = np.squeeze(hist, axis=2)
@@ -96,8 +94,9 @@ class StemHistClassifier:
             hist = np.squeeze(hist, axis=1)
         return hist
 
-    @logger_decorator.debug_dec
+
     @staticmethod
+    @logger_decorator.debug_dec
     def from_list_data_generator(src_list):
         for item_entry,item_label in src_list:
             hist = np.load(item_entry.path)
@@ -105,8 +104,9 @@ class StemHistClassifier:
             name = item_entry.name.rsplit('.',1)[0]
             yield hist, item_label,name
 
-    @logger_decorator.debug_dec
+
     @staticmethod
+    @logger_decorator.debug_dec
     def test_data_iterator(test_path):
         for item_entry in os.scandir(test_path):
             hist = np.load(item_entry.path)
