@@ -10,7 +10,7 @@ class TrainedModel:
         self.classifier_path = classifier_path
 
         self.unet_model = None
-        self.cls_mosel=None
+        self.cls_model=None
 
         self.threshold=None
         self.hist_type=None
@@ -19,8 +19,7 @@ class TrainedModel:
 
     def load_models(self):
 
-        params_dict = ClarifruitUnet.load_model(self.unet_model_path)
-        self.unet_model = ClarifruitUnet(**params_dict)
+        self.unet_model = ClarifruitUnet.load_model(self.unet_model_path)
         for item_entry in os.scandir(self.classifier_path):
             if item_entry.name == 'extraction_params.json':
                 params = data_functions.load_json(item_entry.path)

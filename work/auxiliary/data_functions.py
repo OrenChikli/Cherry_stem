@@ -14,6 +14,7 @@ from sklearn.utils import shuffle
 import pandas as pd
 import numpy as np
 import logging
+import pickle
 
 logger = logging.getLogger(__name__)
 logger_decorator = decorators.Logger_decorator(logger)
@@ -85,6 +86,24 @@ def create_raw_ground_truth(ground_path, mask_path, dest_path,
         logger.info(f"copying ground truth to {curr_dest}")
 
         get_masks_via_img(curr_class.path, mask_path, curr_dest)
+
+
+@logger_decorator.debug_dec
+def save_pickle(object,file_name,save_path):
+    file_save_path = os.path.join(save_path,file_name)
+    with open(file_save_path, 'wb') as f:
+        pickle.dump(object, f)
+
+@logger_decorator.debug_dec
+def load_pickle(path):
+    """
+    loads a json file from the path
+    :param path: the full path to the json file
+    :return: a json.load object
+    """
+    with open(path, 'rb') as f:
+        res = pickle.load(f)
+    return res
 
 
 @logger_decorator.debug_dec

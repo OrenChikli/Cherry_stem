@@ -22,22 +22,22 @@ logger = logging.getLogger(__name__)
 
 def main():
     orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
-    # mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
-    mask_path = os.path.join(DATA_PATH,
-                             r'unet_data\training\2019-10-20_19-26-14\raw_pred')
-    dest_path = os.path.join(DATA_PATH,
-                             r'unet_data\training\2019-10-20_19-26-14')
-    # dest_path = os.path.join(DATA_PATH,r'segmentation')
+    mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
+    dest_path = os.path.join(DATA_PATH,r'segmentation')
+    # mask_path = os.path.join(DATA_PATH,
+    #                          r'unet_data\training\2019-10-20_19-26-14\raw_pred')
+    # dest_path = os.path.join(DATA_PATH,
+    #                          r'unet_data\training\2019-10-20_19-26-14')
 
-    is_binary_mask = False
+    is_binary_mask = True
 
-    single_flag = False  # segment single image or multiple
+    single_flag = True  # segment single image or multiple
 
     ## setings for single
-    img_name = '38360-25986.png.jpg'
+    img_name = '38357-02789.png.jpg'
 
     display_flag = True
-    save_flag = True
+    save_flag = False
     save_segments = False
 
     # settings for multi segmentation
@@ -53,10 +53,16 @@ def main():
     # ]
 
     # general settings for segmentation
-    settings_dict = {'threshold': 0.4,
-                     "pr_threshold": 0.5,
-                     'seg_type': "quickshift",
-                     'seg_params': {},
+    # settings_dict = {'threshold': 0.6,
+    #                  "pr_threshold": 0.2,
+    #                  'seg_type': "felzenszwalb",
+    #                  'seg_params': dict(scale=50, sigma=0.8, min_size=5),
+    #                  'gray_scale': False}
+
+    settings_dict = {'threshold': 0.6,
+                     "pr_threshold": 0.2,
+                     'seg_type': "slic",
+                     'seg_params': dict(scale=50, sigma=0.8, min_size=5),
                      'gray_scale': False}
 
     if single_flag:

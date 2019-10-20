@@ -67,12 +67,17 @@ class SegmentationSingle(CustomImage):
          of the i'th segment
         :return: a segmentation "matrix"
         """
+
         n_segments = self.segments.max()
-        dims = (n_segments, *self.img.shape[:-1])
-        res = np.zeros(dims, np.bool)
-        for i in range(n_segments):
-            segment = np.where(self.segments == i, True, False)
-            res[i] = segment
+        logger.info(f"found {n_segments} segments")
+        seg_array = np.arange(n_segments).reshape(1, -1)
+        res = np.equal(self.segments.T[...,np.newaxis],seg_array).T
+
+        # dims = (n_segments, *self.img.shape[:-1])
+        # res = np.zeros(dims, np.bool)
+        # for i in range(n_segments):
+        #     segment = np.where(self.segments == i, True, False)
+        #     res[i] = segment
         return res
 
     def fillter_segments(self, save_flag=False):
@@ -110,7 +115,7 @@ class SegmentationSingle(CustomImage):
                 cv2.imwrite(curr_save_path, img)
 
         res = res.sum(axis=0)
-        res += 1 * bin_mask
+        #res += 1 * bin_mask
         res = res.astype(np.bool)
         filtered_segments = (255 * res).astype(np.uint8)
         # filtered_segments = self.filtter_size(filtered_segments)
