@@ -21,24 +21,26 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
+    # mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
+    mask_path = os.path.join(DATA_PATH,
+                             r'unet_data\training\2019-10-20_19-26-14\raw_pred')
+    dest_path = os.path.join(DATA_PATH,
+                             r'unet_data\training\2019-10-20_19-26-14')
+    # dest_path = os.path.join(DATA_PATH,r'segmentation')
 
-    orig_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\image')
-    mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
-    dest_path = os.path.join(DATA_PATH,r'segmentation')
+    is_binary_mask = False
 
-    is_binary_mask=True
-
-    single_flag= False # segment single image or multiple
+    single_flag = False  # segment single image or multiple
 
     ## setings for single
     img_name = '38360-25986.png.jpg'
 
-
-    display_flag= True
-    save_flag=True
+    display_flag = True
+    save_flag = True
     save_segments = False
 
-    #settings for multi segmentation
+    # settings for multi segmentation
     img_list = None
 
     # img_list = [
@@ -50,9 +52,10 @@ def main():
     #     '38360-68930.png.jpg',
     # ]
 
-    #general settings for segmentation
-    settings_dict = {'pr_threshold': 0.5,
-                     'seg_type':"quickshift",
+    # general settings for segmentation
+    settings_dict = {'threshold': 0.4,
+                     "pr_threshold": 0.5,
+                     'seg_type': "quickshift",
                      'seg_params': {},
                      'gray_scale': False}
 
@@ -85,4 +88,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -89,11 +89,11 @@ def main():
                                      verbose=1, mode='auto', min_delta=0.0001,
                                      cooldown=0, min_lr=1e-6)])
 
-    #model = unet_model_functions.ClarifruitUnet(**params_dict)
+    model = unet_model_functions.ClarifruitUnet(**params_dict)
 
-    model = unet_model_functions.ClarifruitUnet.load_model(src_path,update_dict,steps)
+    #model = unet_model_functions.ClarifruitUnet.load_model(src_path,update_dict,steps)
 
-    model.set_model_for_train()
+    #model.set_model_for_train()
     #model.fit_unet()
     model.prediction(test_path=test_path,dest_path=dest_path)
 

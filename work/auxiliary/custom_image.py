@@ -110,18 +110,17 @@ class CustomImage:
         :return:
         """
         try:
-            logger.info(f"Reading npy file from {path}")
+            logger.debug(f"Reading npy file from {path}")
             img = np.load(path)
 
             if img is None:
-                error_message = f"Can't read npy from"
-                logger.error(error_message, path)
-                raise ReadImageException(error_message, path)
+                raise ReadImageException()
             else:
                 return img
         except:
-            message = 'Problem reading npy file'
-            logger.exception(message)
+            error_message = f"Can't read npy from"
+            logger.error(error_message, path)
+            raise ReadImageException(error_message,path)
 
 
     @logger_decorator.debug_dec
@@ -136,7 +135,7 @@ class CustomImage:
 
         img_name = self.img_raw_name +"." + label + self.extention
         save_path = os.path.join(self.save_path,img_name)
-        logger.info(f"saving image: {img_name} to: {self.save_path}")
+        logger.debug(f"saving image: {img_name} to: {self.save_path}")
         cv2.imwrite(save_path, img)
 
 

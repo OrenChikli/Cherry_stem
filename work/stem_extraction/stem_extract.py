@@ -8,11 +8,9 @@ import shutil
 import logging
 from work.auxiliary import decorators
 from work.auxiliary.exceptions import *
-from sklearn.preprocessing import normalize
-from sklearn.utils import shuffle
-import pandas as pd
 
-logger = logging.getLogger("unet_callbacks")
+
+logger = logging.getLogger(__name__)
 logger_decorator = decorators.Logger_decorator(logger)
 
 from work.auxiliary.custom_image import CustomImage
@@ -27,6 +25,11 @@ OPENCV_METHODS = (
 HIST_TYPE = {'rgb': lambda x: x.get_hist_via_mask,
              'hsv': lambda x: x.get_hsv_hist}
 
+FUNC_DICTIPNARY = {'binary': lambda x: x.get_threshold_masks(),
+                   'hists': lambda x: x.calc_hists(),
+                   'ontop': lambda x: x.get_ontop_images(),
+                   'stems': lambda x: x.get_stems(),
+                   'filter_images': lambda x: x.filter_images()}
 
 
 
@@ -108,7 +111,7 @@ class StemExtractor:
         logger.info(f"getting stems for threshold {self.threshold}")
         logger.info(f"creting stems in {self.cut_image_path}")
 
-        for img in tqdm(self.image_obj_iterator()):
+        for img in self.image_obj_iterator():
             image_cut = img.cut_via_mask()
             cv2.imwrite(os.path.join(self.cut_image_path, img.image_name),
                         image_cut)
@@ -124,8 +127,8 @@ class StemExtractor:
                                                      f'on_top')
         logger.info(f"getting ontop images for threshold {self.threshold}")
         logger.info(f"creting ontop images in {self.ontop_path}")
-        for img in tqdm(self.image_obj_iterator()):
-            cv2.imwrite(os.path.join(self.ontop_path, img.image_name),
+        for img in self.image_obj_iterator():
+            cv2.imwrite(os.path.join(self.ontop_path, img.img_name),
                         img.get_ontop())
 
 
@@ -189,7 +192,7 @@ class StemExtractor:
     def fillter_via_color_green_brown(self, save_flag=False):
         out_path = data_functions.create_path(self.thres_save_path, f'filtered')
         logger.info(f"creting filltered images in {out_path}")
-        for img in tqdm(self.image_obj_iterator()):
+        for img in self.image_obj_iterator():
             pr_green, pr_brown = img.filter_cut_image_green_brown()
             raw_name = img.image_name.rsplit('.', 1)[0]
             pred = self.get_label(pr_green, pr_brown, img.image_name)
@@ -209,7 +212,7 @@ class StemExtractor:
         out_path = data_functions.create_path(self.thres_save_path, f'filtered')
         logger.info(f"getting filterred images for threshold {self.threshold}")
         logger.info(f"creting filltered images in {out_path}")
-        for img in tqdm(self.image_obj_iterator()):
+        for img in self.image_obj_iterator():
             res = img.filter_cut_image()
             cv2.imwrite(os.path.join(out_path, img.image_name), res)
 
@@ -238,42 +241,49 @@ class StemExtractor:
             np.save(curr_dest_path, fig_big_hist)
 
 
-@logger_decorator.debug_dec
-def load_npy_data(src_path):
-    df = None
-    name_list = []
-    for i, file_entry in enumerate(os.scandir(src_path)):
-        if file_entry.name.endswith('.npy'):
-            file = normalize(np.load(file_entry.path)).flatten()
-            name = file_entry.name.rsplit('.', 1)[0]
-            name_list.append(name)
-            if df is None:
-                df = pd.DataFrame(file)
-            else:
-                df[i] = file
-
-    df = df.T
-    df.columns = df.columns.astype(str)
-    df.insert(0, "file_name", name_list)
-
-    return df
 
 
 @logger_decorator.debug_dec
-def load_data(path, hist_type):
+def create_object(img_path, mask_path, save_path, threshold, hist_type,
+                  use_thres_flag,
+                  obj_type):
+    stem_exctractor = StemExtractor(img_path=img_path,
+                                    mask_path=mask_path,
+                                    save_path=save_path,
+                                    threshold=threshold,
+                                    use_thres_flag=use_thres_flag,
+                                    hist_type=hist_type)
 
-    logger.debug(f"loading train data from:{path}")
-    ret_df = pd.DataFrame()
+    FUNC_DICTIPNARY[obj_type](stem_exctractor)
 
-    for label_folder in os.scandir(path):
-        hist_folder = os.path.join(label_folder.path, f'{hist_type}_histograms')
-        curr_df = load_npy_data(hist_folder)
-        curr_df['label'] = label_folder.name
+@logger_decorator.debug_dec
+def create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
+                                folder='classifier_train_data',
+                                hist_type='bgr'):
+    dest_path = data_functions.create_path(src_path, f"thres_{threshold}")
+    dest_path = data_functions.create_path(dest_path, folder)
+    raw_pred_path = os.path.join(src_path, folder)
+    ground_path = os.path.join(ground_path,folder)
+    logger.info(f"getting {obj_type} objects for {folder}")
+    for curr_class in os.scandir(raw_pred_path):
+        logger.info(f"getting objects for {curr_class.name} class")
+        curr_raw_pred_path = os.path.join(raw_pred_path, curr_class.name)
+        curr_dest = data_functions.create_path(dest_path, curr_class.name)
+        curr_ground_path = os.path.join(ground_path, curr_class.name)
 
-        ret_df = pd.concat((ret_df, curr_df))
+        create_object(img_path=curr_ground_path,
+                      mask_path=curr_raw_pred_path,
+                      save_path=curr_dest,
+                      threshold=threshold,
+                      hist_type=hist_type,
+                      use_thres_flag=False,
+                      obj_type=obj_type)
 
-    ret_df['label'] = ret_df['label'].astype('category')
-    ret_df = shuffle(ret_df)
-    ret_df.reset_index(inplace=True, drop=True)
 
-    return ret_df
+def create_test_train_obj(ground_path,threshold,src_path,obj_type,hist_type):
+    create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
+                                folder='train',
+                                hist_type=hist_type)
+    create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
+                                folder='test',
+                                hist_type=hist_type)
