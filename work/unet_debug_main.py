@@ -33,7 +33,7 @@ def main():
     test_path = os.path.join(DATA_PATH, r'raw_data\images_orig')
 
     src_path = os.path.join(DATA_PATH,
-                            r'unet_data\training\2019-10-19_21-18-37')
+                            r'unet_data\training\2019-09-30_07-19-46')
 
     pretrained_weights = os.path.join(DATA_PATH,
                                       r'unet_data\training\2019-09-30_07-19-46\unet_cherry_stem.hdf5')

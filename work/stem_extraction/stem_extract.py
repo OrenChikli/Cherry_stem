@@ -49,7 +49,7 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def __init__(self, img_path, mask_path, save_path, threshold=0.5,
-                 use_thres_flag=True,hist_type='bgr'):
+                 use_thres_flag=True,hist_type='bgr',is_binary_mask=False):
         """
 
         :param img_path: path to source images
@@ -66,6 +66,7 @@ class StemExtractor:
         self.img_path = img_path
         self.mask_path = mask_path
         self.threshold = threshold
+        self.is_binary_mask = is_binary_mask
         if use_thres_flag:
             self.thres_save_path = data_functions.create_path(save_path,
                                                               f"thres_{threshold}")
@@ -219,11 +220,13 @@ class StemExtractor:
     @logger_decorator.debug_dec
     def image_obj_iterator(self):
         for img_entry in os.scandir(self.img_path):
-            mask_name = img_entry.name.rsplit(".", 1)[0] + '.npy'
+            if  not self.is_binary_mask:
+                mask_name = img_entry.name.rsplit(".", 1)[0] + '.npy'
+            else: mask_name = img_entry.name
             mask_path = os.path.join(self.mask_path, mask_name)
             img = CustomImage(img_path=img_entry.path,
                               mask_path=mask_path,
-                              is_binary_mask=False,
+                              is_binary_mask=self.is_binary_mask,
                               threshold=self.threshold,
                               create_save_dest_flag=False)
 
@@ -246,13 +249,14 @@ class StemExtractor:
 @logger_decorator.debug_dec
 def create_object(img_path, mask_path, save_path, threshold, hist_type,
                   use_thres_flag,
-                  obj_type):
+                  obj_type,is_binary_mask):
     stem_exctractor = StemExtractor(img_path=img_path,
                                     mask_path=mask_path,
                                     save_path=save_path,
                                     threshold=threshold,
                                     use_thres_flag=use_thres_flag,
-                                    hist_type=hist_type)
+                                    hist_type=hist_type,
+                                    is_binary_mask=is_binary_mask)
 
     FUNC_DICTIPNARY[obj_type](stem_exctractor)
 
