@@ -115,7 +115,7 @@ class SegmentationSingle(CustomImage):
                 cv2.imwrite(curr_save_path, img)
 
         res = res.sum(axis=0)
-        #res += 1 * bin_mask
+        res += 1 * bin_mask
         res = res.astype(np.bool)
         filtered_segments = (255 * res).astype(np.uint8)
         # filtered_segments = self.filtter_size(filtered_segments)

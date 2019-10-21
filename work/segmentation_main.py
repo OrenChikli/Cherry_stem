@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
+    #orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
+    orig_path = os.path.join(DATA_PATH, r'segmentation\src2')
     mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
     dest_path = os.path.join(DATA_PATH,r'segmentation')
     # mask_path = os.path.join(DATA_PATH,
@@ -31,10 +32,11 @@ def main():
 
     is_binary_mask = True
 
-    single_flag = True  # segment single image or multiple
+    single_flag = False  # segment single image or multiple
 
     ## setings for single
-    img_name = '38357-02789.png.jpg'
+    #img_name = '38357-02789.png.jpg'
+    img_name = '74714-32897.png.jpg'
 
     display_flag = True
     save_flag = False
@@ -53,17 +55,26 @@ def main():
     # ]
 
     # general settings for segmentation
+    settings_dict = {'threshold': 0.5,
+                     "pr_threshold": 0.5,
+                     'seg_type': "felzenszwalb",
+                     'seg_params': dict(scale=1, sigma=0.8, min_size=40),
+                     'gray_scale': False}
+
     # settings_dict = {'threshold': 0.6,
     #                  "pr_threshold": 0.2,
-    #                  'seg_type': "felzenszwalb",
-    #                  'seg_params': dict(scale=50, sigma=0.8, min_size=5),
+    #                  'seg_type': "slic",
+    #                  'seg_params': dict(n_segments=2000,
+    #                                     compactness=0.1,
+    #                                     max_iter=100,
+    #                                     sigma=0,
+    #                                     spacing=None,
+    #                                     convert2lab=True,
+    #                                     enforce_connectivity=True,
+    #                                     min_size_factor=0.2,
+    #                                     max_size_factor=3,
+    #                                     slic_zero=False),
     #                  'gray_scale': False}
-
-    settings_dict = {'threshold': 0.6,
-                     "pr_threshold": 0.2,
-                     'seg_type': "slic",
-                     'seg_params': dict(scale=50, sigma=0.8, min_size=5),
-                     'gray_scale': False}
 
     if single_flag:
         img_path = os.path.join(orig_path, img_name)

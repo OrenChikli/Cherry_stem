@@ -27,7 +27,8 @@ def main():
     :return:
     """
 
-    train_path = os.path.join(DATA_PATH, r'raw_data\with_maskes')
+    # train_path = os.path.join(DATA_PATH, r'raw_data\with_maskes')
+    train_path = os.path.join(DATA_PATH, r'segmentation\augmented')
     dest_path = os.path.join(DATA_PATH, r'unet_data\training')
     test_path = os.path.join(DATA_PATH, r'raw_data\images_orig')
 
@@ -60,8 +61,8 @@ def main():
         seed=78,
 
         optimizer='Adam',
-        optimizer_params=dict(lr=1e-6,
-                              amsgrad=True),
+        optimizer_params=dict(lr=1e-5,
+                              amsgrad=False),
 
         loss='binary_crossentropy',
         metrics=[],
@@ -71,14 +72,14 @@ def main():
 
         batch_size=10,  # my GPU cant handel any more
 
-        epochs=10,
-        steps_per_epoch=2000,
+        epochs=15,
+        steps_per_epoch=100,
         validation_split=0.2,
         validation_steps=200,
 
-        tensorboard_update_freq=100,
+        tensorboard_update_freq=1000,
         weights_update_freq='epoch',
-        save_weights_only=False,
+        save_weights_only=True,
         ontop_display_threshold=0.4,
         callbacks=[ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2,
                                      verbose=1, mode='auto', min_delta=0.0001,
@@ -93,9 +94,10 @@ def main():
 
     #model = unet_model_functions.ClarifruitUnet.load_model(src_path,update_dict,steps)
 
-    #model.set_model_for_train()
-    #model.fit_unet()
-    model.prediction(test_path=test_path,dest_path=dest_path)
+    keras_logs_path=model.set_model_for_train()
+    logger.info(f"for tensorboard, use: \ntensorboard --logdir={keras_logs_path}")
+    model.fit_unet()
+    #model.prediction(test_path=test_path,dest_path=dest_path)
 
 
 if __name__ == '__main__':

@@ -161,8 +161,8 @@ class CustomImage:
             elif self.raw_mask is None:
                 self.raw_mask = self.read_npy(self.mask_path)
 
-            if self.binary_mask is None and self.raw_mask is not None:
-                self.binary_mask = self.get_threshold_mask()
+        if self.binary_mask is None and self.raw_mask is not None:
+            self.binary_mask = self.get_threshold_mask()
 
 
     @logger_decorator.debug_dec
