@@ -66,7 +66,11 @@ For an example on usage see the model_training notebook
 Give an example
 ```
 #### Results
+Source image:
 ![](md_images/67260-70372.png.jpg)
+marked stems:
+![](md_images/67260-70372.png_ontop.jpg)
+
 
 
 ## Segmentation Augmentation
