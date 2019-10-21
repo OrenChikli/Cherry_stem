@@ -62,9 +62,14 @@ ImageDataGenerator(rotation_range=180,
 #### usage
 
 For an example on usage see the model_training notebook
+for direct usage open the work/unet_debug_main.py and modify the parameters
+
+Anoter options is to create a json file (see example.json) and run the following command:
+
 ```
-Give an example
+py cli_main.py train_unet --params_dict_path {PATH TO JSON FILE}
 ```
+
 #### Results
 Source image:
 ![](md_images/67260-70372.png.jpg)
@@ -81,7 +86,7 @@ implemented with the [skimage module](https://scikit-image.org/docs/dev/api/skim
 
 ### Usage
 for usage see the --------
-
+for direct usage open the work/segmentation_main.py and modify the parameters
 
 ### Results
 before:
@@ -90,10 +95,13 @@ after:
 ![after](md_images/38360-02397.png.seg_ontop.jpg)
 
 ##Classification
-
 The segmentation masks are used to extract the "stems" of the cherries,
-which are converted to hsv histograms which are used as input to an [Xgboost]() 
+which are converted to hsv histograms which are used as input to an [Xgboost](https://xgboost.readthedocs.io/en/latest/) 
 classifier (on a new train test data) which results in ranked classification
+
+### Usage
+
+-------
 ###Results
 An Example:
 ![before](md_images/stems/38360-02397.png.jpg)
@@ -101,19 +109,17 @@ after:
 ![after](md_images/stems/38360-02397-stem.png.jpg)
  initial classification Results:
  
-            precision    recall  f1-score   support
-
-           A       0.78      0.87      0.83        79
-           B       0.65      0.62      0.64        55
-           C       0.80      0.23      0.36        35
-           D       0.68      0.96      0.80        47
-
-    accuracy                           0.72       216
-   macro avg       0.73      0.67      0.65       216
-weighted avg       0.73      0.72      0.69       216
-
-
+ |              | precision | recall | f1-score | support |
+|--------------|-----------|--------|----------|---------|
+| A            | 0.78      | 0.87   | 0.83     | 79      |
+| B            | 0.65      | 0.62   | 0.64     | 55      |
+| C            | 0.80      | 0.23   | 0.36     | 35      |
+| D            | 0.68      | 0.96   | 0.80     | 47      |
+| accuracy     |           |        | 0.72     | 216     |
+| macro avg    | 0.73      | 0.67   | 0.65     | 216     |
+| weighted avg | 0.73      | 0.72   | 0.69     | 216     |
  
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
