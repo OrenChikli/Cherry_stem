@@ -40,7 +40,7 @@ Used on an private data set, unavailable at the moment
 but in order to use the framework, the data set must have a root
 folder containing one folder the images, and another for the segmentation masks
 e.g
-![](.\md_images\root_structure.PNG)
+![md_images/root_structure.PNG](md_images/root_structure.PNG)
 
 ### Unet
 
@@ -66,7 +66,7 @@ For an example on usage see the model_training notebook
 Give an example
 ```
 #### Results
-![drawing](md_images\67260-70372.png.jpg)
+![](md_images/67260-70372.png.jpg)
 
 
 ## Segmentation Augmentation
@@ -81,9 +81,9 @@ for usage see the --------
 
 ### Results
 before:
-![before](md_images\38360-02397.png.jpg)
+![before](md_images/38360-02397.png.jpg)
 after:
-![after](md_images\38360-02397.png.seg_ontop.jpg)
+![after](md_images/38360-02397.png.seg_ontop.jpg)
 
 ##Classification
 
@@ -92,12 +92,12 @@ which are converted to hsv histograms which are used as input to an [Xgboost]()
 classifier (on a new train test data) which results in ranked classification
 ###Results
 An Example:
-![before](md_images\stems\38360-02397.png.jpg)
+![before](md_images/stems/38360-02397.png.jpg)
 after:
-![after](md_images\stems\38360-02397-stem.png.jpg)
+![after](md_images/stems/38360-02397-stem.png.jpg)
  initial classification Results:
- '''
- (              precision    recall  f1-score   support
+ 
+            precision    recall  f1-score   support
 
            A       0.78      0.87      0.83        79
            B       0.65      0.62      0.64        55
@@ -106,8 +106,9 @@ after:
 
     accuracy                           0.72       216
    macro avg       0.73      0.67      0.65       216
-weighted avg       0.73      0.72      0.69       216)
-'''
+weighted avg       0.73      0.72      0.69       216
+
+
  
 ## License
 
