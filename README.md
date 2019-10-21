@@ -40,7 +40,7 @@ Used on an private data set, unavailable at the moment
 but in order to use the framework, the data set must have a root
 folder containing one folder the images, and another for the segmentation masks
 e.g
-![](md_images\root_structure.PNG)
+![](.\md_images\root_structure.PNG)
 
 ### Unet
 
