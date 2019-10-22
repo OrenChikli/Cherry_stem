@@ -1,0 +1,44 @@
+{
+ "save_name": "cherry",
+ "train_path": "D:\\Files\\Projects\\Clarifruit\\Cherry_stem\\data\\raw_data\\with_maskes",
+ "x_folder_name": "image",
+ "y_folder_name": "label",
+ "data_gen_args": {
+  "rotation_range": 180,
+  "brightness_range": [
+   0.2,
+   1.0
+  ],
+  "shear_range": 5,
+  "zoom_range": 0.5,
+  "horizontal_flip": true,
+  "vertical_flip": true,
+  "fill_mode": "nearest"
+ },
+ "target_size": [
+  256,
+  256
+ ],
+ "color_mode": "grayscale",
+ "batch_size": 10,
+ "epochs": 10,
+ "steps_per_epoch": 2000,
+ "validation_steps": 200,
+ "optimizer": "Adam",
+ "optimizer_params": {
+  "lr": 1e-06,
+  "amsgrad": true
+ },
+ "loss": "binary_crossentropy",
+ "metrics": [],
+ "validation_split": 0.2,
+ "seed": 78,
+ "train_time": null,
+ "tensorboard_update_freq": 1000,
+ "weights_update_freq": "epoch",
+ "ontop_display_threshold": 0.4,
+ "save_path": "D:\\Files\\Projects\\Clarifruit\\Cherry_stem\\data\\unet_data\\training",
+ "save_weights_only": true,
+ "pretrained_weights": "D:\\Files\\Projects\\Clarifruit\\Cherry_stem\\data\\unet_data\\training\\2019-09-30_07-19-46\\unet_cherry_stem.hdf5",
+ "checkpoint": null
+}
