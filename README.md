@@ -91,9 +91,9 @@ for direct usage open the work/segmentation_main.py and modify the parameters
 
 ### Results
 before:  
-![before](md_images\segmentation\74714-32897_before.png.jpg)  
+![before](md_images/segmentation/74714-32897_before.png.jpg)  
 after:  
-![after](md_images\segmentation\74714-32897_after.png.jpg)  
+![after](md_images/segmentation/74714-32897_after.png.jpg)  
 
 ## Classification
 The segmentation masks are used to extract the "stems" of the cherries,
