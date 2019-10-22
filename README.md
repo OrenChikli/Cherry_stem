@@ -73,9 +73,9 @@ py cli_main.py train_unet --params_dict_path {PATH TO JSON FILE}
 
 
 #### Results
-Source image:
-![](md_images/67260-70372.png.jpg)
-marked stems:
+Source image:  
+![](md_images/67260-70372.png.jpg)  
+marked stems:  
 ![](md_images/67260-70372.png_ontop.jpg)
 
 
@@ -90,15 +90,15 @@ implemented with the [skimage module](https://scikit-image.org/docs/dev/api/skim
 for direct usage open the work/segmentation_main.py and modify the parameters
 
 ### Results
-before:
-![before](md_images\segmentation\74714-32897_before.png.jpg)
-after:
-![after](md_images\segmentation\74714-32897_after.png.jpg)
+before:  
+![before](md_images\segmentation\74714-32897_before.png.jpg)  
+after:  
+![after](md_images\segmentation\74714-32897_after.png.jpg)  
 
-##Classification
+## Classification
 The segmentation masks are used to extract the "stems" of the cherries,
 which are converted to hsv histograms which are used as input to an [Xgboost](https://xgboost.readthedocs.io/en/latest/) 
-classifier (on a new train test data) which results in ranked classification
+classifier (on a new train test data) which results in ranked classification  
 
 ### Usage
 For this part the test and train data should be source images that are separted 
@@ -109,6 +109,7 @@ into classes, i.e each class has its own folder:
 train --| - C    test -- | - C    
         | - D            | - D 
 </pre>
+
 First create the hsv results for test and train,
 
 ```
@@ -122,13 +123,13 @@ create_test_train_obj(ground_path=<PATH TO FOLDER WITH TEST AND TRAIN>,
 
 than create hsv for model predictions using  stem_extract.py\create_object
 
-When the histograms are created, use
-###Results
-An Example:
-![before](md_images/stems/38360-02397.png.jpg)
-after:
-![after](md_images/stems/38360-02397-stem.png.jpg)
- initial classification Results:
+### Results
+An Example:  
+![before](md_images/stems/38360-02397.png.jpg)  
+after:  
+![after](md_images/stems/38360-02397-stem.png.jpg)  
+
+ initial classification Results:  
  
  |              | precision | recall | f1-score | support |
 |--------------|-----------|--------|----------|---------|
@@ -141,11 +142,11 @@ after:
 | weighted avg | 0.73      | 0.72   | 0.69     | 216     |
  
 
-## License
+## License  
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-## Status
+## Status  
 <b>Incomplete</b>
  - need to work on some functions in stem extraction
  - need to add tests
