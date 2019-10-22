@@ -143,7 +143,7 @@ class CustomImage:
         :return:
         """
 
-        img_name = self.img_raw_name +"." + label + self.extention
+        img_name = self.img_raw_name + label + self.extention
         save_path = os.path.join(self.save_path,img_name)
         logger.debug(f"saving image: {img_name} to: {self.save_path}")
         cv2.imwrite(save_path, img)

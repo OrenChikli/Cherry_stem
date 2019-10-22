@@ -151,6 +151,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
  - need to add tests
  - need to complete prediction pipeline
  - need to finish stem classifier
+ - need to review the notebooks
 
 
 ## Acknowledgments
