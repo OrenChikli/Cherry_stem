@@ -32,6 +32,9 @@ SKLEARN_CLASSIFIERS = {'LogisticRegression': LogisticRegression,
 
 
 class StemHistClassifier:
+    """
+    A class for performing Machine learning classification on given histogrames
+    """
     @logger_decorator.debug_dec
     def __init__(self, train_path,label_col,drop_cols=None,hist_type='bgr',threshold='0.4'):
 

@@ -3,7 +3,6 @@ from work.auxiliary import data_functions
 import os
 import logging
 
-
 LOG_PATH = os.path.abspath('logs')
 DATA_PATH = os.path.abspath('data')
 
@@ -16,6 +15,7 @@ configure_logger(name="stem_extract",
 
 logger = logging.getLogger(__name__)
 
+
 def get_test_train():
     """
     use the src_path to create a test train split of data seperated to clases,
@@ -23,9 +23,9 @@ def get_test_train():
     save the test and train results in dest_path
     :return:
     """
-    src_path = r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\set3\All'
-    dest_path = r'D:\Clarifruit\cherry_stem\data\classification_data\from_all\set3'
+    src_path = os.path.join(DATA_PATH, r'classification_data\from_all\set3\All')
+    dest_path = os.path.join(DATA_PATH, r'classification_data\from_all\set3')
     data_functions.get_train_test_split(src_path, dest_path,
-                         train_name='train',
-                         test_name='test',
-                         test_size=0.33)
+                                        train_name='train',
+                                        test_name='test',
+                                        test_size=0.33)

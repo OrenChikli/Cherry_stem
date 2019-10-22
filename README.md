@@ -91,9 +91,9 @@ for direct usage open the work/segmentation_main.py and modify the parameters
 
 ### Results
 before:
-![before](md_images/38360-02397.png.jpg)
+![before](md_images\segmentation\74714-32897_before.png.jpg)
 after:
-![after](md_images/38360-02397.png.seg_ontop.jpg)
+![after](md_images\segmentation\74714-32897_after.png.jpg)
 
 ##Classification
 The segmentation masks are used to extract the "stems" of the cherries,
@@ -144,6 +144,14 @@ after:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+## Status
+<b>Incomplete</b>
+ - need to work on some functions in stem extraction
+ - need to add tests
+ - need to complete prediction pipeline
+ - need to finish stem classifier
+
 
 ## Acknowledgments
 

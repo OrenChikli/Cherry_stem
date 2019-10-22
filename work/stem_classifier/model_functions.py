@@ -19,6 +19,9 @@ COLOR_TO_OPENCV = {'grayscale': 0, 'rgb': 1}
 OPTIMIZER_DICT = {'Adam': Adam, 'adagrad': adagrad}
 
 
+
+"""THIS IS EXPERIMENTAL"""
+
 class ClarifruitClassifier:
     @logger_decorator.debug_dec
     def __init__(self, train_path, weights_file_name='model_weights.hdf5',

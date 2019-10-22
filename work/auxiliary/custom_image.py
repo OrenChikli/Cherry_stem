@@ -7,9 +7,6 @@ import shutil
 from work.auxiliary.exceptions import *
 from work.auxiliary import data_functions,decorators
 from datetime import datetime
-import pickle
-
-import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 logger_decorator = decorators.Logger_decorator(logger)
@@ -20,6 +17,12 @@ COLOR_CODE = {'0': 'blue',
 
 
 class CustomImage:
+    """
+    A class to hold source images and their segmentation masks, which can
+    be binary or float images (results of predictions)
+    This class allows to perform various actions to extract necessary data
+    from the images and their masks
+    """
 
     @logger_decorator.debug_dec
     def __init__(self, img_path=None, mask_path=None,is_binary_mask=False,
@@ -70,6 +73,12 @@ class CustomImage:
 
     @logger_decorator.debug_dec
     def move_to(self, dest_path_image, dest_path_label):
+        """
+        copy the current image and mask to a new destination
+        :param dest_path_image: the destination of the image
+        :param dest_path_label: the destination path of the mask
+        :return:
+        """
 
         logger.debug(f"moving images to: \n{dest_path_image} and maskes to: \n{dest_path_label}")
         img_path = os.path.join(dest_path_image, self.img_name)

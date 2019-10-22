@@ -2,19 +2,17 @@ from work.auxiliary import data_functions
 import os
 import cv2
 import numpy as np
-from tqdm import tqdm
 import shutil
-
 import logging
 from work.auxiliary import decorators
-from work.auxiliary.exceptions import *
+from work.segmentation.segmentation import SegmentationSingle
+
+import matplotlib.pyplot as plt
+
 
 logger = logging.getLogger(__name__)
 logger_decorator = decorators.Logger_decorator(logger)
 
-from work.auxiliary.custom_image import CustomImage
-
-import matplotlib.pyplot as plt
 
 OPENCV_METHODS = (
     ("Correlation", cv2.HISTCMP_CORREL),
@@ -34,16 +32,9 @@ FUNC_DICTIPNARY = {'binary': lambda x: x.get_threshold_masks(),
 
 class StemExtractor:
     """
-        get color histograms of the source images using the unet maskes, i.e get color histograms of the
-    areas activated in the binary mask
-    :param img_path: path to source images
-    :param mask_path:path to the unet masks of the source images
-    :param save_path: the save path of the results
-    :param threshold: the threshold to get the binary mask, the binary mask will be activated for pixels that have
-    values greater than the threshold
-    :param hist_type: the type of histogram to calculate. default value is for 'bgr' which is the normal color mode.
-    another option is 'hsv' for heu,saturation and value color space
-    :return:
+        get color histograms of the source images using the unet maskes,
+        i.e get color histograms of the areas activated in the binary mask
+
     """
 
     @logger_decorator.debug_dec
@@ -134,6 +125,13 @@ class StemExtractor:
     @logger_decorator.debug_dec
     @staticmethod
     def get_label(pr_green, pr_brown, img_name):
+        """
+        ---EXPERIMENTAL---
+        :param pr_green:
+        :param pr_brown:
+        :param img_name:
+        :return:
+        """
         label = 'D'
         if pr_green >= 0.5:
             if pr_brown < 0.1:
@@ -161,6 +159,11 @@ class StemExtractor:
     @logger_decorator.debug_dec
     @staticmethod
     def get_label1(pr):
+        """
+        ---EXPERIMENTAL---
+        :param pr:
+        :return:
+        """
         label = 'A'
         if pr >= 0.5:
             label = 'D'
@@ -188,6 +191,11 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def fillter_via_color_green_brown(self, save_flag=False):
+        """
+        ---EXPERIMENTAL---
+        :param save_flag:
+        :return:
+        """
         out_path = data_functions.create_path(self.thres_save_path, f'filtered')
         logger.info(f"creting filltered images in {out_path}")
         for img in self.image_obj_iterator():
@@ -206,6 +214,10 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def fillter_via_color(self):
+        """
+        ---EXPERIMENTAL---
+        :return:
+        """
 
         out_path = data_functions.create_path(self.thres_save_path, f'filtered')
         logger.info(f"getting filterred images for threshold {self.threshold}")
@@ -222,10 +234,10 @@ class StemExtractor:
         :return:
         """
         for img_entry in os.scandir(self.img_path):
-            if not self.is_binary_mask: # the source are results of unet- has
-                                        # float values form 0 to 1
+            if not self.is_binary_mask:  # the source are results of unet- has
+                # float values form 0 to 1
                 mask_name = img_entry.name.rsplit(".", 1)[0] + '.npy'
-            else: # the mask are already binary (0 or 255)
+            else:  # the mask are already binary (0 or 255)
                 mask_name = img_entry.name
             mask_path = os.path.join(self.mask_path, mask_name)
             img = CustomImageExtractor(img_path=img_entry.path,
@@ -239,10 +251,16 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def calc_hists(self):
+        """
+        A method to calculate color histograms on source images while using
+        the segmentation mask for calculation at the segmentation areas
+        :return:
+        """
         dest_path = data_functions.create_path(self.thres_save_path,
                                                f'{self.hist_type}_histograms')
         logger.info(
-            f"getting {self.hist_type} histograms for threshold {self.threshold}")
+            f"getting {self.hist_type} histograms for threshold"
+            f" {self.threshold}")
         logger.info(f"saving results at {dest_path}")
         for img in self.image_obj_iterator():
             curr_dest_path = os.path.join(dest_path, f"{img.img_raw_name}.npy")
@@ -266,40 +284,87 @@ def create_object(img_path, mask_path, save_path, threshold, hist_type,
 
 
 @logger_decorator.debug_dec
-def create_ground_truth_objects(ground_path, threshold,src_path, dest_path, obj_type,
-                                folder='classifier_train_data',
-                                hist_type='bgr'):
-    dest_path = data_functions.create_path(dest_path, f"thres_{threshold}")
+def create_ground_truth_objects(ground_path,mask_path,save_path, threshold,
+                                hist_type, obj_type,use_thres_flag,
+                                is_binary_mask,folder='train'):
+    """
+    A method to create object from the ground truth path,
+    e.g can create hsv histogrames for the test and train,
+    or bgr histogrames, or return images of the masks ovelayed ontop of the
+    source images . e.t.c
+    :param ground_path: path the the groud truth test and train dataset
+    :param mask_path: path to the masks which will be used
+    :param save_path:  the destination path to save the results
+    :param threshold: float, if the mask are the results of a prediction,
+    than this is used to create binary images
+    :param hist_type: str,optional, if creating a histogram, what type of
+     histogram, 'bgr' or 'hsv'
+    :param obj_type: str, what type of object to create , binary_images,histograms,
+    stems (cutting the images with the masks)
+    :param use_thres_flag: bool, where to create a new save folder in the sestination
+    path for the current instance
+    :param is_binary_mask: bool, whether the masks are binary
+    :param folder: str, where this instance is for test or train
+    :return:
+    """
+    if use_thres_flag :
+        dest_path = data_functions.create_path(save_path, f"thres_{threshold}")
     dest_path = data_functions.create_path(dest_path, folder)
-    raw_pred_path = os.path.join(dest_path, folder)
     ground_path = os.path.join(ground_path, folder)
     logger.info(f"getting {obj_type} objects for {folder}")
     for curr_class in os.scandir(ground_path):
         logger.info(f"getting objects for {curr_class.name} class")
-        curr_raw_pred_path = os.path.join(raw_pred_path, curr_class.name)
         curr_dest = data_functions.create_path(dest_path, curr_class.name)
         curr_ground_path = os.path.join(ground_path, curr_class.name)
 
         create_object(img_path=curr_ground_path,
-                      mask_path=curr_raw_pred_path,
+                      mask_path=mask_path,
                       save_path=curr_dest,
                       threshold=threshold,
                       hist_type=hist_type,
                       use_thres_flag=False,
-                      obj_type=obj_type)
+                      obj_type=obj_type,
+                      is_binary_mask=is_binary_mask)
 
 
-def create_test_train_obj(ground_path, threshold, src_path, obj_type,
-                          hist_type):
-    create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
-                                folder='train',
-                                hist_type=hist_type)
-    create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
-                                folder='test',
-                                hist_type=hist_type)
+def create_test_train_obj(ground_path, mask_path, save_path, threshold,
+                          hist_type,
+                          use_thres_flag, obj_type, is_binary_mask):
+    """
+
+    :param ground_path:
+    :param mask_path:
+    :param save_path:
+    :param threshold:
+    :param hist_type:
+    :param use_thres_flag:
+    :param obj_type:
+    :param is_binary_mask:
+    :return:
+    """
+
+    create_ground_truth_objects(ground_path=ground_path,
+                                mask_path=mask_path,
+                                save_path=save_path,
+                                threshold=threshold,
+                                hist_type=hist_type,
+                                use_thres_flag=use_thres_flag,
+                                obj_type=obj_type,
+                                is_binary_mask=is_binary_mask,
+                                folder='train')
+
+    create_ground_truth_objects(ground_path=ground_path,
+                                mask_path=mask_path,
+                                save_path=save_path,
+                                threshold=threshold,
+                                hist_type=hist_type,
+                                obj_type=obj_type,
+                                use_thres_flag=use_thres_flag,
+                                is_binary_mask=is_binary_mask,
+                                folder='test')
 
 
-class CustomImageExtractor(CustomImage):
+class CustomImageExtractor(SegmentationSingle):
     def __init__(self, hist_type='hsv', **kwargs):
         super().__init__(**kwargs)
         self.hist_type = hist_type

@@ -53,7 +53,18 @@ def get_masks_via_img(src_img_path, src_mask_path, dest_mask_path):
 
 
 def create_raw_test_train_ground_truth(ground_path, mask_path, src_path):
+    """
+    Given a ground truth path where images are sorted into classes,
+    create test and train folders with each test\train folder containing
+    a folder for each class, where each class has a folder for the images
+    and a folder for the labels
 
+    :param ground_path: path to ground truth folder, with images separeted into
+    class folders
+    :param mask_path: the path to the source images
+    :param src_path: the path to the source masks
+    :return:
+    """
     create_raw_ground_truth(ground_path=ground_path,
                             mask_path=mask_path,
                             dest_path=src_path,
@@ -68,7 +79,7 @@ def create_raw_test_train_ground_truth(ground_path, mask_path, src_path):
 def create_raw_ground_truth(ground_path, mask_path, dest_path,
                             dest_folder='train'):
     """
-    getting respective masks of images in diffrent classes.
+    getting respective masks of images in different classes.
     a method to get the predictions from src_mask_path, into the y_folder in
     the ground_path, where the x_folder has the source images, selected by the
     user
@@ -90,6 +101,13 @@ def create_raw_ground_truth(ground_path, mask_path, dest_path,
 
 @logger_decorator.debug_dec
 def save_pickle(object,file_name,save_path):
+    """
+    a method to save an object to a pickl format
+    :param object: the object to be saved
+    :param file_name: the name of the file to be creted
+    :param save_path: the destination for saving the object
+    :return:
+    """
     file_save_path = os.path.join(save_path,file_name)
     with open(file_save_path, 'wb') as f:
         pickle.dump(object, f)
@@ -108,6 +126,11 @@ def load_pickle(path):
 
 @logger_decorator.debug_dec
 def load_npy_data(src_path):
+    """
+    A method to load masks saved as .npy files into a pandas dataframe
+    :param src_path: the path containing thr files
+    :return: a pandas dataframe
+    """
     df = None
     name_list = []
     for i, file_entry in enumerate(os.scandir(src_path)):
@@ -129,6 +152,13 @@ def load_npy_data(src_path):
 
 @logger_decorator.debug_dec
 def load_data(path, hist_type):
+    """
+    ---EXPERIMENTAL---
+    :param path:
+    :param hist_type:
+    :return:
+    """
+
     logger.debug(f"loading train data from:{path}")
     ret_df = pd.DataFrame()
 
@@ -148,6 +178,15 @@ def load_data(path, hist_type):
 
 @logger_decorator.debug_dec
 def get_from(src_path, data_path, src_folder, x_folder, y_folder):
+    """
+    ---EXPERIMENTAL---
+    :param src_path:
+    :param data_path:
+    :param src_folder:
+    :param x_folder:
+    :param y_folder:
+    :return:
+    """
     x_src_path = os.path.join(src_path, x_folder)
     y_src_path = os.path.join(src_path, y_folder)
     src_path = os.path.join(data_path, src_folder)
@@ -210,6 +249,13 @@ def load_json(path):
 
 @logger_decorator.debug_dec
 def plot_res(test_img, ground_truth_mask, test_mask_raw):
+    """
+    ---EXPERIMENTAL---
+    :param test_img:
+    :param ground_truth_mask:
+    :param test_mask_raw:
+    :return:
+    """
     fig, ax = plt.subplots(2, 2, figsize=(12, 12))
     ax = ax.flatten()
 
@@ -228,6 +274,7 @@ def plot_res(test_img, ground_truth_mask, test_mask_raw):
 @logger_decorator.debug_dec
 def find_closest(item, item_dict):
     """
+    ---EXPERIMENTAL---
     calculate ecuclidean distance from item (a numpy object) to labeled items in
     items dict and return closest label
     :param item:
@@ -244,6 +291,17 @@ def find_closest(item, item_dict):
 @logger_decorator.debug_dec
 def get_train_test_split(src_path, dest_path, train_name='train',
                          test_name='test', test_size=0.33):
+    """
+    create a test and train folders for a given folder conataing the images and
+    labels in two separte folders
+    :param src_path: the path to the source dataset
+    :param dest_path: the destination to create the test and train
+    :param train_name: the name for the train folder
+    :param test_name: the name for the test folder
+    :param test_size: the fractional size of the test folder compared to the
+    source folder
+    :return:
+    """
     train_path = create_path(dest_path, train_name)
     test_path = create_path(dest_path, test_name)
     for folder_entry in os.scandir(src_path):

@@ -17,11 +17,15 @@ SEG_ALGORITHMS_DICT = {'felzenszwalb': felzenszwalb,
                        'slic': slic,
                        'quickshift': quickshift}
 
+
 logger = logging.getLogger(__name__)
 logger_decorator = Logger_decorator(logger=logger)
 
 
 class SegmentationSingle(CustomImage):
+    """
+    A class for performing segmentation enhancement on given segmentation masks
+    """
 
     @logger_decorator.debug_dec
     def __init__(self, seg_type='felzenszwalb', seg_params=None,
@@ -95,15 +99,16 @@ class SegmentationSingle(CustomImage):
 
         seg_sum = np.sum(filtered_segments, axis=(1, 2))
 
-        bin_mask = self.binary_mask > 150  # some masks where created strangely,
+        #bin_mask = self.binary_mask > 150  # some masks where created strangely,
         # not only 255 or 0
 
-        segment_activation = filtered_segments * bin_mask
+        segment_activation = filtered_segments * self.binary_mask.astype(np.bool)
         seg_activation_sum = np.sum(segment_activation, axis=(1, 2))
 
         activation_pr = (seg_activation_sum / seg_sum)
-
+        #self.pr_threshold= np.quantile(activation_pr, 0.97)
         res = filtered_segments[np.where(activation_pr > self.pr_threshold)]
+
 
         if save_flag:
             save_path = data_functions.create_path(self.save_path,
@@ -115,7 +120,7 @@ class SegmentationSingle(CustomImage):
                 cv2.imwrite(curr_save_path, img)
 
         res = res.sum(axis=0)
-        res += 1 * bin_mask
+        res += 1 * self.binary_mask
         res = res.astype(np.bool)
         filtered_segments = (255 * res).astype(np.uint8)
         # filtered_segments = self.filtter_size(filtered_segments)
@@ -145,7 +150,7 @@ class SegmentationSingle(CustomImage):
         return img2
 
     @logger_decorator.debug_dec
-    def apply_segmentation(self, save_flag=False, display_flag=False,
+    def apply_segmentation(self, save_flag='stamped', display_flag=False,
                            save_segments=False):
         """
         Apply the segmentation augmentation on the given image and it's mask
@@ -160,22 +165,27 @@ class SegmentationSingle(CustomImage):
         self.segmentation_mask = self.fillter_segments(
             save_flag=save_segments)
 
-        if save_flag:
-            label = 'seg_mask'
+        if save_flag is not None:
+            label = ''
+            if save_flag == 'stamped':
+                label = 'seg_mask'
+                if self.create_save_dest_flag:
+                    save_dict = {'pr_threshold': self.pr_threshold,
+                                 'seg_type': self.seg_type,
+                                 'seg_params': self.seg_params,
+                                 "graysclae": self.gray_scale}
+                    data_functions.save_json(save_dict,
+                                             "segmentation_settings.json",
+                                             self.save_path)
+
             self.save_img(self.segmentation_mask, label)
-            save_dict = {'pr_threshold': self.pr_threshold,
-                         'seg_type': self.seg_type,
-                         'seg_params': self.seg_params,
-                         "graysclae": self.gray_scale}
-            data_functions.save_json(save_dict, "segmentation_settings.json",
-                                     self.save_path)
 
         if display_flag:
             label = 'Segmentation mask'
             self.display_img(self.segmentation_mask, label)
 
     @logger_decorator.debug_dec
-    def get_ontop(self, mask_color=(255, 0, 0), display_flag=False,
+    def get_ontop_seg(self, mask_color=(255, 0, 0), display_flag=False,
                   save_flag=False):
         """
         A modiffication of the CustomImageMethod for displaying the augmented
@@ -193,7 +203,7 @@ class SegmentationSingle(CustomImage):
 
 @logger_decorator.debug_dec
 def segment_multi(img_path, mask_path, save_path, is_binary_mask=True,
-                  settings_dict=None, img_list=None):
+                  settings_dict=None, img_list=None,create_stamp=True):
     """
     Preform segmentation augmentation on multiple images using the
     :param img_path: str, the source path to the images
@@ -211,15 +221,18 @@ def segment_multi(img_path, mask_path, save_path, is_binary_mask=True,
     :return:
     """
 
-    img_list = os.listdir(img_path) if img_list is None \
-        else img_list
+    img_list = os.listdir(img_path) if img_list is None else img_list
 
-    dir_save_path = data_functions.create_path(save_path, 'several')
-    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    dir_save_path = data_functions.create_path(dir_save_path, current_time)
+    if create_stamp=='stamped':
+        dir_save_path = data_functions.create_path(save_path, 'several')
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        dir_save_path = data_functions.create_path(dir_save_path, current_time)
+        data_functions.save_json(settings_dict, "segmentation_settings.json",
+                                 dir_save_path)
 
-    data_functions.save_json(settings_dict, "segmentation_settings.json",
-                             dir_save_path)
+    else:
+        dir_save_path = save_path
+
 
     logger.info(f"segmenting to {dir_save_path}")
     save_path = dir_save_path
@@ -239,5 +252,6 @@ def segment_multi(img_path, mask_path, save_path, is_binary_mask=True,
                                 save_path=save_path,
                                 create_save_dest_flag=False,
                                 **settings_dict)
-        sg.apply_segmentation(save_flag=True)
-        sg.get_ontop(save_flag=True)
+        sg.apply_segmentation(save_flag='raw')
+        sg.get_ontop_seg(save_flag=True)
+

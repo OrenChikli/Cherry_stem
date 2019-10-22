@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    #orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
-    orig_path = os.path.join(DATA_PATH, r'segmentation\src2')
+    orig_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
+    #orig_path = os.path.join(DATA_PATH, r'segmentation\src2')
     mask_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label')
-    dest_path = os.path.join(DATA_PATH,r'segmentation')
+    dest_path = os.path.join(DATA_PATH,r'raw_data\with_maskes\label-augmented')
     # mask_path = os.path.join(DATA_PATH,
     #                          r'unet_data\training\2019-10-20_19-26-14\raw_pred')
     # dest_path = os.path.join(DATA_PATH,
@@ -32,14 +32,14 @@ def main():
 
     is_binary_mask = True
 
-    single_flag = False  # segment single image or multiple
+    single_flag = False # segment single image or multiple
 
     ## setings for single
     #img_name = '38357-02789.png.jpg'
     img_name = '74714-32897.png.jpg'
 
     display_flag = True
-    save_flag = False
+    save_flag = 'stamped'
     save_segments = False
 
     # settings for multi segmentation
@@ -89,7 +89,7 @@ def main():
 
         sg.apply_segmentation(save_flag=save_flag, display_flag=display_flag,
                               save_segments=save_segments)
-        sg.get_ontop(display_flag=display_flag, save_flag=save_flag)
+        sg.get_ontop_seg(display_flag=display_flag, save_flag=save_flag)
         if display_flag:
             cv2.waitKey(0)
 
@@ -100,7 +100,8 @@ def main():
                                    save_path=dest_path,
                                    is_binary_mask=is_binary_mask,
                                    settings_dict=settings_dict,
-                                   img_list=img_list)
+                                   img_list=img_list,
+                                   create_stamp = save_flag)
 
 
 if __name__ == '__main__':
