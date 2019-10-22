@@ -59,16 +59,18 @@ ImageDataGenerator(rotation_range=180,
                    fill_mode='nearest')
 ```
 
-#### usage
+#### Usage
 
 For an example on usage see the model_training notebook
 for direct usage open the work/unet_debug_main.py and modify the parameters
 
-Anoter options is to create a json file (see example.json) and run the following command:
+Another options is to create a json file 
+(see example_data/example.json) and run the following command:
 
 ```
 py cli_main.py train_unet --params_dict_path {PATH TO JSON FILE}
 ```
+
 
 #### Results
 Source image:
@@ -85,7 +87,6 @@ masks using Computer Vision algorithems, such as [felzenszwalb](http://people.cs
 implemented with the [skimage module](https://scikit-image.org/docs/dev/api/skimage.segmentation.html#skimage.segmentation.felzenszwalb),
 
 ### Usage
-for usage see the --------
 for direct usage open the work/segmentation_main.py and modify the parameters
 
 ### Results
@@ -100,8 +101,28 @@ which are converted to hsv histograms which are used as input to an [Xgboost](ht
 classifier (on a new train test data) which results in ranked classification
 
 ### Usage
+For this part the test and train data should be source images that are separted 
+into classes, i.e each class has its own folder:  
+<pre>
+        | - A            | - A  
+        | - B            | - B  
+train --| - C    test -- | - C    
+        | - D            | - D 
+</pre>
+First create the hsv results for test and train,
 
--------
+```
+create_test_train_obj(ground_path=<PATH TO FOLDER WITH TEST AND TRAIN>,
+                      threshold=<THRESHOLD TO CREATE BINARY MASK>,
+                      src_path= <PATH TO UNET RESULTS>,
+                      hist_type=<'hsv' or 'bgr', the type of histogram>,
+                      obj_type=<can create other objects other than\
+                                histograms, see documentation>)
+```
+
+than create hsv for model predictions using  stem_extract.py\create_object
+
+When the histograms are created, use
 ###Results
 An Example:
 ![before](md_images/stems/38360-02397.png.jpg)

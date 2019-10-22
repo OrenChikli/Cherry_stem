@@ -55,8 +55,8 @@ def main():
     # ]
 
     # general settings for segmentation
-    settings_dict = {'threshold': 0.5,
-                     "pr_threshold": 0.5,
+    settings_dict = {'threshold': 0.1,
+                     "pr_threshold": 0.3,
                      'seg_type': "felzenszwalb",
                      'seg_params': dict(scale=1, sigma=0.8, min_size=40),
                      'gray_scale': False}

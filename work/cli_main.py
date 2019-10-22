@@ -3,13 +3,13 @@ from work.unet import unet_model_functions
 from work.auxiliary import data_functions
 from work.auxiliary.exceptions import *
 from work.auxiliary.logger_settings import configure_logger
+from work.stem_extraction import stem_extract
 import click
 import logging
 
 LOG_PATH = os.path.abspath('logs')
 DATA_PATH = os.path.abspath('data')
 
-log_path = data_functions.create_path(LOG_PATH, 'unet_logs')
 
 
 
@@ -25,7 +25,7 @@ def cli():
                                        "for an example of the parameters dict"
                                        "see the model_training notbook")
 @click.option('--params_dict_path', default=None,
-              help="path to a json file containing parameters for  .")
+              help="path to a json file containing parameters for the model.")
 @click.option('--src_path', default=None,
               help="path where exsisting model checkpoints and "
                    "parameters exist.")
@@ -36,6 +36,8 @@ def cli():
               help='Optional, if --src_path is not None, can be used to select'
                    'specific checkpoint to continue training ')
 def train_unet(params_dict_path, src_path, update_dict_path, steps):
+    log_path = data_functions.create_path(LOG_PATH, 'unet_logs')
+
     configure_logger(name="cherry_stem",
                      console_level='INFO',
                      file_level='INFO',
@@ -70,6 +72,32 @@ def train_unet(params_dict_path, src_path, update_dict_path, steps):
     except:
         message = 'Error loading Model'
         logger.exception(message)
+        raise Exception
+
+
+@click.command(name='create_histogrames', help="create histograms from "
+                                               "segemntation results")
+@click.option('--params_dict_path', default=None,
+              help="path to a json file containing parameters for the model.")
+
+def create_histogrames(path=None):
+    log_path = data_functions.create_path(LOG_PATH, 'extract_logs')
+
+    configure_logger(name="stem_extractor",
+                     console_level='INFO',
+                     file_level='INFO',
+                     out_path=log_path)
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        params_dict = data_functions.load_json(path)
+        stem_extract.create_test_train_obj(**params_dict)
+
+    except:
+        message = 'Error loading Model'
+        logger.exception(message)
+        raise Exception
 
 
 

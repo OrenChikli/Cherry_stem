@@ -7,6 +7,7 @@ import shutil
 from work.auxiliary.exceptions import *
 from work.auxiliary import data_functions,decorators
 from datetime import datetime
+import pickle
 
 import matplotlib.pyplot as plt
 
@@ -139,9 +140,6 @@ class CustomImage:
         cv2.imwrite(save_path, img)
 
 
-    def save_pickle(self,):
-        with open('Fruits.obj', 'wb') as fp:
-            pickle.dump(banana, fp)
 
 
     @logger_decorator.debug_dec
@@ -160,6 +158,10 @@ class CustomImage:
                                                  cv2.IMREAD_GRAYSCALE)
             elif self.raw_mask is None:
                 self.raw_mask = self.read_npy(self.mask_path)
+
+        if self.binary_mask is not None:
+            # some sources are not exactly binary
+            self.binary_mask = (255 * (self.binary_mask > 150)).astype(np.uint8)
 
         if self.binary_mask is None and self.raw_mask is not None:
             self.binary_mask = self.get_threshold_mask()
@@ -245,105 +247,4 @@ class CustomImage:
             self.display_img(res, disp_label)
         return res
 
-    @logger_decorator.debug_dec
-    def filter_cut_image(self):
-        """
-        ---Experimental---
-        :return:
-        """
-        if self.image_cut is None:
-            self.image_cut = self.cut_via_mask()
 
-        hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_BGR2HSV)
-        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
-        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
-        mask = mask_brown + mask_green
-        # mask = cv2.inRange(hsv, (12, 0, 0), (100, 255, 255))
-        res = cv2.bitwise_and(self.image_cut, self.image_cut, mask=mask)
-        return res
-
-    @logger_decorator.debug_dec
-    def filter_cut_image_green_brown(self):
-        """
-        ---Experimental---
-        :return:
-        """
-        if self.image_cut is None:
-            self.image_cut = self.cut_via_mask()
-
-        hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_BGR2HSV)
-        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
-        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
-        mask_sum = np.sum(self.binary_mask)
-        pr_green = np.sum(mask_green) / mask_sum
-        pr_brown = np.sum(mask_brown) / mask_sum
-        self.green_part = cv2.bitwise_and(self.image_cut, self.image_cut, mask=mask_green)
-        self.brown_part = cv2.bitwise_and(self.image_cut, self.image_cut, mask=mask_brown)
-        return pr_green, pr_brown
-
-    @logger_decorator.debug_dec
-    def get_hist_via_mask_cut(self, hist_type='brg', display_flag=False):
-        """
-                ---Experimental---
-
-        :param hist_type:
-        :param display_flag:
-        :return:
-        """
-        img = self.img.copy()
-        if hist_type == 'hsv':
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-        hsv = cv2.cvtColor(self.cut_via_mask(), cv2.COLOR_BGR2HSV)
-        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
-        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
-        mask = mask_brown + mask_green
-
-        hist = []
-        for i in range(3):
-            curr_hist = cv2.calcHist([img], [i], mask=mask, histSize=[256], ranges=[0, 256])
-            hist.append(np.squeeze(curr_hist, axis=1))
-
-        return np.array(hist)
-
-    @logger_decorator.debug_dec
-    def get_hist_via_mask(self, hist_type='brg', display_flag=False):
-        """
-
-        ---Experimental---
-
-        :param hist_type:
-        :param display_flag:
-        :return:
-        """
-        img = self.img.copy()
-        if hist_type == 'hsv':
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-        mask = self.binary_mask.copy()
-        masked_img = self.cut_via_mask()
-
-        hist = []
-        for i in range(3):
-            curr_hist = cv2.calcHist([img], [i], mask=mask, histSize=[256], ranges=[0, 256])
-            hist.append(np.squeeze(curr_hist, axis=1))
-
-        if display_flag:
-            fig, ax = plt.subplots(2, 2, figsize=(16, 10))
-            ax_flat = ax.flatten()
-            ax_flat[0].imshow(img[..., ::-1])
-            ax_flat[1].imshow(np.squeeze(mask, axis=2), 'gray')
-            ax_flat[2].imshow(masked_img[..., ::-1])
-            if hist_type == 'bgr':
-                ax_flat[3].plot(hist[0], label='blue', color='blue')
-                plt.plot(hist[1], label='green', color='green')
-                plt.plot(hist[2], label='red', color='red')
-            else:
-                ax_flat[3].plot(hist[0], label='hue', color='blue')
-                plt.plot(hist[1], label='saturation', color='green')
-                plt.plot(hist[2], label='value', color='red')
-            plt.xlim([0, 256])
-            plt.legend()
-            plt.show()
-
-        return np.array(hist)

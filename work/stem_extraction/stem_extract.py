@@ -9,12 +9,12 @@ import logging
 from work.auxiliary import decorators
 from work.auxiliary.exceptions import *
 
-
 logger = logging.getLogger(__name__)
 logger_decorator = decorators.Logger_decorator(logger)
 
 from work.auxiliary.custom_image import CustomImage
-from work.segmentation.segmentation import SegmentationSingle
+
+import matplotlib.pyplot as plt
 
 OPENCV_METHODS = (
     ("Correlation", cv2.HISTCMP_CORREL),
@@ -30,7 +30,6 @@ FUNC_DICTIPNARY = {'binary': lambda x: x.get_threshold_masks(),
                    'ontop': lambda x: x.get_ontop_images(),
                    'stems': lambda x: x.get_stems(),
                    'filter_images': lambda x: x.filter_images()}
-
 
 
 class StemExtractor:
@@ -49,7 +48,7 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def __init__(self, img_path, mask_path, save_path, threshold=0.5,
-                 use_thres_flag=True,hist_type='bgr',is_binary_mask=False):
+                 use_thres_flag=True, hist_type='bgr', is_binary_mask=False):
         """
 
         :param img_path: path to source images
@@ -77,13 +76,13 @@ class StemExtractor:
 
         self.cut_image_path = None
         self.ontop_path = None
-        self.hist_type=hist_type
+        self.hist_type = hist_type
 
     @logger_decorator.debug_dec
     def get_threshold_masks(self):
         """
-        return a thresholder version of the input grayscale mask where the mask is positive for points that are greater
-        than the given threshold
+        get the binary mask, where the pixel value of the source mask (float
+        type) are greater than self.threshold
         :return:
         """
         logger.info(
@@ -131,8 +130,6 @@ class StemExtractor:
         for img in self.image_obj_iterator():
             cv2.imwrite(os.path.join(self.ontop_path, img.img_name),
                         img.get_ontop())
-
-
 
     @logger_decorator.debug_dec
     @staticmethod
@@ -219,16 +216,24 @@ class StemExtractor:
 
     @logger_decorator.debug_dec
     def image_obj_iterator(self):
+        """
+        an iterator of image objects for performing variuos actions,
+        yields an instance of CustomImageExtractor
+        :return:
+        """
         for img_entry in os.scandir(self.img_path):
-            if  not self.is_binary_mask:
+            if not self.is_binary_mask: # the source are results of unet- has
+                                        # float values form 0 to 1
                 mask_name = img_entry.name.rsplit(".", 1)[0] + '.npy'
-            else: mask_name = img_entry.name
+            else: # the mask are already binary (0 or 255)
+                mask_name = img_entry.name
             mask_path = os.path.join(self.mask_path, mask_name)
-            img = CustomImage(img_path=img_entry.path,
-                              mask_path=mask_path,
-                              is_binary_mask=self.is_binary_mask,
-                              threshold=self.threshold,
-                              create_save_dest_flag=False)
+            img = CustomImageExtractor(img_path=img_entry.path,
+                                       mask_path=mask_path,
+                                       is_binary_mask=self.is_binary_mask,
+                                       threshold=self.threshold,
+                                       hist_type=self.hist_type,
+                                       create_save_dest_flag=False)
 
             yield img
 
@@ -236,7 +241,8 @@ class StemExtractor:
     def calc_hists(self):
         dest_path = data_functions.create_path(self.thres_save_path,
                                                f'{self.hist_type}_histograms')
-        logger.info(f"getting {self.hist_type} histograms for threshold {self.threshold}")
+        logger.info(
+            f"getting {self.hist_type} histograms for threshold {self.threshold}")
         logger.info(f"saving results at {dest_path}")
         for img in self.image_obj_iterator():
             curr_dest_path = os.path.join(dest_path, f"{img.img_raw_name}.npy")
@@ -244,12 +250,10 @@ class StemExtractor:
             np.save(curr_dest_path, fig_big_hist)
 
 
-
-
 @logger_decorator.debug_dec
 def create_object(img_path, mask_path, save_path, threshold, hist_type,
                   use_thres_flag,
-                  obj_type,is_binary_mask):
+                  obj_type, is_binary_mask):
     stem_exctractor = StemExtractor(img_path=img_path,
                                     mask_path=mask_path,
                                     save_path=save_path,
@@ -260,16 +264,17 @@ def create_object(img_path, mask_path, save_path, threshold, hist_type,
 
     FUNC_DICTIPNARY[obj_type](stem_exctractor)
 
+
 @logger_decorator.debug_dec
-def create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
+def create_ground_truth_objects(ground_path, threshold,src_path, dest_path, obj_type,
                                 folder='classifier_train_data',
                                 hist_type='bgr'):
-    dest_path = data_functions.create_path(src_path, f"thres_{threshold}")
+    dest_path = data_functions.create_path(dest_path, f"thres_{threshold}")
     dest_path = data_functions.create_path(dest_path, folder)
-    raw_pred_path = os.path.join(src_path, folder)
-    ground_path = os.path.join(ground_path,folder)
+    raw_pred_path = os.path.join(dest_path, folder)
+    ground_path = os.path.join(ground_path, folder)
     logger.info(f"getting {obj_type} objects for {folder}")
-    for curr_class in os.scandir(raw_pred_path):
+    for curr_class in os.scandir(ground_path):
         logger.info(f"getting objects for {curr_class.name} class")
         curr_raw_pred_path = os.path.join(raw_pred_path, curr_class.name)
         curr_dest = data_functions.create_path(dest_path, curr_class.name)
@@ -284,10 +289,124 @@ def create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
                       obj_type=obj_type)
 
 
-def create_test_train_obj(ground_path,threshold,src_path,obj_type,hist_type):
+def create_test_train_obj(ground_path, threshold, src_path, obj_type,
+                          hist_type):
     create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
                                 folder='train',
                                 hist_type=hist_type)
     create_ground_truth_objects(ground_path, threshold, src_path, obj_type,
                                 folder='test',
                                 hist_type=hist_type)
+
+
+class CustomImageExtractor(CustomImage):
+    def __init__(self, hist_type='hsv', **kwargs):
+        super().__init__(**kwargs)
+        self.hist_type = hist_type
+
+    @logger_decorator.debug_dec
+    def filter_cut_image(self):
+        """
+        ---Experimental---
+        :return:
+        """
+        if self.image_cut is None:
+            self.image_cut = self.cut_via_mask()
+
+        hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_BGR2HSV)
+        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
+        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
+        mask = mask_brown + mask_green
+        # mask = cv2.inRange(hsv, (12, 0, 0), (100, 255, 255))
+        res = cv2.bitwise_and(self.image_cut, self.image_cut, mask=mask)
+        return res
+
+    @logger_decorator.debug_dec
+    def filter_cut_image_green_brown(self):
+        """
+        ---Experimental---
+        :return:
+        """
+        if self.image_cut is None:
+            self.image_cut = self.cut_via_mask()
+
+        hsv = cv2.cvtColor(self.image_cut, cv2.COLOR_BGR2HSV)
+        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
+        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
+        mask_sum = np.sum(self.binary_mask)
+        pr_green = np.sum(mask_green) / mask_sum
+        pr_brown = np.sum(mask_brown) / mask_sum
+        self.green_part = cv2.bitwise_and(self.image_cut, self.image_cut,
+                                          mask=mask_green)
+        self.brown_part = cv2.bitwise_and(self.image_cut, self.image_cut,
+                                          mask=mask_brown)
+        return pr_green, pr_brown
+
+    @logger_decorator.debug_dec
+    def get_hist_via_mask_cut(self, display_flag=False):
+        """
+                ---Experimental---
+
+        :param hist_type:
+        :param display_flag:
+        :return:
+        """
+        img = self.img.copy()
+        if self.hist_type == 'hsv':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        hsv = cv2.cvtColor(self.cut_via_mask(), cv2.COLOR_BGR2HSV)
+        mask_green = cv2.inRange(hsv, (26, 40, 40), (86, 255, 255))
+        mask_brown = cv2.inRange(hsv, (12, 50, 50), (20, 255, 255))
+        mask = mask_brown + mask_green
+
+        hist = []
+        for i in range(3):
+            curr_hist = cv2.calcHist([img], [i], mask=mask, histSize=[256],
+                                     ranges=[0, 256])
+            hist.append(np.squeeze(curr_hist, axis=1))
+
+        return np.array(hist)
+
+    @logger_decorator.debug_dec
+    def get_hist_via_mask(self, display_flag=False):
+        """
+
+        ---Experimental---
+
+        :param hist_type:
+        :param display_flag:
+        :return:
+        """
+        img = self.img.copy()
+        if self.hist_type == 'hsv':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        mask = self.binary_mask.copy()
+        masked_img = self.cut_via_mask()
+
+        hist = []
+        for i in range(3):
+            curr_hist = cv2.calcHist([img], [i], mask=mask, histSize=[256],
+                                     ranges=[0, 256])
+            hist.append(np.squeeze(curr_hist, axis=1))
+
+        if display_flag:
+            fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+            ax_flat = ax.flatten()
+            ax_flat[0].imshow(img[..., ::-1])
+            ax_flat[1].imshow(np.squeeze(mask, axis=2), 'gray')
+            ax_flat[2].imshow(masked_img[..., ::-1])
+            if self.hist_type == 'bgr':
+                ax_flat[3].plot(hist[0], label='blue', color='blue')
+                plt.plot(hist[1], label='green', color='green')
+                plt.plot(hist[2], label='red', color='red')
+            else:
+                ax_flat[3].plot(hist[0], label='hue', color='blue')
+                plt.plot(hist[1], label='saturation', color='green')
+                plt.plot(hist[2], label='value', color='red')
+            plt.xlim([0, 256])
+            plt.legend()
+            plt.show()
+
+        return np.array(hist)
