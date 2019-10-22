@@ -10,6 +10,14 @@ Xgboost algorithm for final classification.
 Part of my internship at Clarifruit
 
 
+## Status  
+<b>Incomplete</b>
+ - need to work on some functions in stem extraction
+ - need to add tests
+ - need to complete prediction pipeline
+ - need to finish stem classifier
+ - need to review the notebooks
+
 ## Getting Started
 
 
@@ -146,13 +154,7 @@ after:
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-## Status  
-<b>Incomplete</b>
- - need to work on some functions in stem extraction
- - need to add tests
- - need to complete prediction pipeline
- - need to finish stem classifier
- - need to review the notebooks
+
 
 
 ## Acknowledgments
