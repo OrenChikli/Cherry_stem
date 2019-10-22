@@ -28,6 +28,7 @@ def main():
     """
 
     # train_path = os.path.join(DATA_PATH, r'raw_data\with_maskes')
+    #train_path = os.path.join(DATA_PATH, r'segmentation\augmented')
     train_path = os.path.join(DATA_PATH, r'segmentation\augmented')
     dest_path = os.path.join(DATA_PATH, r'unet_data\training')
     test_path = os.path.join(DATA_PATH, r'raw_data\images_orig')

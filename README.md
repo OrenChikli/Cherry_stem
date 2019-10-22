@@ -71,6 +71,15 @@ Another options is to create a json file
 py cli_main.py train_unet --params_dict_path {PATH TO JSON FILE}
 ```
 
+##### Tensorboard
+The framework save tfrecords files for visualizations with tensorboard.
+In the  model_training notebook it one of the cells outputs a string a such:
+```
+tensorboard --logdir=D:\Files\Projects\Clarifruit\Cherry_stem\data\unet_data\training\2019-10-22_18-22-04\keras_logs
+```
+which can be used to activate tensorboard:  
+![](md_images/tensorboard.PNG)
+
 
 #### Results
 Source image:
