@@ -4,17 +4,17 @@ import os
 from work.stem_classifier.model_functions import *
 
 from work.auxiliary.logger_settings import configure_logger
-REAL_PATH = os.path.abspath('..')
 LOG_PATH = os.path.abspath('logs')
 DATA_PATH = os.path.abspath('data')
 
-log_path = data_functions.create_path(LOG_PATH, 'stem_extract')
+log_path = data_functions.create_path(LOG_PATH, 'classifier')
 
-logger = configure_logger(name="classifier",
-                          console_level='INFO',
-                          file_level='DEBUG',
-                          out_path=log_path)
+configure_logger(name="classifier",
+                 console_level='INFO',
+                 file_level='INFO',
+                 out_path=log_path)
 
+logger = logging.getLogger(__name__)
 
 
 def func():

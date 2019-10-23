@@ -264,7 +264,7 @@ class StemExtractor:
         logger.info(f"saving results at {dest_path}")
         for img in self.image_obj_iterator():
             curr_dest_path = os.path.join(dest_path, f"{img.img_raw_name}.npy")
-            fig_big_hist = img.get_hist_via_mask(hist_type=self.hist_type)
+            fig_big_hist = img.get_hist_via_mask()
             np.save(curr_dest_path, fig_big_hist)
 
 

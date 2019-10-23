@@ -18,23 +18,27 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    dest_path = os.path.join(DATA_PATH, r'annotation_output\New_folder')
+
+
+    dest_path = os.path.join(DATA_PATH, r'unet_data\training\2019-10-22_18-22-04')
 
     img_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\image')
+    mask_path = os.path.join(DATA_PATH,
+                             r'unet_data\training\2019-10-22_18-22-04\raw_pred')
     # img_path = os.path.join(DATA_PATH, r'raw_data\images_orig')
 
     # mask_path = os.path.join(dest_path, 'raw_pred')
-    mask_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\label')
-    mask_path = os.path.join(DATA_PATH,r'unet_data\training\2019-09-30_07-19-46\raw_pred')
+    #mask_path = os.path.join(DATA_PATH, r'raw_data\with_maskes\label')
+
 
     ground_path = os.path.join(DATA_PATH, r'classification_data\from_all\set1')
 
     threshold = 0.4
     is_binary_mask = False
-    hist_type = 'bgr'
-    object_type = 'ontop'
+    hist_type = 'hsv'
+    object_type = 'hists'
 
-    save_flag = True
+
     create_ground_obj = False
 
     # create ground truth

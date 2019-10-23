@@ -90,10 +90,18 @@ which can be used to activate tensorboard:
 
 
 #### Results
-Source image:  
-![](md_images/67260-70372.png.jpg)  
+##### Example 1:  
+* Source image:  
+![](md_images/unet/38360-00777.png.jpg)  
 marked stems:  
-![](md_images/67260-70372.png_ontop.jpg)
+![](md_images/unet/38360-00777_after.png.jpg)
+
+##### Example 2:  
+* Source image:  
+![](md_images/unet/71089-05856.png.jpg)  
+marked stems:  
+![](md_images/unet/71089-05856_after.png.jpg)
+
 
 
 
